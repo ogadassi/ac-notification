@@ -256,6 +256,11 @@ class MainActivity : ComponentActivity() {
             .header("User-Agent", "ACProximityApp/1.0 (ogadassi@gmail.com)")
             .build()
 
+        // Extract house number from query if user typed one (e.g. "תנועת המרי 4" -> 4)
+        val numberRegex = Regex("\\b(\\d+)\\b")
+        val match = numberRegex.find(query)
+        val queryNumber = match?.groupValues?.get(1) ?: ""
+
         httpClient.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 onResult(emptyList())
@@ -275,18 +280,28 @@ class MainActivity : ComponentActivity() {
                                 
                                 val addressObj = obj.optJSONObject("address")
                                 val formattedName = if (addressObj != null) {
-                                    val houseNumber = addressObj.optString("house_number", "")
+                                    var houseNumber = addressObj.optString("house_number", "")
                                     val road = addressObj.optString("road", "")
                                     val city = addressObj.optString("city", addressObj.optString("town", addressObj.optString("village", addressObj.optString("suburb", ""))))
                                     val country = addressObj.optString("country", "")
 
+                                    // If Nominatim matched the road but didn't return a house number node, inject it from user's query
+                                    if (houseNumber.isEmpty() && queryNumber.isNotEmpty() && road.isNotEmpty()) {
+                                        houseNumber = queryNumber
+                                    }
+
+                                    val isHebrew = road.any { c -> c in '\u0590'..'\u05FF' }
+                                    val streetLine = if (isHebrew) {
+                                        // Hebrew format: "Road HouseNumber"
+                                        if (houseNumber.isNotEmpty()) "$road $houseNumber" else road
+                                    } else {
+                                        // English/Western format: "HouseNumber, Road"
+                                        if (houseNumber.isNotEmpty()) "$houseNumber, $road" else road
+                                    }
+
                                     val parts = mutableListOf<String>()
-                                    if (houseNumber.isNotEmpty() && road.isNotEmpty()) {
-                                        parts.add("$houseNumber, $road")
-                                    } else if (road.isNotEmpty()) {
-                                        parts.add(road)
-                                    } else if (houseNumber.isNotEmpty()) {
-                                        parts.add(houseNumber)
+                                    if (streetLine.isNotEmpty()) {
+                                        parts.add(streetLine)
                                     }
                                     if (city.isNotEmpty()) {
                                         parts.add(city)
