@@ -1,0 +1,22 @@
+# Build outputs and caches
+.gradle/
+.kotlin/
+build/
+**/build/
+**/node_modules/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Sensitive configurations (API keys, IP addresses, credentials)
+**/config.json
+**/.env
+local.properties
+
+# Logs and runtime files
+*.log
+**/ac_tray_app.log
+**/tunnel_url.txt
+.DS_Store
