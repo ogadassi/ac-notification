@@ -37,14 +37,29 @@ import com.example.acnotification.theme.ACNotificationTheme
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.delay
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import org.json.JSONArray
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+data class AddressSuggestion(
+    val displayName: String,
+    val latitude: Double,
+    val longitude: Double
+)
+
 class MainActivity : ComponentActivity() {
 
     private lateinit var geofenceManager: GeofenceManager
+    private val httpClient = OkHttpClient()
 
     private var locationPermissionGranted = mutableStateOf(false)
     private var backgroundLocationGranted = mutableStateOf(false)
@@ -52,6 +67,7 @@ class MainActivity : ComponentActivity() {
     private var geofenceActive = mutableStateOf(false)
     private var homeLatitude = mutableStateOf(0.0)
     private var homeLongitude = mutableStateOf(0.0)
+    private var homeAddressName = mutableStateOf("")
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -96,13 +112,16 @@ class MainActivity : ComponentActivity() {
                         geofenceActive = geofenceActive.value,
                         homeLatitude = homeLatitude.value,
                         homeLongitude = homeLongitude.value,
+                        homeAddressName = homeAddressName.value,
                         onRequestLocationPermission = { requestLocationPermission() },
                         onRequestBackgroundLocation = { requestBackgroundLocation() },
                         onRequestNotificationPermission = { requestNotificationPermission() },
                         onToggleGeofence = { enabled -> toggleGeofence(enabled) },
                         onDisableBatteryOptimization = { disableBatteryOptimization() },
                         onSetHomeLocation = { setHomeToCurrentLocation() },
-                        onRadiusChange = { radius -> updateGeofenceRadius(radius) }
+                        onRadiusChange = { radius -> updateGeofenceRadius(radius) },
+                        onSearchAddress = { query, onResult -> searchAddress(query, onResult) },
+                        onSelectHomeAddress = { lat, lng, name -> setHomeLocationFromSearch(lat, lng, name) }
                     )
                 }
             }
@@ -115,6 +134,7 @@ class MainActivity : ComponentActivity() {
         geofenceActive.value = geofenceManager.isGeofenceActive
         homeLatitude.value = geofenceManager.homeLatitude
         homeLongitude.value = geofenceManager.homeLongitude
+        homeAddressName.value = geofenceManager.homeAddressName
     }
 
     private fun checkPermissions() {
@@ -167,7 +187,6 @@ class MainActivity : ComponentActivity() {
 
     private fun updateGeofenceRadius(radius: Float) {
         geofenceManager.setRadius(radius)
-        // If the geofence is currently active, re-register it with the new radius immediately!
         if (geofenceActive.value) {
             geofenceManager.registerGeofence(
                 onSuccess = { geofenceActive.value = true },
@@ -193,12 +212,12 @@ class MainActivity : ComponentActivity() {
             locationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
                 .addOnSuccessListener { location ->
                     if (location != null) {
-                        geofenceManager.setHomeLocation(location.latitude, location.longitude)
+                        geofenceManager.setHomeLocation(location.latitude, location.longitude, "Current Location")
                         homeLatitude.value = location.latitude
                         homeLongitude.value = location.longitude
+                        homeAddressName.value = "Current Location"
                         Toast.makeText(this, "Home set to: ${location.latitude}, ${location.longitude}", Toast.LENGTH_LONG).show()
                         
-                        // Auto re-register geofence if active
                         if (geofenceActive.value) {
                             toggleGeofence(true)
                         }
@@ -213,6 +232,60 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "Location permission not granted.", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun setHomeLocationFromSearch(lat: Double, lng: Double, addressName: String) {
+        geofenceManager.setHomeLocation(lat, lng, addressName)
+        homeLatitude.value = lat
+        homeLongitude.value = lng
+        homeAddressName.value = addressName
+        Toast.makeText(this, "Home address set successfully", Toast.LENGTH_SHORT).show()
+        if (geofenceActive.value) {
+            toggleGeofence(true)
+        }
+    }
+
+    private fun searchAddress(query: String, onResult: (List<AddressSuggestion>) -> Unit) {
+        if (query.isBlank() || query.length < 3) {
+            onResult(emptyList())
+            return
+        }
+        val encodedQuery = Uri.encode(query)
+        val url = "https://nominatim.openstreetmap.org/search?q=$encodedQuery&format=json&limit=5"
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", "ACProximityApp/1.0 (ogadassi@gmail.com)")
+            .build()
+
+        httpClient.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                onResult(emptyList())
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (it.isSuccessful) {
+                        val bodyString = it.body?.string() ?: ""
+                        try {
+                            val jsonArray = JSONArray(bodyString)
+                            val list = mutableListOf<AddressSuggestion>()
+                            for (i in 0 until jsonArray.length()) {
+                                val obj = jsonArray.getJSONObject(i)
+                                val displayName = obj.getString("display_name")
+                                val lat = obj.getDouble("lat")
+                                val lon = obj.getDouble("lon")
+                                list.add(AddressSuggestion(displayName, lat, lon))
+                            }
+                            onResult(list)
+                        } catch (e: Exception) {
+                            onResult(emptyList())
+                        }
+                    } else {
+                        onResult(emptyList())
+                    }
+                }
+            }
+        })
+    }
 }
 
 @Composable
@@ -224,19 +297,46 @@ fun ACControlScreen(
     geofenceActive: Boolean,
     homeLatitude: Double,
     homeLongitude: Double,
+    homeAddressName: String,
     onRequestLocationPermission: () -> Unit,
     onRequestBackgroundLocation: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
     onToggleGeofence: (Boolean) -> Unit,
     onDisableBatteryOptimization: () -> Unit,
     onSetHomeLocation: () -> Unit,
-    onRadiusChange: (Float) -> Unit
+    onRadiusChange: (Float) -> Unit,
+    onSearchAddress: (String, (List<AddressSuggestion>) -> Unit) -> Unit,
+    onSelectHomeAddress: (Double, Double, String) -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
     var webhookUrl by remember { mutableStateOf(prefs.getString("webhook_url", "") ?: "") }
     var apiKey by remember { mutableStateOf(prefs.getString("api_key", "") ?: "") }
     var radiusValue by remember { mutableStateOf(geofenceManager.radiusMeters) }
+    
+    var addressInput by remember { mutableStateOf(homeAddressName) }
+    var suggestions by remember { mutableStateOf<List<AddressSuggestion>>(emptyList()) }
+    var isSearching by remember { mutableStateOf(false) }
+
+    // Synchronize address input on resume
+    LaunchedEffect(homeAddressName) {
+        addressInput = homeAddressName
+    }
+
+    // Debounced search logic for Nominatim geocoding
+    LaunchedEffect(addressInput) {
+        if (addressInput.length >= 3 && addressInput != homeAddressName) {
+            isSearching = true
+            delay(600)
+            onSearchAddress(addressInput) { results ->
+                suggestions = results
+                isSearching = false
+            }
+        } else {
+            suggestions = emptyList()
+            isSearching = false
+        }
+    }
     
     val lastTriggerTime = prefs.getLong("last_trigger_time", 0L)
     val allPermissionsGranted = locationPermissionGranted && backgroundLocationGranted && notificationPermissionGranted
@@ -339,7 +439,7 @@ fun ACControlScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Home Location: ${"%.5f".format(homeLatitude)}, ${"%.5f".format(homeLongitude)}",
+                            text = "Coords: ${"%.5f".format(homeLatitude)}, ${"%.5f".format(homeLongitude)}",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -354,6 +454,63 @@ fun ACControlScreen(
                         onCheckedChange = { onToggleGeofence(it) },
                         enabled = allPermissionsGranted
                     )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // --- Smart Address Input ---
+                OutlinedTextField(
+                    value = addressInput,
+                    onValueChange = { addressInput = it },
+                    label = { Text("Home Address") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        if (isSearching) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    },
+                    singleLine = true
+                )
+
+                if (suggestions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline)
+                    ) {
+                        Column {
+                            suggestions.forEach { suggestion ->
+                                TextButton(
+                                    onClick = {
+                                        addressInput = suggestion.displayName
+                                        suggestions = emptyList()
+                                        onSelectHomeAddress(
+                                            suggestion.latitude,
+                                            suggestion.longitude,
+                                            suggestion.displayName
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = suggestion.displayName,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+                        }
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -378,7 +535,7 @@ fun ACControlScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Circle Overlay Map using OpenStreetMap (OSM) Leaflet in WebView
+                // Circle Overlay Map
                 if (homeLatitude != 0.0 && homeLongitude != 0.0) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Card(
@@ -407,7 +564,7 @@ fun ACControlScreen(
             ),
             enabled = locationPermissionGranted
         ) {
-            Text("📍 Set Current Location as Home")
+            Text("📍 Use Current Location")
         }
 
         if (!allPermissionsGranted) {

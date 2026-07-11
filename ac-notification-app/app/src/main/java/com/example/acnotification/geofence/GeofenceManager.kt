@@ -22,6 +22,8 @@ class GeofenceManager(private val context: Context) {
         private const val KEY_RADIUS = "geofence_radius"
         private const val KEY_GEOFENCE_ACTIVE = "geofence_active"
 
+        private const val KEY_HOME_ADDRESS = "home_address_name"
+
         // Default: Ramat Gan city center
         private const val DEFAULT_LAT = 32.0684
         private const val DEFAULT_LNG = 34.8248
@@ -37,17 +39,23 @@ class GeofenceManager(private val context: Context) {
     val homeLongitude: Double
         get() = prefs.getFloat(KEY_HOME_LNG, DEFAULT_LNG.toFloat()).toDouble()
 
+    val homeAddressName: String
+        get() = prefs.getString(KEY_HOME_ADDRESS, "") ?: ""
+
     val radiusMeters: Float
         get() = prefs.getFloat(KEY_RADIUS, DEFAULT_RADIUS)
 
     val isGeofenceActive: Boolean
         get() = prefs.getBoolean(KEY_GEOFENCE_ACTIVE, false)
 
-    fun setHomeLocation(lat: Double, lng: Double) {
-        prefs.edit()
+    fun setHomeLocation(lat: Double, lng: Double, addressName: String? = null) {
+        val editor = prefs.edit()
             .putFloat(KEY_HOME_LAT, lat.toFloat())
             .putFloat(KEY_HOME_LNG, lng.toFloat())
-            .apply()
+        if (addressName != null) {
+            editor.putString(KEY_HOME_ADDRESS, addressName)
+        }
+        editor.apply()
     }
 
     fun setRadius(radius: Float) {
