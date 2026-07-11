@@ -250,7 +250,7 @@ class MainActivity : ComponentActivity() {
             return
         }
         val encodedQuery = Uri.encode(query)
-        val url = "https://nominatim.openstreetmap.org/search?q=$encodedQuery&format=json&limit=5"
+        val url = "https://nominatim.openstreetmap.org/search?q=$encodedQuery&format=json&limit=5&addressdetails=1"
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", "ACProximityApp/1.0 (ogadassi@gmail.com)")
@@ -270,10 +270,41 @@ class MainActivity : ComponentActivity() {
                             val list = mutableListOf<AddressSuggestion>()
                             for (i in 0 until jsonArray.length()) {
                                 val obj = jsonArray.getJSONObject(i)
-                                val displayName = obj.getString("display_name")
                                 val lat = obj.getDouble("lat")
                                 val lon = obj.getDouble("lon")
-                                list.add(AddressSuggestion(displayName, lat, lon))
+                                
+                                val addressObj = obj.optJSONObject("address")
+                                val formattedName = if (addressObj != null) {
+                                    val houseNumber = addressObj.optString("house_number", "")
+                                    val road = addressObj.optString("road", "")
+                                    val city = addressObj.optString("city", addressObj.optString("town", addressObj.optString("village", addressObj.optString("suburb", ""))))
+                                    val country = addressObj.optString("country", "")
+
+                                    val parts = mutableListOf<String>()
+                                    if (houseNumber.isNotEmpty() && road.isNotEmpty()) {
+                                        parts.add("$houseNumber, $road")
+                                    } else if (road.isNotEmpty()) {
+                                        parts.add(road)
+                                    } else if (houseNumber.isNotEmpty()) {
+                                        parts.add(houseNumber)
+                                    }
+                                    if (city.isNotEmpty()) {
+                                        parts.add(city)
+                                    }
+                                    if (country.isNotEmpty()) {
+                                        parts.add(country)
+                                    }
+                                    
+                                    if (parts.isNotEmpty()) {
+                                        parts.joinToString(", ")
+                                    } else {
+                                        obj.getString("display_name")
+                                    }
+                                } else {
+                                    obj.getString("display_name")
+                                }
+                                
+                                list.add(AddressSuggestion(formattedName, lat, lon))
                             }
                             onResult(list)
                         } catch (e: Exception) {
