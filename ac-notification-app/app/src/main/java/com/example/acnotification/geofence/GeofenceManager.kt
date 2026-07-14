@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
 
@@ -21,7 +22,6 @@ class GeofenceManager(private val context: Context) {
         private const val KEY_HOME_LNG = "home_longitude"
         private const val KEY_RADIUS = "geofence_radius"
         private const val KEY_GEOFENCE_ACTIVE = "geofence_active"
-
         private const val KEY_HOME_ADDRESS = "home_address_name"
 
         // Default: Ramat Gan city center
@@ -56,27 +56,43 @@ class GeofenceManager(private val context: Context) {
             editor.putString(KEY_HOME_ADDRESS, addressName)
         }
         editor.apply()
+        Log.i(TAG, "Home location updated → lat=$lat, lng=$lng, address=$addressName")
     }
 
     fun setRadius(radius: Float) {
         prefs.edit().putFloat(KEY_RADIUS, radius).apply()
+        Log.i(TAG, "Geofence radius updated → ${radius}m")
     }
 
     fun registerGeofence(onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            Log.w(TAG, "Missing location permission")
-            onFailure(SecurityException("Missing location permission"))
+        // --- Permission Audit ---
+        val fineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val bgLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        val fineGranted = fineLocation == PackageManager.PERMISSION_GRANTED
+        val bgGranted = bgLocation == PackageManager.PERMISSION_GRANTED
+
+        Log.i(TAG, "🔑 Permission audit:")
+        Log.i(TAG, "   ACCESS_FINE_LOCATION     → ${if (fineGranted) "✅ GRANTED" else "❌ DENIED"}")
+        Log.i(TAG, "   ACCESS_BACKGROUND_LOCATION → ${if (bgGranted) "✅ GRANTED" else "❌ DENIED (Android 10+ requires this for background geofencing)"}")
+
+        if (!fineGranted) {
+            val error = SecurityException("Missing ACCESS_FINE_LOCATION permission")
+            Log.e(TAG, "❌ Cannot register geofence — ${error.message}")
+            onFailure(error)
             return
         }
+        if (!bgGranted) {
+            Log.w(TAG, "⚠️ ACCESS_BACKGROUND_LOCATION not granted — geofence will NOT fire when app is in background on Android 10+")
+        }
+
+        Log.i(TAG, "📍 Registering geofence: id=${GEOFENCE_ID}, center=(${homeLatitude}, ${homeLongitude}), radius=${radiusMeters}m")
 
         val geofence = Geofence.Builder()
             .setRequestId(GEOFENCE_ID)
             .setCircularRegion(homeLatitude, homeLongitude, radiusMeters)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-            .setNotificationResponsiveness(60_000) // 1 minute responsiveness to save battery
+            .setNotificationResponsiveness(60_000)
             .build()
 
         val request = GeofencingRequest.Builder()
@@ -84,14 +100,35 @@ class GeofenceManager(private val context: Context) {
             .addGeofence(geofence)
             .build()
 
+        Log.d(TAG, "🔧 PendingIntent flags: FLAG_UPDATE_CURRENT | FLAG_MUTABLE")
+        Log.d(TAG, "🔧 InitialTrigger: INITIAL_TRIGGER_ENTER — will fire immediately if already inside geofence")
+
         geofencingClient.addGeofences(request, geofencePendingIntent).run {
             addOnSuccessListener {
-                Log.i(TAG, "Geofence registered successfully")
+                Log.i(TAG, "✅ Geofence registered successfully!")
+                Log.i(TAG, "   ID: $GEOFENCE_ID")
+                Log.i(TAG, "   Center: ($homeLatitude, $homeLongitude)")
+                Log.i(TAG, "   Radius: ${radiusMeters}m")
+                Log.i(TAG, "   Expires: NEVER")
+                Log.i(TAG, "   Responsiveness: 60s")
                 prefs.edit().putBoolean(KEY_GEOFENCE_ACTIVE, true).apply()
                 onSuccess()
             }
             addOnFailureListener { e ->
-                Log.e(TAG, "Failed to register geofence", e)
+                val statusCode = (e as? com.google.android.gms.common.api.ApiException)?.statusCode ?: -1
+                val statusMsg = GeofenceStatusCodes.getStatusCodeString(statusCode)
+                Log.e(TAG, "❌ Failed to register geofence — code=$statusCode → $statusMsg")
+                Log.e(TAG, "   Exception: ${e.javaClass.simpleName}: ${e.message}")
+                when (statusCode) {
+                    GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE ->
+                        Log.e(TAG, "   FIX: Enable location services. Check if GPS is ON in device settings.")
+                    GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES ->
+                        Log.e(TAG, "   FIX: Remove existing geofences across apps. System limit is 100 total.")
+                    GeofenceStatusCodes.GEOFENCE_TOO_MANY_PENDING_INTENTS ->
+                        Log.e(TAG, "   FIX: This app has too many PendingIntents (>5). Check for duplicate registrations.")
+                    else ->
+                        Log.e(TAG, "   FIX: Check Google Play Services availability and location permissions.")
+                }
                 prefs.edit().putBoolean(KEY_GEOFENCE_ACTIVE, false).apply()
                 onFailure(e)
             }
@@ -99,9 +136,15 @@ class GeofenceManager(private val context: Context) {
     }
 
     fun removeGeofence(onComplete: () -> Unit = {}) {
+        Log.i(TAG, "🗑 Removing geofence: $GEOFENCE_ID")
         geofencingClient.removeGeofences(geofencePendingIntent).run {
-            addOnCompleteListener {
-                Log.i(TAG, "Geofence removed")
+            addOnSuccessListener {
+                Log.i(TAG, "✅ Geofence removed successfully")
+                prefs.edit().putBoolean(KEY_GEOFENCE_ACTIVE, false).apply()
+                onComplete()
+            }
+            addOnFailureListener { e ->
+                Log.e(TAG, "❌ Failed to remove geofence: ${e.message}")
                 prefs.edit().putBoolean(KEY_GEOFENCE_ACTIVE, false).apply()
                 onComplete()
             }
@@ -110,6 +153,7 @@ class GeofenceManager(private val context: Context) {
 
     private val geofencePendingIntent: PendingIntent by lazy {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
+        Log.d(TAG, "🔧 Creating PendingIntent for GeofenceBroadcastReceiver")
         PendingIntent.getBroadcast(
             context,
             0,
