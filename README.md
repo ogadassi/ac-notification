@@ -14,18 +14,18 @@ The system operates across three nodes: the Android client, the ngrok cloud gate
 
 ```mermaid
 flowchart TD
-    subgraph Phone Client (Android)
+    subgraph "Phone Client (Android)"
         A[MainActivity Compose UI] -->|Set Radius & Home Coordinates| B[Play Services Geofencing]
         B -->|Boundary ENTER transition event| C[GeofenceBroadcastReceiver]
         C -->|User clicks YES| D[ACActionReceiver Webhook Trigger]
         E[Simulation Broadcasts] -->|Skip GPS Checks| C
     end
 
-    subgraph Cloud Gateway
+    subgraph "Cloud Gateway"
         D -->|Secure HTTPS POST| F[ngrok Static Domain]
     end
 
-    subgraph PC Home Server (Windows)
+    subgraph "PC Home Server (Windows)"
         F -->|Secure Relay| G[Flask REST API Server]
         H[Tkinter Tray App] -->|Management & Logs| G
         G -->|LAN Command decryption| I[Midea AC Unit]
