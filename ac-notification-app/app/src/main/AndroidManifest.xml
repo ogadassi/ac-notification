@@ -29,11 +29,20 @@
 
         <receiver
             android:name=".geofence.GeofenceBroadcastReceiver"
-            android:exported="false" />
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.acnotification.ACTION_SIMULATE_GEOFENCE_ENTRY" />
+            </intent-filter>
+        </receiver>
+
 
         <receiver
             android:name=".notification.ACActionReceiver"
-            android:exported="false" />
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.acnotification.ACTION_AC_YES" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".receiver.BootReceiver"

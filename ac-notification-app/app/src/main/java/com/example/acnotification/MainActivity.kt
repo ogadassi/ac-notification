@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.acnotification.geofence.GeofenceBroadcastReceiver
 import com.example.acnotification.geofence.GeofenceManager
 import com.example.acnotification.notification.NotificationHelper
 import com.example.acnotification.theme.ACNotificationTheme
@@ -121,7 +122,8 @@ class MainActivity : ComponentActivity() {
                         onSetHomeLocation = { setHomeToCurrentLocation() },
                         onRadiusChange = { radius -> updateGeofenceRadius(radius) },
                         onSearchAddress = { query, onResult -> searchAddress(query, onResult) },
-                        onSelectHomeAddress = { lat, lng, name -> setHomeLocationFromSearch(lat, lng, name) }
+                        onSelectHomeAddress = { lat, lng, name -> setHomeLocationFromSearch(lat, lng, name) },
+                        onSimulateGeofenceEntry = { simulateGeofenceEntry() }
                     )
                 }
             }
@@ -176,13 +178,24 @@ class MainActivity : ComponentActivity() {
         if (enabled) {
             geofenceManager.registerGeofence(
                 onSuccess = { geofenceActive.value = true },
-                onFailure = { geofenceActive.value = false }
+                onFailure = { e ->
+                    geofenceActive.value = false
+                    Toast.makeText(this, "Geofence registration failed — retrying in background", Toast.LENGTH_LONG).show()
+                }
             )
         } else {
             geofenceManager.removeGeofence {
                 geofenceActive.value = false
             }
         }
+    }
+
+    private fun simulateGeofenceEntry() {
+        val intent = Intent(GeofenceBroadcastReceiver.ACTION_SIMULATE_ENTRY).apply {
+            setClass(this@MainActivity, GeofenceBroadcastReceiver::class.java)
+        }
+        sendBroadcast(intent)
+        Toast.makeText(this, "Simulated geofence entry sent!", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateGeofenceRadius(radius: Float) {
@@ -352,7 +365,8 @@ fun ACControlScreen(
     onSetHomeLocation: () -> Unit,
     onRadiusChange: (Float) -> Unit,
     onSearchAddress: (String, (List<AddressSuggestion>) -> Unit) -> Unit,
-    onSelectHomeAddress: (Double, Double, String) -> Unit
+    onSelectHomeAddress: (Double, Double, String) -> Unit,
+    onSimulateGeofenceEntry: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
@@ -645,14 +659,34 @@ fun ACControlScreen(
             Text("No triggers yet", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
-        // --- Test Button ---
+        // --- Test Buttons ---
         HorizontalDivider()
+        Text("Debug / Testing", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+
         OutlinedButton(
             onClick = { NotificationHelper.showACNotification(context) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("🔔 Send Test Notification")
         }
+
+        Button(
+            onClick = onSimulateGeofenceEntry,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        ) {
+            Text("🧪 Simulate Geofence Entry")
+        }
+
+        Text(
+            text = "Simulate Entry bypasses Play Services, Doze, time window and cooldown. " +
+                   "Use it to verify the full notification → webhook pipeline end-to-end.",
+            fontSize = 11.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
     }

@@ -22,7 +22,7 @@ import threading
 APP_PACKAGE = "com.example.acnotification"
 LOG_TAG = "GeofenceReceiver|GeofenceManager|ACActionReceiver|GeofencingApi"
 
-# ─── ADB Helper ──────────────────────────────────────────────────────────────
+# ___ ADB Helper ______________________________________________________________
 
 def adb(*args, device=None, capture=True):
     cmd = ["adb"]
@@ -43,24 +43,24 @@ def print_section(title):
     print(f"  {title}")
     print(f"{'='*60}")
 
-# ─── Step 1: Detect Device ───────────────────────────────────────────────────
+# ___ Step 1: Detect Device ___________________________________________________
 
 def detect_device(preferred=None):
     out, _ = adb("devices")
     lines = [l for l in out.splitlines() if "\t" in l and "offline" not in l]
     if not lines:
-        print("❌ No ADB devices connected. Start an emulator or connect a phone.")
+        print("[FAIL] No ADB devices connected. Start an emulator or connect a phone.")
         sys.exit(1)
     if preferred:
         serials = [l.split("\t")[0] for l in lines]
         if preferred in serials:
             return preferred
-        print(f"⚠️ Device {preferred} not found. Using first available.")
+        print(f"[WARN] Device {preferred} not found. Using first available.")
     device = lines[0].split("\t")[0]
-    print(f"✅ Using device: {device}")
+    print(f"[OK] Using device: {device}")
     return device
 
-# ─── Step 2: Permission Audit ────────────────────────────────────────────────
+# ___ Step 2: Permission Audit ________________________________________________
 
 def audit_permissions(device):
     print_section("PERMISSION AUDIT")
@@ -74,11 +74,11 @@ def audit_permissions(device):
     for perm in permissions:
         out, _ = adb_shell(f"dumpsys package {APP_PACKAGE} | grep '{perm}'", device=device)
         granted = "granted=true" in out
-        status = "✅ GRANTED" if granted else "❌ DENIED"
+        status = "[OK] GRANTED" if granted else "[FAIL] DENIED"
         short = perm.replace("android.permission.", "")
         print(f"  {status}  {short}")
         if not granted and "BACKGROUND_LOCATION" in perm:
-            print(f"           ⚠️  CRITICAL: Background geofencing will NOT work on Android 10+ without this")
+            print(f"           [WARN]  CRITICAL: Background geofencing will NOT work on Android 10+ without this")
             print(f"           FIX: adb shell pm grant {APP_PACKAGE} {perm}")
 
     # Grant background location automatically
@@ -86,59 +86,60 @@ def audit_permissions(device):
     adb_shell(f"pm grant {APP_PACKAGE} android.permission.ACCESS_BACKGROUND_LOCATION", device=device)
     adb_shell(f"pm grant {APP_PACKAGE} android.permission.ACCESS_FINE_LOCATION", device=device)
     adb_shell(f"pm grant {APP_PACKAGE} android.permission.POST_NOTIFICATIONS", device=device)
-    print("  ✅ Grants applied")
+    print("  [OK] Grants applied")
 
-# ─── Step 3: Battery Optimization ───────────────────────────────────────────
+# ___ Step 3: Battery Optimization ___________________________________________
 
 def audit_battery(device):
     print_section("BATTERY OPTIMIZATION AUDIT")
 
     out, _ = adb_shell(f"dumpsys deviceidle | grep {APP_PACKAGE}", device=device)
-    print(f"  Doze whitelist: {'✅ PRESENT' if APP_PACKAGE in out else '❌ NOT IN WHITELIST'}")
+    print(f"  Doze whitelist: {'[OK] PRESENT' if APP_PACKAGE in out else '[FAIL] NOT IN WHITELIST'}")
 
     out2, _ = adb_shell(f"dumpsys battery", device=device)
     plugged = any(f"powered: true" in l or "AC powered: true" in l or "USB powered: true" in l
                   for l in out2.splitlines())
-    print(f"  Charging:       {'✅ YES (Doze won't activate)' if plugged else '⚠️  NO (device may Doze)'}")
+    charging_msg = "[OK] YES (Doze wont activate)" if plugged else "[WARN]  NO (device may Doze)"
+    print(f"  Charging:       {charging_msg}")
 
     print("\n  Adding app to Doze/battery whitelist...")
     adb_shell(f"dumpsys deviceidle whitelist +{APP_PACKAGE}", device=device)
-    print("  ✅ App whitelisted from Doze mode")
+    print("  [OK] App whitelisted from Doze mode")
 
     out3, _ = adb_shell(f"cmd appops get {APP_PACKAGE} RUN_IN_BACKGROUND", device=device)
     print(f"  Background execution: {out3.strip() or 'N/A'}")
 
-# ─── Step 4: Check Geofence Registration ─────────────────────────────────────
+# ___ Step 4: Check Geofence Registration _____________________________________
 
 def audit_geofence_registration(device):
     print_section("GEOFENCE REGISTRATION AUDIT")
     out, _ = adb_shell("dumpsys activity service com.google.android.gms/.location.GeofencerService", device=device)
     if APP_PACKAGE in out:
-        print(f"  ✅ App geofences ARE registered in Play Services")
+        print(f"  [OK] App geofences ARE registered in Play Services")
         lines = [l for l in out.splitlines() if APP_PACKAGE in l or "HOME_GEOFENCE" in l or "radius" in l.lower()]
         for l in lines[:10]:
             print(f"    {l.strip()}")
     else:
-        print(f"  ❌ App geofences NOT found in Play Services GeofencerService")
-        print(f"     → The app may not have called addGeofences() yet, or Play Services rejected it")
-        print(f"     → Open the app and toggle the Monitoring switch ON")
+        print(f"  [FAIL] App geofences NOT found in Play Services GeofencerService")
+        print(f"     _ The app may not have called addGeofences() yet, or Play Services rejected it")
+        print(f"     _ Open the app and toggle the Monitoring switch ON")
 
-# ─── Step 5: Enable Diagnostic Mode ─────────────────────────────────────────
+# ___ Step 5: Enable Diagnostic Mode _________________________________________
 
 def enable_diagnostic_mode(device):
     print_section("ENABLING DIAGNOSTIC MODE")
     # Use shared preferences to signal diagnostic mode (bypass time/day filters)
     adb_shell(f'am broadcast -a {APP_PACKAGE}.DIAGNOSTIC_ON', device=device)
-    print("  ✅ Diagnostic mode broadcast sent (bypasses time window and cooldown filters)")
+    print("  [OK] Diagnostic mode broadcast sent (bypasses time window and cooldown filters)")
 
-# ─── Step 6: Smooth Location Simulation ──────────────────────────────────────
+# ___ Step 6: Smooth Location Simulation ______________________________________
 
 def simulate_route(device, home_lat, home_lng, radius_m):
     print_section("GEOFENCE ENTRY SIMULATION")
 
     # Start 500m outside the geofence boundary
     start_distance_m = radius_m + 500
-    # Bearing: approach from due south (bearing 0° = north, 180° = south)
+    # Bearing: approach from due south (bearing 0_ = north, 180_ = south)
     bearing_rad = math.radians(0)  # approaching from south going north
 
     earth_radius = 6371000  # metres
@@ -153,7 +154,7 @@ def simulate_route(device, home_lat, home_lng, radius_m):
     step_distance = total_distance / num_steps
     step_delay = step_distance / speed_mps
 
-    print(f"  Route: ({start_lat:.5f}, {start_lng:.5f}) → ({end_lat:.5f}, {end_lng:.5f})")
+    print(f"  Route: ({start_lat:.5f}, {start_lng:.5f}) _ ({end_lat:.5f}, {end_lng:.5f})")
     print(f"  Distance: ~{total_distance:.0f}m total, {num_steps} steps, ~{step_delay:.1f}s per step")
     print(f"  Simulated speed: {speed_mps * 3.6:.1f} km/h (walking)")
     print(f"  Geofence boundary at: {start_distance_m - radius_m:.0f}m from start")
@@ -169,7 +170,7 @@ def simulate_route(device, home_lat, home_lng, radius_m):
 
         dist_from_home = math.sqrt((lat - home_lat)**2 + (lng - home_lng)**2) * 111320
         inside = dist_from_home <= radius_m
-        boundary_marker = " ←── CROSSING GEOFENCE BOUNDARY" if i == geofence_cross_step else ""
+        boundary_marker = " ___ CROSSING GEOFENCE BOUNDARY" if i == geofence_cross_step else ""
         inside_marker = " [INSIDE]" if inside else " [outside]"
 
         print(f"  Step {i:3d}/{num_steps}  ({lat:.6f}, {lng:.6f})  dist={dist_from_home:6.1f}m{inside_marker}{boundary_marker}")
@@ -177,9 +178,9 @@ def simulate_route(device, home_lat, home_lng, radius_m):
         adb_shell(f"geo fix {lng} {lat}", device=device)
         time.sleep(step_delay)
 
-    print("\n  ✅ Route simulation complete")
+    print("\n  [OK] Route simulation complete")
 
-# ─── Step 7: Logcat Streaming ────────────────────────────────────────────────
+# ___ Step 7: Logcat Streaming ________________________________________________
 
 def stream_logcat(device, stop_event):
     """Stream filtered logcat in background thread."""
@@ -190,14 +191,14 @@ def stream_logcat(device, stop_event):
             "GeofenceReceiver:V", "GeofenceManager:V", "ACActionReceiver:V",
             "GeofencingApi:V", "LocationManager:W"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
-    print("\n  📡 Logcat stream active — watching for geofence events...\n")
+    print("\n  [ANT] Logcat stream active _ watching for geofence events...\n")
     while not stop_event.is_set():
         line = proc.stdout.readline()
         if line:
             print(f"  [LOG] {line.rstrip()}")
     proc.terminate()
 
-# ─── Step 8: Doze Simulation ────────────────────────────────────────────────
+# ___ Step 8: Doze Simulation ________________________________________________
 
 def simulate_doze(device):
     print_section("DOZE MODE SIMULATION")
@@ -211,9 +212,9 @@ def simulate_doze(device):
     time.sleep(5)
     print("  Exiting Doze mode...")
     adb_shell("dumpsys deviceidle unforce", device=device)
-    print("  ✅ Doze simulation complete")
+    print("  [OK] Doze simulation complete")
 
-# ─── Main ────────────────────────────────────────────────────────────────────
+# ___ Main ____________________________________________________________________
 
 def main():
     parser = argparse.ArgumentParser(description="AC Proximity Geofence Diagnostic Suite")
@@ -225,7 +226,7 @@ def main():
     parser.add_argument("--skip-doze", action="store_true", help="Skip Doze mode simulation")
     args = parser.parse_args()
 
-    print("\n🔬 AC Proximity Geofence Diagnostic Suite")
+    print("\n[DIAG] AC Proximity Geofence Diagnostic Suite")
     print(f"   Package:   {APP_PACKAGE}")
     print(f"   Home:      ({args.lat}, {args.lng})")
     print(f"   Radius:    {args.radius}m")
@@ -234,7 +235,7 @@ def main():
 
     # Clear old logs
     adb("logcat", "-c", device=device)
-    print("✅ Logcat cleared")
+    print("[OK] Logcat cleared")
 
     # Start logcat stream in background
     stop_event = threading.Event()
@@ -258,10 +259,10 @@ def main():
 
         print_section("DIAGNOSTIC COMPLETE")
         print("  Review the logcat output above for:")
-        print("  - ✅ 'Geofence registered successfully'")
-        print("  - ✅ 'Geofence ENTER detected'")
-        print("  - ✅ 'All guards passed — firing notification!'")
-        print("  - ❌ Any GEOFENCE_NOT_AVAILABLE or permission errors")
+        print("  - [OK] 'Geofence registered successfully'")
+        print("  - [OK] 'Geofence ENTER detected'")
+        print("  - [OK] 'All guards passed _ firing notification!'")
+        print("  - [FAIL] Any GEOFENCE_NOT_AVAILABLE or permission errors")
         print("\n  Press Ctrl+C to stop logcat stream.")
         log_thread.join()
 

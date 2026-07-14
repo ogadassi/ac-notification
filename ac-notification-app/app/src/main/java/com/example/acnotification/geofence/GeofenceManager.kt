@@ -11,6 +11,8 @@ import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class GeofenceManager(private val context: Context) {
 
@@ -24,14 +26,17 @@ class GeofenceManager(private val context: Context) {
         private const val KEY_GEOFENCE_ACTIVE = "geofence_active"
         private const val KEY_HOME_ADDRESS = "home_address_name"
 
-        // Default: Ramat Gan city center
         private const val DEFAULT_LAT = 32.0684
         private const val DEFAULT_LNG = 34.8248
         private const val DEFAULT_RADIUS = 200f
+
+        private const val MAX_RETRIES = 3
+        private const val RETRY_DELAY_SECONDS = 20L
     }
 
     private val geofencingClient = LocationServices.getGeofencingClient(context)
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val scheduler = Executors.newSingleThreadScheduledExecutor()
 
     val homeLatitude: Double
         get() = prefs.getFloat(KEY_HOME_LAT, DEFAULT_LAT.toFloat()).toDouble()
@@ -52,9 +57,7 @@ class GeofenceManager(private val context: Context) {
         val editor = prefs.edit()
             .putFloat(KEY_HOME_LAT, lat.toFloat())
             .putFloat(KEY_HOME_LNG, lng.toFloat())
-        if (addressName != null) {
-            editor.putString(KEY_HOME_ADDRESS, addressName)
-        }
+        if (addressName != null) editor.putString(KEY_HOME_ADDRESS, addressName)
         editor.apply()
         Log.i(TAG, "Home location updated → lat=$lat, lng=$lng, address=$addressName")
     }
@@ -64,35 +67,39 @@ class GeofenceManager(private val context: Context) {
         Log.i(TAG, "Geofence radius updated → ${radius}m")
     }
 
-    fun registerGeofence(onSuccess: () -> Unit = {}, onFailure: (Exception) -> Unit = {}) {
+    /** Register geofence with automatic retry on transient GEOFENCE_NOT_AVAILABLE errors. */
+    fun registerGeofence(
+        onSuccess: () -> Unit = {},
+        onFailure: (Exception) -> Unit = {},
+        retryCount: Int = 0
+    ) {
         // --- Permission Audit ---
-        val fineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        val bgLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        val fineGranted = fineLocation == PackageManager.PERMISSION_GRANTED
-        val bgGranted = bgLocation == PackageManager.PERMISSION_GRANTED
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val bgGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
 
-        Log.i(TAG, "🔑 Permission audit:")
-        Log.i(TAG, "   ACCESS_FINE_LOCATION     → ${if (fineGranted) "✅ GRANTED" else "❌ DENIED"}")
-        Log.i(TAG, "   ACCESS_BACKGROUND_LOCATION → ${if (bgGranted) "✅ GRANTED" else "❌ DENIED (Android 10+ requires this for background geofencing)"}")
+        Log.i(TAG, "🔑 Permission audit (attempt ${retryCount + 1}/$MAX_RETRIES):")
+        Log.i(TAG, "   ACCESS_FINE_LOCATION       → ${if (fineGranted) "✅ GRANTED" else "❌ DENIED"}")
+        Log.i(TAG, "   ACCESS_BACKGROUND_LOCATION → ${if (bgGranted) "✅ GRANTED" else "❌ DENIED — background triggers will NOT work on Android 10+"}")
 
         if (!fineGranted) {
-            val error = SecurityException("Missing ACCESS_FINE_LOCATION permission")
-            Log.e(TAG, "❌ Cannot register geofence — ${error.message}")
-            onFailure(error)
+            val err = SecurityException("Missing ACCESS_FINE_LOCATION")
+            Log.e(TAG, "❌ Cannot register geofence — permission missing")
+            onFailure(err)
             return
         }
-        if (!bgGranted) {
-            Log.w(TAG, "⚠️ ACCESS_BACKGROUND_LOCATION not granted — geofence will NOT fire when app is in background on Android 10+")
-        }
 
-        Log.i(TAG, "📍 Registering geofence: id=${GEOFENCE_ID}, center=(${homeLatitude}, ${homeLongitude}), radius=${radiusMeters}m")
+        Log.i(TAG, "📍 Registering geofence: id=$GEOFENCE_ID, center=($homeLatitude, $homeLongitude), radius=${radiusMeters}m")
 
         val geofence = Geofence.Builder()
             .setRequestId(GEOFENCE_ID)
             .setCircularRegion(homeLatitude, homeLongitude, radiusMeters)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-            .setNotificationResponsiveness(60_000)
+            .setNotificationResponsiveness(30_000) // reduced to 30s for faster test feedback
             .build()
 
         val request = GeofencingRequest.Builder()
@@ -100,17 +107,10 @@ class GeofenceManager(private val context: Context) {
             .addGeofence(geofence)
             .build()
 
-        Log.d(TAG, "🔧 PendingIntent flags: FLAG_UPDATE_CURRENT | FLAG_MUTABLE")
-        Log.d(TAG, "🔧 InitialTrigger: INITIAL_TRIGGER_ENTER — will fire immediately if already inside geofence")
-
         geofencingClient.addGeofences(request, geofencePendingIntent).run {
             addOnSuccessListener {
                 Log.i(TAG, "✅ Geofence registered successfully!")
-                Log.i(TAG, "   ID: $GEOFENCE_ID")
-                Log.i(TAG, "   Center: ($homeLatitude, $homeLongitude)")
-                Log.i(TAG, "   Radius: ${radiusMeters}m")
-                Log.i(TAG, "   Expires: NEVER")
-                Log.i(TAG, "   Responsiveness: 60s")
+                Log.i(TAG, "   ID: $GEOFENCE_ID | Center: ($homeLatitude, $homeLongitude) | Radius: ${radiusMeters}m | Expires: NEVER")
                 prefs.edit().putBoolean(KEY_GEOFENCE_ACTIVE, true).apply()
                 onSuccess()
             }
@@ -118,19 +118,30 @@ class GeofenceManager(private val context: Context) {
                 val statusCode = (e as? com.google.android.gms.common.api.ApiException)?.statusCode ?: -1
                 val statusMsg = GeofenceStatusCodes.getStatusCodeString(statusCode)
                 Log.e(TAG, "❌ Failed to register geofence — code=$statusCode → $statusMsg")
-                Log.e(TAG, "   Exception: ${e.javaClass.simpleName}: ${e.message}")
-                when (statusCode) {
-                    GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE ->
-                        Log.e(TAG, "   FIX: Enable location services. Check if GPS is ON in device settings.")
-                    GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES ->
-                        Log.e(TAG, "   FIX: Remove existing geofences across apps. System limit is 100 total.")
-                    GeofenceStatusCodes.GEOFENCE_TOO_MANY_PENDING_INTENTS ->
-                        Log.e(TAG, "   FIX: This app has too many PendingIntents (>5). Check for duplicate registrations.")
-                    else ->
-                        Log.e(TAG, "   FIX: Check Google Play Services availability and location permissions.")
+
+                // GEOFENCE_NOT_AVAILABLE (1000) is transient — retry with backoff
+                if (statusCode == GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE && retryCount < MAX_RETRIES) {
+                    val nextRetry = retryCount + 1
+                    val delaySec = RETRY_DELAY_SECONDS * nextRetry
+                    Log.w(TAG, "⏳ GEOFENCE_NOT_AVAILABLE is transient (GPS/Play Services not ready). Retrying in ${delaySec}s (attempt $nextRetry/$MAX_RETRIES)")
+                    Log.w(TAG, "   Common causes: GPS just turned on, Play Services initialising, emulator needs Google account")
+                    scheduler.schedule({
+                        registerGeofence(onSuccess, onFailure, nextRetry)
+                    }, delaySec, TimeUnit.SECONDS)
+                } else {
+                    when (statusCode) {
+                        GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE ->
+                            Log.e(TAG, "   FIX: Enable Location (Settings > Location > On). Check GPS signal. On emulator: sign into Google account.")
+                        GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES ->
+                            Log.e(TAG, "   FIX: Too many geofences system-wide (>100). Remove others.")
+                        GeofenceStatusCodes.GEOFENCE_TOO_MANY_PENDING_INTENTS ->
+                            Log.e(TAG, "   FIX: Too many PendingIntents (>5). Check for duplicate registrations.")
+                        else ->
+                            Log.e(TAG, "   FIX: Unknown error. Ensure Google Play Services is up to date.")
+                    }
+                    prefs.edit().putBoolean(KEY_GEOFENCE_ACTIVE, false).apply()
+                    onFailure(e)
                 }
-                prefs.edit().putBoolean(KEY_GEOFENCE_ACTIVE, false).apply()
-                onFailure(e)
             }
         }
     }
@@ -155,9 +166,7 @@ class GeofenceManager(private val context: Context) {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
         Log.d(TAG, "🔧 Creating PendingIntent for GeofenceBroadcastReceiver")
         PendingIntent.getBroadcast(
-            context,
-            0,
-            intent,
+            context, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
     }
