@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
     private var locationPermissionGranted = mutableStateOf(false)
     private var backgroundLocationGranted = mutableStateOf(false)
     private var notificationPermissionGranted = mutableStateOf(false)
+    private var batteryOptimizationIgnored = mutableStateOf(false)
     private var geofenceActive = mutableStateOf(false)
     private var homeLatitude = mutableStateOf(0.0)
     private var homeLongitude = mutableStateOf(0.0)
@@ -110,6 +111,7 @@ class MainActivity : ComponentActivity() {
                         locationPermissionGranted = locationPermissionGranted.value,
                         backgroundLocationGranted = backgroundLocationGranted.value,
                         notificationPermissionGranted = notificationPermissionGranted.value,
+                        batteryOptimizationIgnored = batteryOptimizationIgnored.value,
                         geofenceActive = geofenceActive.value,
                         homeLatitude = homeLatitude.value,
                         homeLongitude = homeLongitude.value,
@@ -153,6 +155,9 @@ class MainActivity : ComponentActivity() {
                 this, Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         } else true
+
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        batteryOptimizationIgnored.value = pm.isIgnoringBatteryOptimizations(packageName)
     }
 
     private fun requestLocationPermission() {
@@ -353,6 +358,7 @@ fun ACControlScreen(
     locationPermissionGranted: Boolean,
     backgroundLocationGranted: Boolean,
     notificationPermissionGranted: Boolean,
+    batteryOptimizationIgnored: Boolean,
     geofenceActive: Boolean,
     homeLatitude: Double,
     homeLongitude: Double,
@@ -378,8 +384,15 @@ fun ACControlScreen(
     var suggestions by remember { mutableStateOf<List<AddressSuggestion>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
 
-    // Synchronize address input on resume
-    LaunchedEffect(homeAddressName) {
+    var tempLatitude by remember { mutableStateOf(homeLatitude) }
+    var tempLongitude by remember { mutableStateOf(homeLongitude) }
+    var tempAddressName by remember { mutableStateOf(homeAddressName) }
+
+    // Synchronize address input on update
+    LaunchedEffect(homeLatitude, homeLongitude, homeAddressName) {
+        tempLatitude = homeLatitude
+        tempLongitude = homeLongitude
+        tempAddressName = homeAddressName
         addressInput = homeAddressName
     }
 
@@ -442,6 +455,12 @@ fun ACControlScreen(
             label = "Notifications",
             granted = notificationPermissionGranted,
             onRequest = onRequestNotificationPermission
+        )
+        PermissionRow(
+            label = "Battery Optimization Exemption",
+            granted = batteryOptimizationIgnored,
+            onRequest = onDisableBatteryOptimization,
+            buttonText = "Disable"
         )
 
         HorizontalDivider()
@@ -531,6 +550,13 @@ fun ACControlScreen(
                                 strokeWidth = 2.dp,
                                 color = MaterialTheme.colorScheme.primary
                             )
+                        } else {
+                            IconButton(
+                                onClick = onSetHomeLocation,
+                                enabled = locationPermissionGranted
+                            ) {
+                                Text("📍", fontSize = 16.sp)
+                            }
                         }
                     },
                     singleLine = true
@@ -551,11 +577,9 @@ fun ACControlScreen(
                                     onClick = {
                                         addressInput = suggestion.displayName
                                         suggestions = emptyList()
-                                        onSelectHomeAddress(
-                                            suggestion.latitude,
-                                            suggestion.longitude,
-                                            suggestion.displayName
-                                        )
+                                        tempLatitude = suggestion.latitude
+                                        tempLongitude = suggestion.longitude
+                                        tempAddressName = suggestion.displayName
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
@@ -615,16 +639,19 @@ fun ACControlScreen(
             }
         }
 
+        val hasChanges = tempLatitude != homeLatitude || tempLongitude != homeLongitude || tempAddressName != homeAddressName
         Button(
-            onClick = onSetHomeLocation,
+            onClick = {
+                onSelectHomeAddress(tempLatitude, tempLongitude, tempAddressName)
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ),
-            enabled = locationPermissionGranted
+            enabled = hasChanges && tempLatitude != 0.0 && tempLongitude != 0.0
         ) {
-            Text("📍 Use Current Location")
+            Text("Apply Location")
         }
 
         if (!allPermissionsGranted) {
@@ -633,18 +660,6 @@ fun ACControlScreen(
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.error
             )
-        }
-
-        // --- Battery Optimization ---
-        Button(
-            onClick = onDisableBatteryOptimization,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        ) {
-            Text("Disable Battery Optimization")
         }
 
         // --- Status ---
@@ -803,7 +818,8 @@ fun GeofenceMap(
 fun PermissionRow(
     label: String,
     granted: Boolean,
-    onRequest: () -> Unit
+    onRequest: () -> Unit,
+    buttonText: String = "Grant"
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -820,7 +836,7 @@ fun PermissionRow(
         }
         if (!granted) {
             TextButton(onClick = onRequest) {
-                Text("Grant")
+                Text(buttonText)
             }
         }
     }
