@@ -9,7 +9,6 @@ import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingEvent
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -19,11 +18,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         const val TAG = "GeofenceReceiver"
         const val ACTION_SIMULATE_ENTRY = "com.example.acnotification.ACTION_SIMULATE_GEOFENCE_ENTRY"
         private const val PREFS_NAME = "ac_notification_prefs"
-        private const val KEY_START_HOUR = "time_start_hour"
-        private const val KEY_END_HOUR = "time_end_hour"
-        private const val KEY_WEEKDAYS_ONLY = "weekdays_only"
-        private const val DEFAULT_START_HOUR = 16
-        private const val DEFAULT_END_HOUR = 20
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -95,30 +89,6 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
             } else {
                 Log.w(TAG, "[$ts] 🧪 DIAGNOSTIC: bypassing cooldown (${minutesLeft}m remaining)")
             }
-        }
-
-        // Time window check
-        val calendar = Calendar.getInstance()
-        val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        val startHour = prefs.getInt(KEY_START_HOUR, DEFAULT_START_HOUR)
-        val endHour = prefs.getInt(KEY_END_HOUR, DEFAULT_END_HOUR)
-        val weekdaysOnly = prefs.getBoolean(KEY_WEEKDAYS_ONLY, true)
-        val dayName = SimpleDateFormat("EEEE", Locale.getDefault()).format(Date())
-
-        Log.d(TAG, "[$ts] 🕐 Time: ${currentHour}:xx | Day: $dayName | Window: $startHour-$endHour | WeekdaysOnly: $weekdaysOnly")
-
-        if (!diagnosticMode) {
-            if (weekdaysOnly && (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.FRIDAY)) {
-                Log.i(TAG, "[$ts] 📅 BLOCKED — Weekend ($dayName)")
-                return
-            }
-            if (currentHour !in startHour until endHour) {
-                Log.i(TAG, "[$ts] ⏰ BLOCKED — Hour $currentHour outside window [$startHour-$endHour)")
-                return
-            }
-        } else {
-            Log.w(TAG, "[$ts] 🧪 DIAGNOSTIC: bypassing time/day filters")
         }
 
         Log.i(TAG, "[$ts] 🚀 Firing notification!")
