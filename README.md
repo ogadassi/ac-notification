@@ -71,21 +71,7 @@ flowchart TD
 ---
 
 ### 🟡 Future Missions (Backlog)
-
-#### 1. Dual-AC Support (Multi-Room Coordination)
-- Extend Flask API config to support registering and toggling multiple Midea/Electra AC devices simultaneously (e.g. Living Room + Bedroom).
-- Update Android UI to show checkbox selectors to pick which rooms to target.
-
-#### 2. Geofence Exit Turn-off Alerts (Energy Saver)
-- Add monitoring for `GEOFENCE_TRANSITION_EXIT` transitions.
-- If the user leaves the home radius, send a push notification asking: *"Still away? Want to turn off the AC?"* with a one-tap webhook callback.
-
-#### 3. Secure Webhook Key Rotation
-- Implement a rotating token mechanism instead of using a static header key.
-- Store encrypted secrets inside the Android KeyStore API.
-
-#### 4. Webhook Failure Notification Retries
-- If the phone lacks internet connectivity or the ngrok tunnel returns a `500`/`404` error upon transition entry, cache the action and auto-retry as soon as network connectivity is restored.
+*(To be populated)*
 
 ---
 
