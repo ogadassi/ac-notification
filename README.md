@@ -4,55 +4,28 @@
   <img src="resources/app_icon.png" width="128" height="128" alt="AC Proximity Icon"/>
 </p>
 
-A location-aware automated AC activation system. The project features an Android app that monitors a geofence around your home. When you physically enter the geofence boundary during weekday hours, a push notification prompt asks if you want to turn on the AC. Tapping "YES" triggers a secure background webhook relayed through ngrok to your local Midea/Electra AC server.
+A location-aware, smart-home automation system designed to optimize comfort and energy. The project consists of a native Compose Android application that monitors a geofence around your home. When you cross the boundary from outside to inside, it triggers a system notification prompt to activate the AC. Tapping "YES" triggers a secure background webhook relayed through ngrok to a local Python Flask server, which controls the AC over LAN.
 
 ---
 
-## Key Features
+## 🛠 Project Architecture
 
-### 📱 Android Application
-* **Material You Integration**: Automatically adapts to your phone's current wallpaper colors and active theme.
-* **Leaflet Map Overlay**: Embedded Dark-mode CartoDB map that visualizes your geofence boundary in real-time.
-* **Custom Radius Slider**: Adjusts geofence radius from `50m` up to `1000m` in real-time.
-* **Fused Location Provider**: High-precision geofencing using Google Play Services API with background location awareness.
-* **Battery Optimized**: Runs efficiently with fine-tuned location responsiveness and 30-minute GPS drift cooldown guard.
-
-### 💻 Windows Background Client
-* **Quiet System Tray Control**: Low-overhead background application (`pythonw.exe`) with a custom status icon.
-* **Stealth Mode**: Toggle visibility to hide the tray icon completely while running in the background.
-* **Log Viewer**: Integrated Tkinter GUI to review local server logs and connection events.
-* **Ngrok Static Tunneling**: Secure local forwarding using a free static domain that survives reboots and IP renewals.
-* **Single Instance Enforced**: TCP socket lock ensures only one active instance handles requests.
-
----
-
-## Project Structure
-
-```
-├── ac-notification-app/    # Native Compose Android Application
-├── midea-ac-server/        # Python Flask API & Windows System Tray Client
-├── resources/              # Images, icons, and assets
-└── ac-proximity-app.apk    # Compiled Android package for easy installation
-```
-
----
-
-## Architecture Flow
+The system operates across three nodes: the Android client, the ngrok cloud gateway, and the local PC server.
 
 ```mermaid
 flowchart TD
-    subgraph Phone Client
+    subgraph Phone Client (Android)
         A[MainActivity Compose UI] -->|Set Radius & Home Coordinates| B[Play Services Geofencing]
-        B -->|ENTER boundary transition| C[GeofenceBroadcastReceiver]
-        C -->|Weekday Time Check| D[NotificationHelper Push Alert]
-        D -->|User clicks YES| E[ACActionReceiver Webhook Trigger]
+        B -->|Boundary ENTER transition event| C[GeofenceBroadcastReceiver]
+        C -->|User clicks YES| D[ACActionReceiver Webhook Trigger]
+        E[Simulation Broadcasts] -->|Skip GPS Checks| C
     end
 
     subgraph Cloud Gateway
-        E -->|Secure HTTPS POST| F[ngrok Static Domain]
+        D -->|Secure HTTPS POST| F[ngrok Static Domain]
     end
 
-    subgraph PC Home Server
+    subgraph PC Home Server (Windows)
         F -->|Secure Relay| G[Flask REST API Server]
         H[Tkinter Tray App] -->|Management & Logs| G
         G -->|LAN Command decryption| I[Midea AC Unit]
@@ -61,18 +34,72 @@ flowchart TD
 
 ---
 
-## Getting Started
+## 📋 Project Board & Mission Status
+*This section serves as a structured status list designed for CRM scraping and JIRA integration.*
 
-### 1. Setup Local Server (PC)
+### 🟢 Completed Missions (Done)
+
+#### 1. UI/UX Modernization & Layout Redesign
+- **Emerald Dark-Mode Aesthetic**: Custom dark theme canvas (`#0C110C`) with surfaces (`#162217`) and active accents (`#4CD964`).
+- **Interactive OpenStreetMap Overlay**: Embedded Leaflet.js map inside Compose to draw a dynamic, responsive geofence boundary circle in real-time as the slider values change.
+- **Smart Autocomplete Geocoder**: Integrated the OSM Nominatim API with 600ms query debouncing to allow quick search-and-select coordinate matching.
+- **Search-Integrated Current Location**: Added a compact **📍** icon button directly inside the search text field, replacing the large separate button at the bottom.
+- **Explicit Apply Location Button**: Created an `Apply Location` action button that remains disabled unless the user has chosen a new location differing from the currently registered home coordinates.
+- **Unified Permissions Board**: Moved the Battery Optimization Exemption into the main checklist alongside Location, Background Location, and Notifications, using clear status emojis (✅/❌) and action buttons.
+
+#### 2. Geofence Logic & Transient Recovery
+- **True Boundary Crossings**: Set geofence initial trigger parameter to `0` instead of `INITIAL_TRIGGER_ENTER`. The app will not alert immediately if monitoring is toggled on while the user is already inside the radius.
+- **24/7 Monitoring**: Removed all hour, day, and weekday restrictions.
+- **Transient GPS Recovery**: Added automated retry-with-backoff scheduling in `GeofenceManager` to retry up to 3 times (20s, 40s, 60s) on transient `GEOFENCE_NOT_AVAILABLE` errors (code 1000).
+- **Anti-Jitter Cooldown**: Implemented a 30-minute block on repeat notifications.
+
+#### 3. PC Server & Tunneling Stability
+- **Windows System Tray App**: Low-overhead `pythonw.exe` app with stealth (hidden) mode and wake-on-re-run capabilities.
+- **Single Instance Enforcement**: TCP socket listener on port 23456 prevents duplicate server runs.
+- **Headless Process Log Correction**: Corrected background stdout print errors (`OSError: [Errno 22]`) by redirecting execution output to log files.
+
+#### 4. Simulation & Diagnostic Testing Suite
+- **Simulate Geofence Entry**: Triggered via UI button or shell command:
+  ```bash
+  adb shell am broadcast -a com.example.acnotification.ACTION_SIMULATE_GEOFENCE_ENTRY -p com.example.acnotification
+  ```
+- **Simulate YES click**: Triggered via shell command:
+  ```bash
+  adb shell am broadcast -a com.example.acnotification.ACTION_AC_YES -p com.example.acnotification
+  ```
+
+---
+
+### 🟡 Future Missions (Backlog)
+
+#### 1. Dual-AC Support (Multi-Room Coordination)
+- Extend Flask API config to support registering and toggling multiple Midea/Electra AC devices simultaneously (e.g. Living Room + Bedroom).
+- Update Android UI to show checkbox selectors to pick which rooms to target.
+
+#### 2. Geofence Exit Turn-off Alerts (Energy Saver)
+- Add monitoring for `GEOFENCE_TRANSITION_EXIT` transitions.
+- If the user leaves the home radius, send a push notification asking: *"Still away? Want to turn off the AC?"* with a one-tap webhook callback.
+
+#### 3. Secure Webhook Key Rotation
+- Implement a rotating token mechanism instead of using a static header key.
+- Store encrypted secrets inside the Android KeyStore API.
+
+#### 4. Webhook Failure Notification Retries
+- If the phone lacks internet connectivity or the ngrok tunnel returns a `500`/`404` error upon transition entry, cache the action and auto-retry as soon as network connectivity is restored.
+
+---
+
+## 🚀 Getting Started
+
+### 1. Setup PC Server
 1. Install Python 3.11+.
-2. Download and install ngrok via Windows Package Manager:
+2. Install and configure ngrok:
    ```powershell
    winget install ngrok.ngrok
    ngrok config add-authtoken <YOUR_AUTH_TOKEN>
    ```
-3. Claim a permanent free static domain on your [ngrok Dashboard](https://dashboard.ngrok.com/domains).
-4. Clone this repository to your computer.
-5. In the `midea-ac-server` directory, create a `config.json` containing:
+3. Reserve a permanent free static domain on your [ngrok Dashboard](https://dashboard.ngrok.com/domains).
+4. Create a `config.json` inside the `midea-ac-server` directory:
    ```json
    {
      "ip": "YOUR_AC_LOCAL_IP",
@@ -83,15 +110,12 @@ flowchart TD
      "ngrok_domain": "your-assigned-domain.ngrok-free.dev"
    }
    ```
-6. Double-click `start_ac_server.bat` to launch the background system tray app.
+5. Run `start_ac_server.bat` to launch the background tray client.
 
 ### 2. Setup Android Client
-1. Install `ac-proximity-app.apk` on your Android device.
-2. Open the app and grant permissions (Location, Background Location, Notifications).
-3. Set your home coordinates using **📍 Set Current Location as Home**.
-4. Adjust the warning radius slider (e.g. 350 meters).
-5. Enter your Webhook URL:
-   `https://your-assigned-domain.ngrok-free.dev/api/v1/ac/trigger`
-6. Enter your configured `X-API-Key` (e.g. `ac_secret_key_8497`).
-7. Toggle **Monitoring Active** to ON.
-8. Tap **Disable Battery Optimization** to ensure Android doesn't suspend geofence checks.
+1. Install `ac-proximity-app.apk` on your device.
+2. Grant all permissions at the top of the app (Location, Background Location, Notifications, Battery Exemption).
+3. Search for your home location in the autocomplete input, select a suggestion, and tap **Apply Location**. You can also tap **📍** inside the search bar to populate your current location before applying.
+4. Set your geofence radius (e.g. 200 meters).
+5. Enter your Webhook URL (`https://your-assigned-domain.ngrok-free.dev/api/v1/ac/trigger`) and your API Key.
+6. Toggle **Monitoring Active** to ON.
