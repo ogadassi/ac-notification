@@ -99,8 +99,10 @@ class GeofenceManager(private val context: Context) {
             .setRequestId(GEOFENCE_ID)
             .setCircularRegion(homeLatitude, homeLongitude, radiusMeters)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
-            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-            .setNotificationResponsiveness(30_000)
+            .setTransitionTypes(
+                Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
+            )
+            .setNotificationResponsiveness(5_000) // 5s — fast enough to catch GPS spoof crossings
             .build()
 
         val request = GeofencingRequest.Builder()

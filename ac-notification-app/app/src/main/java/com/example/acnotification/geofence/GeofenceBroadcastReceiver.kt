@@ -27,7 +27,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
         if (intent.action == ACTION_SIMULATE_ENTRY) {
             AppLogger.w(TAG, "[$ts] 🧪 SIMULATED GEOFENCE ENTRY received")
-            fireNotification(context, ts, diagnosticMode = true)
+            fireNotification(context, ts)
             return
         }
 
@@ -64,32 +64,21 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         AppLogger.i(TAG, "[$ts] 📍 Transition: $transitionName | geofences: ${geofencingEvent.triggeringGeofences?.map { it.requestId }}")
         AppLogger.i(TAG, "[$ts] 📍 Location: lat=${loc?.latitude}, lng=${loc?.longitude}, acc=${loc?.accuracy}m")
 
+        if (transitionType == Geofence.GEOFENCE_TRANSITION_EXIT) {
+            AppLogger.i(TAG, "[$ts] 🚪 EXIT detected — Play Services sees you leaving the zone")
+            return
+        }
+
         if (transitionType != Geofence.GEOFENCE_TRANSITION_ENTER) {
             AppLogger.d(TAG, "[$ts] Ignoring non-ENTER transition: $transitionName")
             return
         }
 
-        fireNotification(context, ts, diagnosticMode = false)
+        fireNotification(context, ts)
     }
 
-    private fun fireNotification(context: Context, ts: String, diagnosticMode: Boolean) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-        val lastTriggerTime = prefs.getLong("last_trigger_time", 0L)
-        val cooldownMillis = 30 * 60 * 1000L
-        val timeSinceLast = System.currentTimeMillis() - lastTriggerTime
-        if (timeSinceLast < cooldownMillis) {
-            val minutesLeft = ((cooldownMillis - timeSinceLast) / 60000).toInt()
-            if (!diagnosticMode) {
-                AppLogger.i(TAG, "[$ts] ⏱ COOLDOWN active — ${minutesLeft}m remaining, skipping notification")
-                return
-            } else {
-                AppLogger.w(TAG, "[$ts] 🧪 DIAGNOSTIC: bypassing cooldown (${minutesLeft}m remaining)")
-            }
-        }
-
+    private fun fireNotification(context: Context, ts: String) {
         AppLogger.i(TAG, "[$ts] 🚀 Firing notification!")
-        prefs.edit().putLong("last_trigger_time", System.currentTimeMillis()).apply()
         NotificationHelper.showACNotification(context)
     }
 }

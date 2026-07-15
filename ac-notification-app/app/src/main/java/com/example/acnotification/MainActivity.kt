@@ -160,8 +160,7 @@ class MainActivity : ComponentActivity() {
                         onRadiusChange = { radius -> updateGeofenceRadius(radius) },
                         onSearchAddress = { query, onResult -> searchAddress(query, onResult) },
                         onSelectHomeAddress = { lat, lng, name -> setHomeLocationFromSearch(lat, lng, name) },
-                        onSimulateGeofenceEntry = { simulateGeofenceEntry() },
-                        onClearCooldown = { clearCooldown() }
+                        onSimulateGeofenceEntry = { simulateGeofenceEntry() }
                     )
                 }
             }
@@ -255,13 +254,6 @@ class MainActivity : ComponentActivity() {
         }
         sendBroadcast(intent)
         Toast.makeText(this, "Simulated geofence entry sent!", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun clearCooldown() {
-        AppLogger.i("MainActivity", "[BTN] Clear Cooldown pressed")
-        val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
-        prefs.edit().remove("last_trigger_time").apply()
-        Toast.makeText(this, "Cooldown timer cleared!", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateGeofenceRadius(radius: Float) {
@@ -452,8 +444,7 @@ fun ACControlScreen(
     onRadiusChange: (Float) -> Unit,
     onSearchAddress: (String, (List<AddressSuggestion>) -> Unit) -> Unit,
     onSelectHomeAddress: (Double, Double, String) -> Unit,
-    onSimulateGeofenceEntry: () -> Unit,
-    onClearCooldown: () -> Unit
+    onSimulateGeofenceEntry: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
@@ -746,14 +737,7 @@ fun ACControlScreen(
         // --- Status ---
         HorizontalDivider()
         Text("Status", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-
-        if (lastTriggerTime > 0) {
-            val formatted = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-                .format(Date(lastTriggerTime))
-            Text("Last triggered: $formatted", fontSize = 13.sp)
-        } else {
-            Text("No triggers yet", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text("No cooldown — every boundary crossing fires a notification.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         // --- Test Buttons ---
         HorizontalDivider()
@@ -777,16 +761,8 @@ fun ACControlScreen(
             Text("🧪 Simulate Geofence Entry")
         }
 
-        OutlinedButton(
-            onClick = onClearCooldown,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("⏱️ Clear Cooldown Timer")
-        }
-
         Text(
-            text = "Simulate Entry bypasses Play Services, Doze, time window and cooldown. " +
-                   "Use it to verify the full notification → webhook pipeline end-to-end.",
+            text = "Simulate Entry bypasses Play Services entirely — use to verify the notification → webhook pipeline.",
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
