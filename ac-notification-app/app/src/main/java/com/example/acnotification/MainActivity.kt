@@ -18,14 +18,25 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +46,7 @@ import com.example.acnotification.geofence.GeofenceBroadcastReceiver
 import com.example.acnotification.geofence.GeofenceManager
 import com.example.acnotification.notification.NotificationHelper
 import com.example.acnotification.theme.ACNotificationTheme
+import com.example.acnotification.util.AppLogger
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -95,7 +107,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         geofenceManager = GeofenceManager(this)
-
+        AppLogger.i("MainActivity", "=== App started (onCreate) ===")
         NotificationHelper.createNotificationChannel(this)
         checkPermissions()
 
@@ -135,25 +147,37 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        AppLogger.i("MainActivity", "--- onResume ---")
         checkPermissions()
         homeLatitude.value = geofenceManager.homeLatitude
         homeLongitude.value = geofenceManager.homeLongitude
         homeAddressName.value = geofenceManager.homeAddressName
 
+        AppLogger.d("MainActivity", "Stored prefs: geofenceActive=${geofenceManager.isGeofenceActive}, home=(${geofenceManager.homeLatitude}, ${geofenceManager.homeLongitude}), radius=${geofenceManager.radiusMeters}m")
+
         // Re-register geofence with Play Services on every resume.
         // Play Services drops geofences when the app process is killed, on reboot,
         // or after Google Play Services updates. Persisted flag = intent, not reality.
         if (geofenceManager.isGeofenceActive) {
+            AppLogger.i("MainActivity", "Geofence flag=true → re-submitting to Play Services...")
             geofenceManager.registerGeofence(
-                onSuccess = { geofenceActive.value = true },
-                onFailure = { geofenceActive.value = geofenceManager.isGeofenceActive }
+                onSuccess = {
+                    AppLogger.i("MainActivity", "onResume re-register: SUCCESS")
+                    geofenceActive.value = true
+                },
+                onFailure = { e ->
+                    AppLogger.e("MainActivity", "onResume re-register: FAILED — ${e.message}")
+                    geofenceActive.value = geofenceManager.isGeofenceActive
+                }
             )
         } else {
+            AppLogger.i("MainActivity", "Geofence flag=false → not registering")
             geofenceActive.value = false
         }
     }
 
     private fun checkPermissions() {
+        AppLogger.i("MainActivity", "checkPermissions()")
         locationPermissionGranted.value = ContextCompat.checkSelfPermission(
             this, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
@@ -170,9 +194,12 @@ class MainActivity : ComponentActivity() {
 
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         batteryOptimizationIgnored.value = pm.isIgnoringBatteryOptimizations(packageName)
+
+        AppLogger.d("MainActivity", "Permissions: fine=${locationPermissionGranted.value}, bg=${backgroundLocationGranted.value}, notify=${notificationPermissionGranted.value}, batteryExempt=${batteryOptimizationIgnored.value}")
     }
 
     private fun requestLocationPermission() {
+        AppLogger.i("MainActivity", "[BTN] Request Fine Location permission")
         locationPermissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -182,32 +209,41 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestBackgroundLocation() {
+        AppLogger.i("MainActivity", "[BTN] Request Background Location permission")
         backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
     }
 
     private fun requestNotificationPermission() {
+        AppLogger.i("MainActivity", "[BTN] Request Notification permission")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
     private fun toggleGeofence(enabled: Boolean) {
+        AppLogger.i("MainActivity", "[BTN] Monitoring toggle → ${if (enabled) "ON" else "OFF"}")
         if (enabled) {
             geofenceManager.registerGeofence(
-                onSuccess = { geofenceActive.value = true },
+                onSuccess = {
+                    AppLogger.i("MainActivity", "Toggle ON: geofence registered successfully")
+                    geofenceActive.value = true
+                },
                 onFailure = { e ->
+                    AppLogger.e("MainActivity", "Toggle ON: registration FAILED — ${e.message}")
                     geofenceActive.value = false
                     Toast.makeText(this, "Geofence registration failed — retrying in background", Toast.LENGTH_LONG).show()
                 }
             )
         } else {
             geofenceManager.removeGeofence {
+                AppLogger.i("MainActivity", "Toggle OFF: geofence removed")
                 geofenceActive.value = false
             }
         }
     }
 
     private fun simulateGeofenceEntry() {
+        AppLogger.i("MainActivity", "[BTN] Simulate Geofence Entry pressed")
         val intent = Intent(GeofenceBroadcastReceiver.ACTION_SIMULATE_ENTRY).apply {
             setClass(this@MainActivity, GeofenceBroadcastReceiver::class.java)
         }
@@ -216,21 +252,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun clearCooldown() {
+        AppLogger.i("MainActivity", "[BTN] Clear Cooldown pressed")
         val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
         prefs.edit().remove("last_trigger_time").apply()
         Toast.makeText(this, "Cooldown timer cleared!", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateGeofenceRadius(radius: Float) {
+        AppLogger.i("MainActivity", "[SLIDER] Radius changed → ${radius.toInt()}m")
         geofenceManager.setRadius(radius)
-        // Re-register silently when radius slider changes, but only if already active.
-        // No UI state change needed — it stays active.
         if (geofenceActive.value) {
             geofenceManager.registerGeofence()
         }
     }
 
     private fun disableBatteryOptimization() {
+        AppLogger.i("MainActivity", "[BTN] Disable Battery Optimization pressed")
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         if (!pm.isIgnoringBatteryOptimizations(packageName)) {
             try {
@@ -239,51 +276,62 @@ class MainActivity : ComponentActivity() {
                 }
                 startActivity(intent)
             } catch (e: Exception) {
+                AppLogger.w("MainActivity", "Battery dialog failed, opening general settings: ${e.message}")
                 try {
                     val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                     startActivity(intent)
                 } catch (ex: Exception) {
+                    AppLogger.e("MainActivity", "Could not open any battery settings: ${ex.message}")
                     Toast.makeText(this, "Could not open battery settings. Please whitelist the app manually.", Toast.LENGTH_LONG).show()
                 }
             }
+        } else {
+            AppLogger.i("MainActivity", "Battery optimization already disabled — no action needed")
         }
     }
 
     private fun setHomeToCurrentLocation() {
+        AppLogger.i("MainActivity", "[BTN] 📍 Use Current Location pressed")
         val locationClient = LocationServices.getFusedLocationProviderClient(this)
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             val cts = CancellationTokenSource()
             locationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
                 .addOnSuccessListener { location ->
                     if (location != null) {
+                        AppLogger.i("MainActivity", "GPS fix obtained: lat=${location.latitude}, lng=${location.longitude}, acc=${location.accuracy}m")
                         geofenceManager.setHomeLocation(location.latitude, location.longitude, "Current Location")
                         homeLatitude.value = location.latitude
                         homeLongitude.value = location.longitude
                         homeAddressName.value = "Current Location"
                         Toast.makeText(this, "Home set to: ${location.latitude}, ${location.longitude}", Toast.LENGTH_LONG).show()
-                        
                         if (geofenceActive.value) {
+                            AppLogger.i("MainActivity", "Geofence was active → re-registering with new location")
                             toggleGeofence(true)
                         }
                     } else {
+                        AppLogger.w("MainActivity", "getCurrentLocation returned null — GPS may be off")
                         Toast.makeText(this, "Could not get location. Ensure GPS is on.", Toast.LENGTH_LONG).show()
                     }
                 }
                 .addOnFailureListener { e ->
+                    AppLogger.e("MainActivity", "getCurrentLocation FAILED: ${e.message}")
                     Toast.makeText(this, "Location error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
         } else {
+            AppLogger.w("MainActivity", "Fine location permission not granted — cannot get current location")
             Toast.makeText(this, "Location permission not granted.", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun setHomeLocationFromSearch(lat: Double, lng: Double, addressName: String) {
+        AppLogger.i("MainActivity", "[BTN] Apply Location: '$addressName' (lat=$lat, lng=$lng)")
         geofenceManager.setHomeLocation(lat, lng, addressName)
         homeLatitude.value = lat
         homeLongitude.value = lng
         homeAddressName.value = addressName
         Toast.makeText(this, "Home address set successfully", Toast.LENGTH_SHORT).show()
         if (geofenceActive.value) {
+            AppLogger.i("MainActivity", "Geofence was active → re-registering with new location")
             toggleGeofence(true)
         }
     }
@@ -736,6 +784,80 @@ fun ACControlScreen(
             fontSize = 11.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        // --- In-App Log Terminal ---
+        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val logEntries by remember { derivedStateOf { AppLogger.entries.toList() } }
+        val listState = rememberLazyListState()
+        val clipboardManager: ClipboardManager = LocalClipboardManager.current
+
+        // Auto-scroll to bottom when new entries arrive
+        LaunchedEffect(logEntries.size) {
+            if (logEntries.isNotEmpty()) listState.animateScrollToItem(logEntries.size - 1)
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("🖥️ Log Terminal", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        val all = logEntries.joinToString("\n") { it.display }
+                        clipboardManager.setText(AnnotatedString(all))
+                        Toast.makeText(context, "Logs copied!", Toast.LENGTH_SHORT).show()
+                    },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) { Text("📋 Copy", fontSize = 12.sp) }
+                OutlinedButton(
+                    onClick = { AppLogger.clear() },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) { Text("🗑️ Clear", fontSize = 12.sp) }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(280.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF0D1117))
+                .padding(8.dp)
+        ) {
+            if (logEntries.isEmpty()) {
+                Text(
+                    text = "No logs yet. Interact with the app to generate logs.",
+                    color = Color(0xFF6E7681),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(state = listState) {
+                    items(logEntries) { entry ->
+                        val color = when (entry.level) {
+                            AppLogger.Level.ERROR -> Color(0xFFFF6B6B)
+                            AppLogger.Level.WARN  -> Color(0xFFFFD93D)
+                            AppLogger.Level.INFO  -> Color(0xFF6BCB77)
+                            AppLogger.Level.DEBUG -> Color(0xFF6E7681)
+                        }
+                        Text(
+                            text = entry.display,
+                            color = color,
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = 14.sp,
+                            modifier = Modifier.padding(vertical = 1.dp)
+                        )
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
     }
