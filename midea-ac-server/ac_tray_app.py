@@ -70,11 +70,78 @@ def read_stream(stream, prefix):
         with logs_lock:
             log_messages.append(f"[System Error] Error reading stream: {e}\n")
 
+# File path constants for logs
+MIDEA_LOG_PATH = os.path.join(SERVER_DIR, "midea_server.log")
+TUNNEL_LOG_PATH = os.path.join(SERVER_DIR, "start_tunnel.log")
+
+def is_port_busy(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+            return False
+        except socket.error:
+            return True
+
+def tail_file(filepath, prefix):
+    global current_webhook_url
+    # Ensure file exists
+    if not os.path.exists(filepath):
+        try:
+            open(filepath, "a").close()
+        except:
+            pass
+
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            # Read last 100 lines for historical logs
+            lines = f.readlines()
+            for line in lines[-100:]:
+                clean_line = line.strip()
+                if clean_line:
+                    log_line = f"[{prefix}] {clean_line}\n"
+                    with logs_lock:
+                        log_messages.append(log_line)
+                if "EXTRACTED TUNNEL URL:" in line:
+                    parts = line.split("EXTRACTED TUNNEL URL:")
+                    if len(parts) > 1:
+                        current_webhook_url = parts[1].replace("<<<", "").strip() + "/api/v1/ac/trigger"
+
+            # Tailing loop
+            while True:
+                line = f.readline()
+                if not line:
+                    time.sleep(0.5)
+                    continue
+                clean_line = line.strip()
+                if not clean_line:
+                    continue
+                log_line = f"[{prefix}] {clean_line}\n"
+                with logs_lock:
+                    log_messages.append(log_line)
+                    if len(log_messages) > 1000:
+                        log_messages.pop(0)
+                if "EXTRACTED TUNNEL URL:" in clean_line:
+                    parts = clean_line.split("EXTRACTED TUNNEL URL:")
+                    if len(parts) > 1:
+                        current_webhook_url = parts[1].replace("<<<", "").strip() + "/api/v1/ac/trigger"
+    except Exception as e:
+        with logs_lock:
+            log_messages.append(f"[System Error] Error tailing {prefix} log: {e}\n")
+
 # Start subprocesses
 def start_subprocesses():
     global server_proc, tunnel_proc, current_webhook_url
     stop_subprocesses()
     current_webhook_url = "Starting..."
+    
+    if is_port_busy(3000):
+        with logs_lock:
+            log_messages.append("[System] Port 3000 is occupied. Connecting to existing background services...\n")
+        # Tail log files instead of spawning new processes
+        threading.Thread(target=tail_file, args=(MIDEA_LOG_PATH, "Flask"), daemon=True).start()
+        threading.Thread(target=tail_file, args=(TUNNEL_LOG_PATH, "Tunnel"), daemon=True).start()
+        return
+
     with logs_lock:
         log_messages.append("[System] Starting background services...\n")
         
