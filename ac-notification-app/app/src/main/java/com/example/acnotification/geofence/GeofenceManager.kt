@@ -103,7 +103,7 @@ class GeofenceManager(private val context: Context) {
             .build()
 
         val request = GeofencingRequest.Builder()
-            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .setInitialTrigger(0) // 0 = disabled. Don't fire immediately on registration (e.g. when already home).
             .addGeofence(geofence)
             .build()
 

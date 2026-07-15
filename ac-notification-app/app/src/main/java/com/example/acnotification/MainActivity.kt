@@ -136,10 +136,21 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         checkPermissions()
-        geofenceActive.value = geofenceManager.isGeofenceActive
         homeLatitude.value = geofenceManager.homeLatitude
         homeLongitude.value = geofenceManager.homeLongitude
         homeAddressName.value = geofenceManager.homeAddressName
+
+        // Re-register geofence with Play Services on every resume.
+        // Play Services drops geofences when the app process is killed, on reboot,
+        // or after Google Play Services updates. Persisted flag = intent, not reality.
+        if (geofenceManager.isGeofenceActive) {
+            geofenceManager.registerGeofence(
+                onSuccess = { geofenceActive.value = true },
+                onFailure = { geofenceActive.value = geofenceManager.isGeofenceActive }
+            )
+        } else {
+            geofenceActive.value = false
+        }
     }
 
     private fun checkPermissions() {
@@ -212,11 +223,10 @@ class MainActivity : ComponentActivity() {
 
     private fun updateGeofenceRadius(radius: Float) {
         geofenceManager.setRadius(radius)
+        // Re-register silently when radius slider changes, but only if already active.
+        // No UI state change needed — it stays active.
         if (geofenceActive.value) {
-            geofenceManager.registerGeofence(
-                onSuccess = { geofenceActive.value = true },
-                onFailure = { geofenceActive.value = false }
-            )
+            geofenceManager.registerGeofence()
         }
     }
 
