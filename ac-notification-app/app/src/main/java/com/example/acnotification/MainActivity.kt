@@ -74,6 +74,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var geofenceManager: GeofenceManager
     private val httpClient = OkHttpClient()
 
+    // Guard: only re-register with Play Services once per process lifetime.
+    // Re-registering on every onResume resets Play Services' inside/outside state machine,
+    // causing it to miss subsequent ENTER crossings.
+    private var geofenceRegisteredThisSession = false
+
     private var locationPermissionGranted = mutableStateOf(false)
     private var backgroundLocationGranted = mutableStateOf(false)
     private var notificationPermissionGranted = mutableStateOf(false)
@@ -110,6 +115,24 @@ class MainActivity : ComponentActivity() {
         AppLogger.i("MainActivity", "=== App started (onCreate) ===")
         NotificationHelper.createNotificationChannel(this)
         checkPermissions()
+
+        // Re-register geofence once per process start.
+        // Only runs on first onCreate (i.e. after app was killed or device rebooted).
+        // NOT in onResume — re-registering repeatedly resets Play Services' state machine.
+        if (geofenceManager.isGeofenceActive && !geofenceRegisteredThisSession) {
+            geofenceRegisteredThisSession = true
+            AppLogger.i("MainActivity", "onCreate: re-submitting geofence to Play Services (first launch)")
+            geofenceManager.registerGeofence(
+                onSuccess = {
+                    AppLogger.i("MainActivity", "onCreate re-register: SUCCESS")
+                    geofenceActive.value = true
+                },
+                onFailure = { e ->
+                    AppLogger.e("MainActivity", "onCreate re-register: FAILED — ${e.message}")
+                    geofenceActive.value = geofenceManager.isGeofenceActive
+                }
+            )
+        }
 
         enableEdgeToEdge()
         setContent {
@@ -149,31 +172,14 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         AppLogger.i("MainActivity", "--- onResume ---")
         checkPermissions()
+        // Only refresh UI state — do NOT re-register geofence here.
+        // Re-calling addGeofences() resets Play Services' inside/outside tracking,
+        // which prevents consecutive ENTER events from firing.
+        geofenceActive.value = geofenceManager.isGeofenceActive
         homeLatitude.value = geofenceManager.homeLatitude
         homeLongitude.value = geofenceManager.homeLongitude
         homeAddressName.value = geofenceManager.homeAddressName
-
-        AppLogger.d("MainActivity", "Stored prefs: geofenceActive=${geofenceManager.isGeofenceActive}, home=(${geofenceManager.homeLatitude}, ${geofenceManager.homeLongitude}), radius=${geofenceManager.radiusMeters}m")
-
-        // Re-register geofence with Play Services on every resume.
-        // Play Services drops geofences when the app process is killed, on reboot,
-        // or after Google Play Services updates. Persisted flag = intent, not reality.
-        if (geofenceManager.isGeofenceActive) {
-            AppLogger.i("MainActivity", "Geofence flag=true → re-submitting to Play Services...")
-            geofenceManager.registerGeofence(
-                onSuccess = {
-                    AppLogger.i("MainActivity", "onResume re-register: SUCCESS")
-                    geofenceActive.value = true
-                },
-                onFailure = { e ->
-                    AppLogger.e("MainActivity", "onResume re-register: FAILED — ${e.message}")
-                    geofenceActive.value = geofenceManager.isGeofenceActive
-                }
-            )
-        } else {
-            AppLogger.i("MainActivity", "Geofence flag=false → not registering")
-            geofenceActive.value = false
-        }
+        AppLogger.d("MainActivity", "UI refresh: geofenceActive=${geofenceActive.value}, home=(${geofenceManager.homeLatitude}, ${geofenceManager.homeLongitude})")
     }
 
     private fun checkPermissions() {
