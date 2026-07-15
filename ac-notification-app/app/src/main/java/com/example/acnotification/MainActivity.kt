@@ -491,7 +491,7 @@ fun ACControlScreen(
                 webhookUrl = newUrl
                 prefs.edit().putString("webhook_url", newUrl).apply()
             },
-            label = { Text("https://your-webhook-url.com/ac/trigger") },
+            label = { Text("https://your-webhook-url.com/api/v1/ac/trigger") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
