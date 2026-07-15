@@ -125,7 +125,8 @@ class MainActivity : ComponentActivity() {
                         onRadiusChange = { radius -> updateGeofenceRadius(radius) },
                         onSearchAddress = { query, onResult -> searchAddress(query, onResult) },
                         onSelectHomeAddress = { lat, lng, name -> setHomeLocationFromSearch(lat, lng, name) },
-                        onSimulateGeofenceEntry = { simulateGeofenceEntry() }
+                        onSimulateGeofenceEntry = { simulateGeofenceEntry() },
+                        onClearCooldown = { clearCooldown() }
                     )
                 }
             }
@@ -201,6 +202,12 @@ class MainActivity : ComponentActivity() {
         }
         sendBroadcast(intent)
         Toast.makeText(this, "Simulated geofence entry sent!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun clearCooldown() {
+        val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("last_trigger_time").apply()
+        Toast.makeText(this, "Cooldown timer cleared!", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateGeofenceRadius(radius: Float) {
@@ -381,7 +388,8 @@ fun ACControlScreen(
     onRadiusChange: (Float) -> Unit,
     onSearchAddress: (String, (List<AddressSuggestion>) -> Unit) -> Unit,
     onSelectHomeAddress: (Double, Double, String) -> Unit,
-    onSimulateGeofenceEntry: () -> Unit
+    onSimulateGeofenceEntry: () -> Unit,
+    onClearCooldown: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
@@ -703,6 +711,13 @@ fun ACControlScreen(
             )
         ) {
             Text("🧪 Simulate Geofence Entry")
+        }
+
+        OutlinedButton(
+            onClick = onClearCooldown,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("⏱️ Clear Cooldown Timer")
         }
 
         Text(
