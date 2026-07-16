@@ -1,5 +1,6 @@
 import sys
 import json
+import time
 import asyncio
 from flask import Flask, jsonify, request
 from msmart.device import AirConditioner as AC
@@ -9,6 +10,10 @@ app = Flask(__name__)
 # Load config
 CONFIG_FILE = 'config.json'
 config = {}
+
+# In-memory AC state cache — updated on trigger and on live status query
+ac_state_cache = {"power_on": None, "last_updated": 0}
+AC_CACHE_TTL = 300  # seconds (5 minutes)
 
 def load_config():
     global config
@@ -26,69 +31,105 @@ load_config()
 async def control_ac():
     if not config:
         return False, "config.json is missing or invalid."
-    
     try:
-        # Initialize device
-        device = AC(
-            ip=config['ip'],
-            port=6444,
-            device_id=int(config['device_id'])
-        )
-        
-        # Authenticate using token and key
+        device = AC(ip=config['ip'], port=6444, device_id=int(config['device_id']))
         await device.authenticate(config['token'], config['key'])
-        
-        # Connect and set state
         await device.refresh()
-        
-        # Turn ON, set to COOL mode (2), and target temp (22C)
         device.power_state = True
         device.operational_mode = AC.OperationalMode.COOL
         device.target_temperature = 22.0
-        
         await device.apply()
         return True, "AC successfully turned on to Cool 22°C"
     except Exception as e:
         return False, f"Midea Control Error: {str(e)}"
 
+async def query_ac_status():
+    """Query the AC device for current power state. Returns (power_on: bool|None, message: str)"""
+    if not config:
+        return None, "config.json is missing or invalid."
+    try:
+        device = AC(ip=config['ip'], port=6444, device_id=int(config['device_id']))
+        await device.authenticate(config['token'], config['key'])
+        await device.refresh()
+        power_on = bool(device.power_state)
+        # Update cache
+        ac_state_cache["power_on"] = power_on
+        ac_state_cache["last_updated"] = time.time()
+        return power_on, "OK"
+    except Exception as e:
+        return None, f"Midea Status Error: {str(e)}"
+
 def check_auth():
     api_key = request.headers.get('X-API-Key')
     expected_key = config.get('api_key')
     if not expected_key:
-        return True # Default to pass if no key is configured yet
+        return True  # Default to pass if no key is configured yet
     return api_key == expected_key
 
 @app.route('/api/v1/ac/trigger', methods=['POST'])
 def trigger_ac():
-    # Reload config in case it was updated
     load_config()
-    
     if not check_auth():
         return jsonify({"success": False, "error": "Unauthorized"}), 401
-        
-    # Run the async control code
+
     success, message = asyncio.run(control_ac())
     if success:
+        # Update cache immediately — we know AC is now on
+        ac_state_cache["power_on"] = True
+        ac_state_cache["last_updated"] = time.time()
         return jsonify({"success": True, "message": message}), 200
     else:
         return jsonify({"success": False, "error": message}), 500
 
 @app.route('/api/v1/ac/status', methods=['GET'])
-def status():
+def ac_status():
+    """
+    Returns current AC power state.
+    Uses cached value if fresh (< 5 min old), otherwise does a live device query.
+    Android app calls this before deciding which notification to show.
+    """
+    load_config()
     if not check_auth():
         return jsonify({"success": False, "error": "Unauthorized"}), 401
-        
+
+    now = time.time()
+    cache_age = now - ac_state_cache.get("last_updated", 0)
+
+    # Return cached value if it's fresh enough
+    if ac_state_cache.get("power_on") is not None and cache_age < AC_CACHE_TTL:
+        return jsonify({
+            "success": True,
+            "ac_on": ac_state_cache["power_on"],
+            "source": "cache",
+            "cache_age_seconds": int(cache_age)
+        })
+
+    # Cache miss or stale — do live query
+    print(f"[status] Cache stale ({int(cache_age)}s old), querying device...")
+    power_on, message = asyncio.run(query_ac_status())
+    if power_on is None:
+        print(f"[status] Live query failed: {message}")
+        return jsonify({"success": False, "error": message}), 500
+
+    return jsonify({
+        "success": True,
+        "ac_on": power_on,
+        "source": "live"
+    })
+
+@app.route('/health', methods=['GET'])
+def health():
+    if not check_auth():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
     return jsonify({
         "status": "online",
         "configured": bool(config),
-        "config_loaded": {
-            "ip": config.get("ip"),
-            "device_id": config.get("device_id"),
-            "has_token": bool(config.get("token")),
-            "has_key": bool(config.get("key"))
+        "ac_cache": {
+            "power_on": ac_state_cache.get("power_on"),
+            "age_seconds": int(time.time() - ac_state_cache.get("last_updated", 0))
         }
     })
 
 if __name__ == '__main__':
-    # Listen on port 3000 (both IPv4 and IPv6)
     app.run(host='::', port=3000, debug=True)
+

@@ -40,7 +40,8 @@ proc = subprocess.Popen(
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     text=True,
-    bufsize=1
+    bufsize=1,
+    creationflags=subprocess.CREATE_NO_WINDOW
 )
 
 # Read output to confirm tunnel is up

@@ -11,6 +11,7 @@ object NotificationHelper {
 
     const val CHANNEL_ID = "ac_proximity_channel"
     const val NOTIFICATION_ID = 1001
+    const val NOTIFICATION_ID_COOL = 1002
     private const val ACTION_AC_YES = "com.example.acnotification.ACTION_AC_YES"
 
     fun createNotificationChannel(context: Context) {
@@ -27,6 +28,7 @@ object NotificationHelper {
         manager.createNotificationChannel(channel)
     }
 
+    /** Shown when AC is OFF — prompts user to turn it on. Button visible on collapsed notification. */
     fun showACNotification(context: Context) {
         createNotificationChannel(context)
 
@@ -42,20 +44,37 @@ object NotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Returning Home?")
-            .setContentText("Want to turn the AC on?")
+            .setContentTitle("You're almost home! 🏠")
+            .setContentText("Turn on the AC before you arrive?")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(
                 android.R.drawable.ic_media_play,
-                "Yes",
+                "Turn on AC",
                 yesPendingIntent
             )
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.notify(NOTIFICATION_ID, notification)
+    }
+
+    /** Shown when AC is already ON — informational only, no action button needed. */
+    fun showAlreadyCoolNotification(context: Context) {
+        createNotificationChannel(context)
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Welcome home! ❄️")
+            .setContentText("Your AC is already on — enjoy the cool air.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_ID_COOL, notification)
     }
 }

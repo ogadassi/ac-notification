@@ -100,13 +100,16 @@ class GeofenceManager(private val context: Context) {
             .setCircularRegion(homeLatitude, homeLongitude, radiusMeters)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(
-                Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
+                Geofence.GEOFENCE_TRANSITION_ENTER or
+                Geofence.GEOFENCE_TRANSITION_EXIT  or
+                Geofence.GEOFENCE_TRANSITION_DWELL
             )
-            .setNotificationResponsiveness(5_000) // 5s — fast enough to catch GPS spoof crossings
+            .setLoiteringDelay(60_000)   // 60s inside = real arrival. Parking circles exit/reset this.
+            .setNotificationResponsiveness(5_000)
             .build()
 
         val request = GeofencingRequest.Builder()
-            .setInitialTrigger(0) // 0 = disabled. Don't fire immediately on registration (e.g. when already home).
+            .setInitialTrigger(0)
             .addGeofence(geofence)
             .build()
 
