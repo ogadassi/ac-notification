@@ -17,6 +17,25 @@ os.chdir(SERVER_DIR)
 
 PORT_CONTROL = 23456
 ICON_PATH = os.path.join(SERVER_DIR, "..", "ac-notification-app", "app", "src", "main", "res", "drawable", "ic_launcher_custom.png")
+CONFIG_PATH = os.path.join(SERVER_DIR, "ac_tray_config.json")
+
+# --- Persistent config ---
+def load_config():
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_config(data):
+    try:
+        with open(CONFIG_PATH, "w") as f:
+            json.dump(data, f, indent=2)
+    except:
+        pass
+
+config = load_config()
+start_minimized = config.get("start_minimized", False)
 
 # Error logging helper
 def log_app_event(msg):
@@ -221,6 +240,13 @@ def load_icon_image():
         # Fallback to solid green image
         return Image.new("RGB", (32, 32), "#2D5A27")
 
+def toggle_start_minimized(icon, item):
+    global start_minimized, config
+    start_minimized = not start_minimized
+    config["start_minimized"] = start_minimized
+    save_config(config)
+    log_app_event(f"start_minimized set to {start_minimized}")
+
 def on_tray_select(icon, item):
     val = str(item)
     if val == "Open Log Viewer":
@@ -236,6 +262,11 @@ def setup_tray_icon():
         image = load_icon_image()
         menu = pystray.Menu(
             pystray.MenuItem("Open Log Viewer", on_tray_select, default=True),
+            pystray.MenuItem(
+                "Start minimized to tray",
+                toggle_start_minimized,
+                checked=lambda item: start_minimized
+            ),
             pystray.MenuItem("Go Stealth (Hide Tray)", on_tray_select),
             pystray.MenuItem("Exit", on_tray_select)
         )
@@ -369,7 +400,11 @@ if __name__ == "__main__":
 
     # Intercept default close behavior to hide to tray instead of exiting
     root.protocol("WM_DELETE_WINDOW", hide_window)
-    
+
+    # Apply startup mode preference
+    if start_minimized:
+        root.withdraw()  # Start hidden in tray
+
     refresh_logs()
     
     # Start Tkinter main loop (blocks main thread securely)
