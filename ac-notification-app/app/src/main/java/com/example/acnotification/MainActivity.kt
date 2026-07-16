@@ -160,7 +160,8 @@ class MainActivity : ComponentActivity() {
                         onRadiusChange = { radius -> updateGeofenceRadius(radius) },
                         onSearchAddress = { query, onResult -> searchAddress(query, onResult) },
                         onSelectHomeAddress = { lat, lng, name -> setHomeLocationFromSearch(lat, lng, name) },
-                        onSimulateGeofenceEntry = { simulateGeofenceEntry() }
+                        onSimulateGeofenceEntry = { simulateGeofenceEntry() },
+                        onClearCooldown = { clearCooldown() }
                     )
                 }
             }
@@ -254,6 +255,13 @@ class MainActivity : ComponentActivity() {
         }
         sendBroadcast(intent)
         Toast.makeText(this, "Simulated geofence entry sent!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun clearCooldown() {
+        AppLogger.i("MainActivity", "[BTN] Clear Cooldown pressed")
+        val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("last_action_time").apply()
+        Toast.makeText(this, "Action cooldown cleared!", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateGeofenceRadius(radius: Float) {
@@ -444,7 +452,8 @@ fun ACControlScreen(
     onRadiusChange: (Float) -> Unit,
     onSearchAddress: (String, (List<AddressSuggestion>) -> Unit) -> Unit,
     onSelectHomeAddress: (Double, Double, String) -> Unit,
-    onSimulateGeofenceEntry: () -> Unit
+    onSimulateGeofenceEntry: () -> Unit,
+    onClearCooldown: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
@@ -737,7 +746,16 @@ fun ACControlScreen(
         // --- Status ---
         HorizontalDivider()
         Text("Status", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
-        Text("No cooldown — every boundary crossing fires a notification.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        val lastActionTime = prefs.getLong("last_action_time", 0L)
+        val cooldownMillis = 30 * 60 * 1000L
+        val elapsed = System.currentTimeMillis() - lastActionTime
+        if (elapsed < cooldownMillis) {
+            val minutesLeft = ((cooldownMillis - elapsed) / 60_000).toInt()
+            Text("⏱️ Cooldown active: ${minutesLeft}m remaining (skipping notifications)", fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
+        } else {
+            Text("✅ Ready — next geofence entry will trigger check.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
 
         // --- Test Buttons ---
         HorizontalDivider()
@@ -759,6 +777,13 @@ fun ACControlScreen(
             )
         ) {
             Text("🧪 Simulate Geofence Entry")
+        }
+
+        OutlinedButton(
+            onClick = onClearCooldown,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("⏱️ Clear Action Cooldown")
         }
 
         Text(

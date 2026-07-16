@@ -71,23 +71,30 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
         when (transitionType) {
             Geofence.GEOFENCE_TRANSITION_ENTER -> {
-                // Log only — dwell timer starts in Play Services
-                AppLogger.i(TAG, "[$ts] 🚶 ENTER — 60s dwell timer started, waiting...")
-            }
-            Geofence.GEOFENCE_TRANSITION_EXIT -> {
-                // Log only — dwell timer resets automatically
-                AppLogger.i(TAG, "[$ts] 🚪 EXIT — dwell timer reset (parking circle or drive-by filtered)")
-            }
-            Geofence.GEOFENCE_TRANSITION_DWELL -> {
-                // Main trigger: user has been inside for 60 continuous seconds → real arrival
-                AppLogger.i(TAG, "[$ts] ✅ DWELL confirmed — 60s inside, this is a real arrival")
+                // Check action cooldown
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val lastActionTime = prefs.getLong("last_action_time", 0L)
+                val cooldownMillis = 30 * 60 * 1000L // 30 minutes
+                val elapsed = System.currentTimeMillis() - lastActionTime
+                
+                if (elapsed < cooldownMillis) {
+                    val minutesLeft = ((cooldownMillis - elapsed) / 60_000).toInt()
+                    AppLogger.i(TAG, "[$ts] ⏱ COOLDOWN active — user clicked Turn on AC ${30 - minutesLeft}m ago. ${minutesLeft}m remaining. Skipping notification.")
+                    return
+                }
+
+                // Normal execution
+                AppLogger.i(TAG, "[$ts] ✅ ENTER detected — starting AC status check...")
                 val pending = goAsync()
                 Thread {
                     try { checkAcStateAndNotify(context, ts) }
                     finally { pending.finish() }
                 }.start()
             }
-            else -> AppLogger.d(TAG, "[$ts] Ignoring unknown transition: $transitionName")
+            Geofence.GEOFENCE_TRANSITION_EXIT -> {
+                AppLogger.i(TAG, "[$ts] 🚪 EXIT detected")
+            }
+            else -> AppLogger.d(TAG, "[$ts] Ignoring transition: $transitionName")
         }
     }
 

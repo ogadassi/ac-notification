@@ -37,6 +37,9 @@ class ACActionReceiver : BroadcastReceiver() {
         val webhookUrl = prefs.getString(KEY_WEBHOOK_URL, "") ?: ""
         val apiKey = prefs.getString(KEY_API_KEY, "") ?: ""
 
+        // Set action cooldown time
+        prefs.edit().putLong("last_action_time", System.currentTimeMillis()).apply()
+
         if (webhookUrl.isBlank()) {
             Log.w(TAG, "No webhook URL configured")
             showConfirmation(context, "\u26A0\uFE0F No webhook URL configured")

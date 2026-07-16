@@ -100,11 +100,8 @@ class GeofenceManager(private val context: Context) {
             .setCircularRegion(homeLatitude, homeLongitude, radiusMeters)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(
-                Geofence.GEOFENCE_TRANSITION_ENTER or
-                Geofence.GEOFENCE_TRANSITION_EXIT  or
-                Geofence.GEOFENCE_TRANSITION_DWELL
+                Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT
             )
-            .setLoiteringDelay(60_000)   // 60s inside = real arrival. Parking circles exit/reset this.
             .setNotificationResponsiveness(5_000)
             .build()
 
