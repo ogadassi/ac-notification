@@ -129,7 +129,10 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
             val request = Request.Builder()
                 .url(statusUrl)
                 .get()
-                .apply { if (!apiKey.isNullOrBlank()) addHeader("X-API-Key", apiKey) }
+                .apply { 
+                    if (!apiKey.isNullOrBlank()) addHeader("X-API-Key", apiKey)
+                    addHeader("ngrok-skip-browser-warning", "true")
+                }
                 .build()
 
             val response = client.newCall(request).execute()
