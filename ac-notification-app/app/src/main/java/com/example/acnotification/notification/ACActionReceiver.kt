@@ -32,13 +32,9 @@ class ACActionReceiver : BroadcastReceiver() {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.cancel(NotificationHelper.NOTIFICATION_ID)
 
-        // Fire the webhook
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val webhookUrl = prefs.getString(KEY_WEBHOOK_URL, "") ?: ""
         val apiKey = prefs.getString(KEY_API_KEY, "") ?: ""
-
-        // Set action cooldown time
-        prefs.edit().putLong("last_action_time", System.currentTimeMillis()).apply()
 
         if (webhookUrl.isBlank()) {
             Log.w(TAG, "No webhook URL configured")
@@ -47,10 +43,19 @@ class ACActionReceiver : BroadcastReceiver() {
         }
 
         showConfirmation(context, "Turning on AC... \u2744\uFE0F")
-        fireWebhook(context, webhookUrl, apiKey)
+        
+        // Use goAsync to keep broadcast alive during async network call
+        val pendingResult = goAsync()
+        Thread {
+            try {
+                fireWebhook(context, webhookUrl, apiKey, prefs)
+            } finally {
+                pendingResult.finish()
+            }
+        }.start()
     }
 
-    private fun fireWebhook(context: Context, url: String, apiKey: String) {
+    private fun fireWebhook(context: Context, url: String, apiKey: String, prefs: android.content.SharedPreferences) {
         val client = OkHttpClient()
         val json = "{\"action\": \"ac_on\", \"timestamp\": ${System.currentTimeMillis()}}"
         val body = json.toRequestBody("application/json".toMediaType())
@@ -62,24 +67,23 @@ class ACActionReceiver : BroadcastReceiver() {
             .post(body)
             .build()
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, "Webhook request failed", e)
-                showConfirmation(context, "\u274C Failed to reach AC webhook")
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (it.isSuccessful) {
-                        Log.i(TAG, "Webhook success: ${it.code}")
-                        showConfirmation(context, "AC is turning on! \u2744\uFE0F")
-                    } else {
-                        Log.e(TAG, "Webhook error: ${it.code}")
-                        showConfirmation(context, "\u274C Webhook returned ${it.code}")
-                    }
+        try {
+            val response = client.newCall(request).execute()
+            response.use {
+                if (it.isSuccessful) {
+                    Log.i(TAG, "Webhook success: ${it.code}")
+                    // Cooldown only starts on absolute success!
+                    prefs.edit().putLong("last_action_time", System.currentTimeMillis()).apply()
+                    showConfirmation(context, "AC is turning on! \u2744\uFE0F")
+                } else {
+                    Log.e(TAG, "Webhook error: ${it.code}")
+                    showConfirmation(context, "\u274C Webhook returned ${it.code}")
                 }
             }
-        })
+        } catch (e: IOException) {
+            Log.e(TAG, "Webhook request failed", e)
+            showConfirmation(context, "\u274C Failed to reach AC webhook")
+        }
     }
 
     private fun showConfirmation(context: Context, message: String) {
