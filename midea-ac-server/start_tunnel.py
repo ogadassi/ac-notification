@@ -28,6 +28,7 @@ common_paths = [
     # Explicit Administrator profile paths (for Task Scheduler / System services)
     r"C:\Users\Administrator\AppData\Local\Microsoft\WinGet\Links\ngrok.exe",
     r"C:\Users\Administrator\AppData\Local\Microsoft\WinGet\Packages\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe\ngrok.exe",
+    r"C:\Users\Administrator\AppData\Local\Python\pythoncore-3.14-64\Scripts\ngrok.exe",
     r"C:\Users\Administrator\AppData\Local\ngrok\ngrok.exe",
     r"C:\Users\Administrator\AppData\Roaming\ngrok\ngrok.exe",
 
