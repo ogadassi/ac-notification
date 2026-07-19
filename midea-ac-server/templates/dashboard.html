@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AC Proximity Control Center</title>
+    <!-- Outfit & JetBrains Mono Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #060906;
+            --surface-panel: rgba(18, 27, 19, 0.7);
+            --surface-border: rgba(76, 217, 100, 0.15);
+            --color-emerald: #4cd964;
+            --color-emerald-glow: rgba(76, 217, 100, 0.4);
+            --color-cyan: #00f0ff;
+            --color-cyan-glow: rgba(0, 240, 255, 0.4);
+            --color-error: #ff3b30;
+            --color-warning: #ffcc00;
+            --text-primary: #e0eae0;
+            --text-secondary: #8aa08a;
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(76, 217, 100, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.03) 0%, transparent 40%);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Navigation */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--surface-border);
+            backdrop-filter: blur(12px);
+            background: rgba(6, 9, 6, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            background: linear-gradient(135deg, var(--color-emerald), var(--color-cyan));
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #060906;
+            font-size: 1.25rem;
+            box-shadow: 0 0 15px var(--color-emerald-glow);
+        }
+
+        .logo-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-tag {
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: rgba(76, 217, 100, 0.1);
+            color: var(--color-emerald);
+            padding: 0.2rem 0.6rem;
+            border-radius: 2rem;
+            border: 1px solid rgba(76, 217, 100, 0.2);
+        }
+
+        .auth-widget {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .key-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--surface-border);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            width: 220px;
+            transition: all 0.3s ease;
+        }
+
+        .key-input:focus {
+            outline: none;
+            border-color: var(--color-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        /* Main Content Layout */
+        main {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dashboard panels / Cards */
+        .panel {
+            background: var(--surface-panel);
+            border: 1px solid var(--surface-border);
+            border-radius: 1.25rem;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.75rem;
+        }
+
+        /* Status Ring / Indicator */
+        .status-circle-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem 0;
+            position: relative;
+        }
+
+        .status-ring {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-ring.active {
+            border-color: var(--color-emerald);
+            box-shadow: 0 0 25px var(--color-emerald-glow), inset 0 0 15px var(--color-emerald-glow);
+        }
+
+        .status-ring.inactive {
+            border-color: var(--color-secondary);
+            opacity: 0.6;
+        }
+
+        .status-label {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--color-emerald);
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            box-shadow: 0 0 10px var(--color-emerald);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 15px var(--color-emerald); }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        /* Status Details List */
+        .stat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .stat-item span:first-child {
+            color: var(--text-secondary);
+        }
+
+        .stat-item span:last-child {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        /* Buttons & Actions */
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, rgba(76, 217, 100, 0.1), rgba(0, 240, 255, 0.05));
+            border: 1px solid var(--surface-border);
+            border-radius: 0.75rem;
+            color: #ffffff;
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.85rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn:hover {
+            border-color: var(--color-cyan);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-emerald), #3bb853);
+            color: #060906;
+            border-color: transparent;
+            font-weight: 700;
+            box-shadow: 0 4px 15px var(--color-emerald-glow);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px var(--color-emerald);
+            border-color: transparent;
+        }
+
+        /* Web Console Terminal */
+        .console-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .console-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .console-filter {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.5rem;
+            padding: 0.35rem 0.65rem;
+            color: #ffffff;
+            font-size: 0.8rem;
+            width: 140px;
+        }
+
+        .console-filter:focus {
+            outline: none;
+            border-color: var(--color-emerald);
+        }
+
+        .console-terminal {
+            background: #020402;
+            border: 1px solid rgba(76, 217, 100, 0.08);
+            border-radius: 1rem;
+            flex: 1;
+            min-height: 450px;
+            max-height: 600px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 1.25rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .console-line {
+            white-space: pre-wrap;
+            line-height: 1.4;
+            color: #b0c0b0;
+        }
+
+        /* Log syntax highlighting */
+        .log-time { color: #5a705a; }
+        .log-info { color: #8af89e; }
+        .log-warn { color: var(--color-warning); font-weight: bold; }
+        .log-error { color: var(--color-error); font-weight: bold; }
+        .log-system { color: var(--color-cyan); }
+
+        /* Notification Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(18, 27, 19, 0.95);
+            border: 1px solid var(--color-emerald);
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transform: translateY(150%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast.visible {
+            transform: translateY(0);
+        }
+
+        .toast-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--color-emerald);
+            box-shadow: 0 0 8px var(--color-emerald);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-section">
+            <div class="logo-icon">❄</div>
+            <div class="logo-title">AC Proximity Server</div>
+            <div class="logo-tag">V1.1 Secure</div>
+        </div>
+        <div class="auth-widget">
+            <input type="password" id="apiKeyField" class="key-input" placeholder="Enter X-API-Key..." title="Authentication key stored locally in browser storage">
+        </div>
+    </header>
+
+    <main>
+        <!-- Sidebar controls -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>System Status</span>
+                <div class="pulse-dot"></div>
+            </div>
+
+            <div class="status-circle-container">
+                <div id="statusRing" class="status-ring inactive">
+                    <div id="statusText" class="status-label">OFF</div>
+                </div>
+            </div>
+
+            <div class="stat-list">
+                <div class="stat-item">
+                    <span>Cache Update</span>
+                    <span id="statAge">-</span>
+                </div>
+                <div class="stat-item" style="flex-direction: column; align-items: flex-start; gap: 0.35rem;">
+                    <span>Secure Gateway Domain</span>
+                    <span id="statTunnel" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--color-cyan); word-break: break-all;">-</span>
+                </div>
+                <div class="stat-item">
+                    <span>Client Credentials</span>
+                    <span id="statAuth" style="color: var(--color-warning);">Locked</span>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button id="btnTrigger" class="btn btn-primary">❄ Force AC Cool On</button>
+                <button id="btnRefresh" class="btn">⟳ Query Status</button>
+                <button id="btnCopyUrl" class="btn">📋 Copy Webhook URL</button>
+            </div>
+        </div>
+
+        <!-- Terminal log panel -->
+        <div class="panel console-container">
+            <div class="panel-title">
+                <span>Real-Time Security & Runtime Logs</span>
+                <div class="console-header-actions">
+                    <input type="text" id="logFilter" class="console-filter" placeholder="Filter logs...">
+                    <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer; color: var(--text-secondary);">
+                        <input type="checkbox" id="autoScroll" checked style="accent-color: var(--color-emerald);"> Autoscroll
+                    </label>
+                </div>
+            </div>
+
+            <div id="terminal" class="console-terminal">
+                <div class="console-line"><span class="log-system">[System] Initializing connection to local runtime console...</span></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast">
+        <div class="toast-icon"></div>
+        <span id="toastMsg">Notification message</span>
+    </div>
+
+    <script>
+        const API_KEY_STORAGE_KEY = "ac_server_api_key";
+        const apiKeyField = document.getElementById("apiKeyField");
+        const statusRing = document.getElementById("statusRing");
+        const statusText = document.getElementById("statusText");
+        const statAge = document.getElementById("statAge");
+        const statTunnel = document.getElementById("statTunnel");
+        const statAuth = document.getElementById("statAuth");
+        const terminal = document.getElementById("terminal");
+        const autoScroll = document.getElementById("autoScroll");
+        const logFilter = document.getElementById("logFilter");
+        const toast = document.getElementById("toast");
+        const toastMsg = document.getElementById("toastMsg");
+
+        // Load cached API key from browser storage
+        const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+        if (savedKey) {
+            apiKeyField.value = savedKey;
+            statAuth.textContent = "Configured";
+            statAuth.style.color = "var(--color-emerald)";
+        }
+
+        // Save key on change
+        apiKeyField.addEventListener("input", (e) => {
+            const val = e.target.value;
+            localStorage.setItem(API_KEY_STORAGE_KEY, val);
+            if (val.trim()) {
+                statAuth.textContent = "Configured";
+                statAuth.style.color = "var(--color-emerald)";
+            } else {
+                statAuth.textContent = "Locked";
+                statAuth.style.color = "var(--color-warning)";
+            }
+        });
+
+        function getHeaders() {
+            const key = apiKeyField.value.trim();
+            const headers = { "Content-Type": "application/json" };
+            if (key) {
+                headers["X-API-Key"] = key;
+            }
+            return headers;
+        }
+
+        function showToast(msg, isError = false) {
+            toastMsg.textContent = msg;
+            toast.style.borderColor = isError ? "var(--color-error)" : "var(--color-emerald)";
+            toast.querySelector(".toast-icon").style.backgroundColor = isError ? "var(--color-error)" : "var(--color-emerald)";
+            toast.classList.add("visible");
+            setTimeout(() => toast.classList.remove("visible"), 3500);
+        }
+
+        async function performQuery() {
+            try {
+                const response = await fetch("/api/v1/ac/status", {
+                    method: "GET",
+                    headers: getHeaders()
+                });
+                
+                const data = await response.json();
+                if (response.status === 200 && data.success) {
+                    if (data.ac_on) {
+                        statusRing.className = "status-ring active";
+                        statusText.textContent = "ON";
+                    } else {
+                        statusRing.className = "status-ring inactive";
+                        statusText.textContent = "OFF";
+                    }
+                    statAge.textContent = data.source === "cache" ? `${data.cache_age_seconds}s ago (cached)` : "Just now (live)";
+                } else {
+                    const err = data.error || "Authentication rejected.";
+                    showToast(err, true);
+                }
+            } catch (err) {
+                showToast("Connection to server failed.", true);
+            }
+        }
+
+        async function performTrigger() {
+            try {
+                const nowMs = Date.now();
+                const payload = {
+                    action: "ac_on",
+                    timestamp: nowMs
+                };
+                
+                const response = await fetch("/api/v1/ac/trigger", {
+                    method: "POST",
+                    headers: getHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                if (response.status === 200 && data.success) {
+                    showToast("AC Cooling command executed successfully!");
+                    await performQuery();
+                } else {
+                    showToast(data.error || "Failed to execute AC command.", true);
+                }
+            } catch (err) {
+                showToast("Request failed.", true);
+            }
+        }
+
+        // Log formatter helper
+        function formatConsoleLine(text) {
+            // Check for level tags
+            let lineClass = "";
+            let htmlText = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            // Format timestamps like [2026-07-19 10:55:01]
+            htmlText = htmlText.replace(/^(\[.*?\d{4}.*?\])/g, '<span class="log-time">$1</span>');
+
+            if (htmlText.includes("[INFO]")) {
+                htmlText = htmlText.replace("[INFO]", '<span class="log-info">[INFO]</span>');
+            } else if (htmlText.includes("[WARN]") || htmlText.includes("[WARNING]")) {
+                htmlText = htmlText.replace(/\[WARN(ING)?\]/, '<span class="log-warn">$&</span>');
+            } else if (htmlText.includes("[ERROR]") || htmlText.includes("[SECURITY]")) {
+                htmlText = htmlText.replace(/\[(ERROR|SECURITY)\]/, '<span class="log-error">$&</span>');
+            }
+
+            return `<div class="console-line">${htmlText}</div>`;
+        }
+
+        // Fetch logs loop
+        let lastLogCount = 0;
+        async function fetchLogs() {
+            try {
+                const response = await fetch("/api/v1/logs", {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                
+                if (response.status === 200 && data.success) {
+                    if (data.ngrok_domain) {
+                        statTunnel.textContent = `https://${data.ngrok_domain}`;
+                    }
+                    
+                    const logLines = data.logs || [];
+                    const filterText = logFilter.value.toLowerCase().trim();
+                    
+                    terminal.innerHTML = "";
+                    logLines.forEach(line => {
+                        if (filterText && !line.toLowerCase().includes(filterText)) {
+                            return;
+                        }
+                        terminal.innerHTML += formatConsoleLine(line);
+                    });
+                    
+                    if (autoScroll.checked) {
+                        terminal.scrollTop = terminal.scrollHeight;
+                    }
+                }
+            } catch (err) {
+                // Ignore silent fetch errors
+            }
+        }
+
+        document.getElementById("btnRefresh").addEventListener("click", performQuery);
+        document.getElementById("btnTrigger").addEventListener("click", performTrigger);
+        document.getElementById("btnCopyUrl").addEventListener("click", () => {
+            const domain = statTunnel.textContent;
+            if (domain && domain !== "-") {
+                const url = `${domain}/api/v1/ac/trigger`;
+                navigator.clipboard.writeText(url);
+                showToast("Webhook URL copied to clipboard!");
+            } else {
+                showToast("No active domain found.", true);
+            }
+        });
+
+        // Set interval loops
+        setInterval(fetchLogs, 2000);
+        setInterval(performQuery, 5000);
+        
+        // Initial run
+        fetchLogs();
+        performQuery();
+    </script>
+</body>
+</html>

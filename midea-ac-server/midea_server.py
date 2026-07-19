@@ -6,7 +6,7 @@ import threading
 import hmac
 import os
 import logging
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from msmart.device import AirConditioner as AC
 from werkzeug.exceptions import HTTPException
 
@@ -255,6 +255,51 @@ def health():
             "power_on": ac_state_cache.get("power_on"),
             "age_seconds": int(time.time() - ac_state_cache.get("last_updated", 0))
         }
+    })
+
+@app.route('/')
+def dashboard():
+    return render_template('dashboard.html')
+
+@app.route('/api/v1/logs', methods=['GET'])
+def get_logs():
+    if not check_auth():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+    
+    logs = []
+    
+    # Read midea_server.log
+    if os.path.exists("midea_server.log"):
+        try:
+            with open("midea_server.log", "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
+                logs.extend([f"[Flask] {line.strip()}" for line in lines[-150:] if line.strip()])
+        except Exception as e:
+            logs.append(f"[System Error] Failed to read Flask logs: {e}")
+            
+    # Read start_tunnel.log
+    if os.path.exists("start_tunnel.log"):
+        try:
+            with open("start_tunnel.log", "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
+                logs.extend([f"[Tunnel] {line.strip()}" for line in lines[-150:] if line.strip()])
+        except Exception as e:
+            logs.append(f"[System Error] Failed to read Tunnel logs: {e}")
+
+    # Sort log lines by timestamp if available
+    def get_sort_key(log_line):
+        import re
+        match = re.search(r'(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})', log_line)
+        if match:
+            return match.group(1)
+        return ""
+        
+    logs.sort(key=get_sort_key)
+
+    return jsonify({
+        "success": True,
+        "logs": logs,
+        "ngrok_domain": config.get("ngrok_domain", "")
     })
 
 def is_dev_env_validated():

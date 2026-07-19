@@ -347,40 +347,62 @@ if __name__ == "__main__":
     
     # Create Tkinter GUI (on the main thread!)
     root = tk.Tk()
-    root.title("Home AC Automation Logs")
-    root.geometry("650x450")
+    root.title("AC Proximity Server Console")
+    root.geometry("750x500")
+    root.configure(bg="#0c110c")
+    
+    # Modern styles
+    bg_color = "#0c110c"
+    surface_color = "#162217"
+    accent_emerald = "#4cd964"
+    accent_cyan = "#00f0ff"
+    text_color = "#e0eae0"
     
     # Webhook URL Label
-    url_frame = tk.Frame(root)
-    url_frame.pack(fill=tk.X, padx=10, pady=5)
+    url_frame = tk.Frame(root, bg=bg_color)
+    url_frame.pack(fill=tk.X, padx=15, pady=10)
     
-    tk.Label(url_frame, text="Active Webhook URL:", font=("Arial", 10, "bold")).pack(side=tk.LEFT)
+    lbl = tk.Label(url_frame, text="Webhook Entry Endpoint:", font=("Segoe UI", 10, "bold"), fg=text_color, bg=bg_color)
+    lbl.pack(side=tk.LEFT)
     
-    url_entry = tk.Entry(url_frame, font=("Arial", 10), bd=0, bg=root.cget('bg'), width=45)
-    url_entry.pack(side=tk.LEFT, padx=5)
+    url_entry = tk.Entry(url_frame, font=("Consolas", 10), bd=1, relief="flat", bg="#121b13", fg=accent_cyan, insertbackground=accent_cyan, width=45)
+    url_entry.pack(side=tk.LEFT, padx=10)
     
     def copy_url():
         root.clipboard_clear()
         root.clipboard_append(url_entry.get())
         messagebox.showinfo("Copied", "Webhook URL copied to clipboard!")
         
-    tk.Button(url_frame, text="Copy", command=copy_url, padx=5).pack(side=tk.RIGHT)
+    btn_copy = tk.Button(url_frame, text="Copy URL", font=("Segoe UI", 9, "bold"), bg=surface_color, fg=accent_emerald, activebackground=accent_emerald, activeforeground=bg_color, bd=0, padx=8, cursor="hand2", command=copy_url)
+    btn_copy.pack(side=tk.RIGHT, padx=5)
 
     # Scrolled Text for Logs
-    log_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Consolas", 9), bg="#1e1e1e", fg="#d4d4d4")
-    log_area.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+    log_area = scrolledtext.ScrolledText(root, wrap=tk.WORD, font=("Consolas", 9), bg="#020402", fg="#a0bca0", insertbackground=accent_emerald, bd=0, highlightthickness=1, highlightcolor=accent_emerald, highlightbackground=surface_color)
+    log_area.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
 
     # Actions panel
-    btn_frame = tk.Frame(root)
-    btn_frame.pack(fill=tk.X, padx=10, pady=10)
+    btn_frame = tk.Frame(root, bg=bg_color)
+    btn_frame.pack(fill=tk.X, padx=15, pady=15)
 
     def restart_services():
         start_subprocesses()
         log_area.insert(tk.END, "[System] Services restarting...\n")
 
-    tk.Button(btn_frame, text="Restart Services", command=restart_services).pack(side=tk.LEFT, padx=5)
-    tk.Button(btn_frame, text="Go Stealth (Hide Tray)", command=go_stealth).pack(side=tk.LEFT, padx=5)
-    tk.Button(btn_frame, text="Close Window", command=hide_window).pack(side=tk.RIGHT, padx=5)
+    def open_dashboard():
+        import webbrowser
+        webbrowser.open("http://localhost:3000/")
+
+    btn_dashboard = tk.Button(btn_frame, text="🌐 Launch Web Dashboard", font=("Segoe UI", 10, "bold"), bg=accent_emerald, fg=bg_color, activebackground=accent_cyan, activeforeground=bg_color, bd=0, padx=12, pady=5, cursor="hand2", command=open_dashboard)
+    btn_dashboard.pack(side=tk.LEFT, padx=5)
+
+    btn_restart = tk.Button(btn_frame, text="⟳ Restart Services", font=("Segoe UI", 9, "bold"), bg=surface_color, fg=text_color, activebackground=accent_emerald, activeforeground=bg_color, bd=0, padx=10, pady=5, cursor="hand2", command=restart_services)
+    btn_restart.pack(side=tk.LEFT, padx=5)
+    
+    btn_stealth = tk.Button(btn_frame, text="Go Stealth", font=("Segoe UI", 9, "bold"), bg=surface_color, fg=text_color, activebackground=accent_emerald, activeforeground=bg_color, bd=0, padx=10, pady=5, cursor="hand2", command=go_stealth)
+    btn_stealth.pack(side=tk.LEFT, padx=5)
+    
+    btn_close = tk.Button(btn_frame, text="Close Window", font=("Segoe UI", 9, "bold"), bg=surface_color, fg="#ff3b30", activebackground="#ff3b30", activeforeground=bg_color, bd=0, padx=10, pady=5, cursor="hand2", command=hide_window)
+    btn_close.pack(side=tk.RIGHT, padx=5)
 
     # Auto refresh log loop
     def refresh_logs():
@@ -390,8 +412,8 @@ if __name__ == "__main__":
         
         # Update Logs
         with logs_lock:
-            current_len = len(log_area.get("1.0", tk.END).strip().splitlines())
-            if len(log_messages) > current_len:
+            current_len = log_area.get("1.0", tk.END).strip().splitlines()
+            if len(log_messages) > len(current_len):
                 log_area.delete("1.0", tk.END)
                 log_area.insert(tk.END, "".join(log_messages))
                 log_area.see(tk.END)
