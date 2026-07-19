@@ -437,14 +437,14 @@ if __name__ == "__main__":
     def force_ac_on():
         def run():
             try:
-                # Fetch config key
-                api_key = ""
+                # Use absolute path to resolve config.json correctly in all thread contexts
+                config_json_path = os.path.join(SERVER_DIR, "config.json")
                 try:
-                    with open("config.json", "r") as f:
+                    with open(config_json_path, "r") as f:
                         cfg = json.load(f)
                         api_key = cfg.get("api_key", "")
-                except:
-                    pass
+                except Exception as le:
+                    log_app_event(f"Error loading config.json in force_ac_on: {le}")
                     
                 import urllib.request
                 import json
