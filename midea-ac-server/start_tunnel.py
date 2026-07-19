@@ -51,6 +51,8 @@ url_found = False
 
 while time.time() - start_time < 30:
     line = proc.stdout.readline()
+    if line == "":  # Process exited (EOF)
+        break
     if not line:
         continue
     line = line.strip()
@@ -77,6 +79,8 @@ if not url_found:
 try:
     while True:
         line = proc.stdout.readline()
+        if line == "":  # Process exited (EOF)
+            break
         if line:
             print(line.strip())
         time.sleep(0.1)
