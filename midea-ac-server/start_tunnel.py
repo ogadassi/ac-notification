@@ -22,6 +22,13 @@ if not domain:
 # Try to find absolute path to ngrok to bypass path propagation delay
 ngrok_cmd = "ngrok"
 common_paths = [
+    # Explicit Administrator profile paths (for Task Scheduler / System services)
+    r"C:\Users\Administrator\AppData\Local\Microsoft\WinGet\Links\ngrok.exe",
+    r"C:\Users\Administrator\AppData\Local\Microsoft\WinGet\Packages\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe\ngrok.exe",
+    r"C:\Users\Administrator\AppData\Local\ngrok\ngrok.exe",
+    r"C:\Users\Administrator\AppData\Roaming\ngrok\ngrok.exe",
+
+    # Dynamic environment-expanded paths
     os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ngrok.exe"),
     os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe\ngrok.exe"),
     r"C:\Program Files\ngrok\ngrok.exe",
