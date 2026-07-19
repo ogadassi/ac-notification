@@ -436,19 +436,18 @@ if __name__ == "__main__":
 
     def force_ac_on():
         def run():
+            import urllib.request
+            api_key = ""
+            config_json_path = os.path.join(SERVER_DIR, "config.json")
+            
             try:
-                # Use absolute path to resolve config.json correctly in all thread contexts
-                config_json_path = os.path.join(SERVER_DIR, "config.json")
-                try:
-                    with open(config_json_path, "r") as f:
-                        cfg = json.load(f)
-                        api_key = cfg.get("api_key", "")
-                except Exception as le:
-                    log_app_event(f"Error loading config.json in force_ac_on: {le}")
-                    
-                import urllib.request
-                import json
+                with open(config_json_path, "r") as f:
+                    cfg = json.load(f)
+                    api_key = cfg.get("api_key", "")
+            except Exception as le:
+                log_app_event(f"Error loading config.json in force_ac_on: {le}")
                 
+            try:
                 url = "http://localhost:3000/api/v1/ac/trigger"
                 payload = json.dumps({
                     "action": "ac_on",
