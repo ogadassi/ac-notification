@@ -23,6 +23,7 @@ if not domain:
 ngrok_cmd = "ngrok"
 common_paths = [
     os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Links\ngrok.exe"),
+    os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe\ngrok.exe"),
     r"C:\Program Files\ngrok\ngrok.exe",
     os.path.expandvars(r"%LOCALAPPDATA%\ngrok\ngrok.exe"),
     os.path.expandvars(r"%APPDATA%\ngrok\ngrok.exe")
