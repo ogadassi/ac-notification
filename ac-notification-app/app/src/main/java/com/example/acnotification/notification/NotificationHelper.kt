@@ -5,7 +5,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
+import com.example.acnotification.R
 
 object NotificationHelper {
 
@@ -42,19 +44,19 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Custom collapsed RemoteViews layout containing the action button
+        val collapsedView = RemoteViews(context.packageName, R.layout.notification_collapsed).apply {
+            setOnClickPendingIntent(R.id.btn_turn_on_ac, yesPendingIntent)
+        }
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("You're almost home! 🏠")
-            .setContentText("Turn on the AC before you arrive?")
+            .setCustomContentView(collapsedView)
+            .setCustomBigContentView(collapsedView)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .addAction(
-                android.R.drawable.ic_media_play,
-                "Turn on AC",
-                yesPendingIntent
-            )
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)

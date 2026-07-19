@@ -1,27 +1,18 @@
 package com.example.acnotification.ui.main
 
-import com.example.acnotification.data.DataRepository
-import junit.framework.TestCase.assertEquals
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.test.runTest
+import com.example.acnotification.util.AppLogger
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class MainScreenViewModelTest {
+class LogEntryTest {
   @Test
-  fun uiState_initiallyLoading() = runTest {
-    val viewModel = MainScreenViewModel(FakeMyModelRepository())
-    assertEquals(viewModel.uiState.first(), MainScreenUiState.Loading)
+  fun testLogEntryDisplay() {
+    val entry = AppLogger.LogEntry(
+      time = "10:55:01.123",
+      level = AppLogger.Level.INFO,
+      tag = "TEST",
+      message = "Hello World"
+    )
+    assertEquals("[10:55:01.123] INFO  [TEST] Hello World", entry.display)
   }
-
-  @Test
-  fun uiState_onItemSaved_isDisplayed() = runTest {
-    val viewModel = MainScreenViewModel(FakeMyModelRepository())
-    assertEquals(viewModel.uiState.first(), MainScreenUiState.Loading)
-  }
-}
-
-private class FakeMyModelRepository : DataRepository {
-  override val data: Flow<List<String>> = flow { emit(listOf("Sample")) }
 }

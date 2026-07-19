@@ -34,11 +34,14 @@ object AppLogger {
     fun e(tag: String, msg: String) = add(Level.ERROR, tag, msg).also { Log.e(tag, msg) }
     fun d(tag: String, msg: String) = add(Level.DEBUG, tag, msg).also { Log.d(tag, msg) }
 
+    var onLogAdded: ((LogEntry) -> Unit)? = null
+
     fun clear() { entries.clear() }
 
     private fun add(level: Level, tag: String, msg: String) {
         val entry = LogEntry(fmt.format(Date()), level, tag, msg)
         if (entries.size >= MAX_ENTRIES) entries.removeAt(0)
         entries.add(entry)
+        onLogAdded?.invoke(entry)
     }
 }

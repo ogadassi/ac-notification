@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bright neon cyan for dark mode phones, matching the app theme -->
+    <color name="notification_btn_color">#5de6ff</color>
+    <!-- Text colors for dark mode -->
+    <color name="notification_title_color">#f8fafc</color>
+    <color name="notification_body_color">#abb6c8</color>
+</resources>

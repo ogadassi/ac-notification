@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>Aura AC Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Tailwind Configuration -->
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "var(--on-surface-variant, #c6c6cd)",
+                    "on-tertiary-fixed": "var(--on-tertiary-fixed, #261a00)",
+                    "on-primary-container": "var(--on-primary-container, #798098)",
+                    "tertiary-container": "var(--tertiary-container, #211600)",
+                    "on-primary-fixed": "var(--on-primary-fixed, #131b2e)",
+                    "error-container": "var(--error-container, #93000a)",
+                    "on-primary": "var(--on-primary, #283044)",
+                    "surface-container-highest": "var(--surface-container-highest, #273647)",
+                    "surface-container": "var(--surface-container, #122131)",
+                    "inverse-surface": "var(--inverse-surface, #d4e4fa)",
+                    "tertiary-fixed": "var(--tertiary-fixed, #ffdf9f)",
+                    "on-primary-fixed-variant": "var(--on-primary-fixed-variant, #3f465c)",
+                    "secondary-fixed-dim": "var(--secondary-fixed-dim, #2fd9f4)",
+                    "primary": "var(--primary, #bec6e0)",
+                    "surface": "var(--surface, #051424)",
+                    "surface-container-lowest": "var(--surface-container-lowest, #010f1f)",
+                    "on-background": "var(--on-background, #d4e4fa)",
+                    "on-tertiary": "var(--on-tertiary, #402d00)",
+                    "on-secondary": "var(--on-secondary, #00363e)",
+                    "surface-tint": "var(--surface-tint, #bec6e0)",
+                    "surface-container-high": "var(--surface-container-high, #1c2b3c)",
+                    "inverse-primary": "var(--inverse-primary, #565e74)",
+                    "on-secondary-container": "var(--on-secondary-container, #00515d)",
+                    "outline-variant": "var(--outline-variant, #45464d)",
+                    "on-surface": "var(--on-surface, #d4e4fa)",
+                    "background": "var(--background, #051424)",
+                    "tertiary": "var(--tertiary, #f9bd22)",
+                    "secondary-fixed": "var(--secondary-fixed, #a2eeff)",
+                    "secondary-container": "var(--secondary-container, #00cbe6)",
+                    "on-tertiary-fixed-variant": "var(--on-tertiary-fixed-variant, #5c4300)",
+                    "secondary": "var(--secondary, #5de6ff)",
+                    "surface-variant": "var(--surface-variant, #273647)",
+                    "primary-fixed-dim": "var(--primary-fixed-dim, #bec6e0)",
+                    "on-secondary-fixed-variant": "var(--on-secondary-fixed-variant, #004e5a)",
+                    "outline": "var(--outline, #909097)",
+                    "on-tertiary-container": "var(--on-tertiary-container, #a47a00)",
+                    "primary-container": "var(--primary-container, #0f172a)",
+                    "inverse-on-surface": "var(--inverse-on-surface, #233143)",
+                    "error": "var(--error, #ffb4ab)",
+                    "on-error": "var(--on-error, #690005)",
+                    "tertiary-fixed-dim": "var(--tertiary-fixed-dim, #f9bd22)",
+                    "surface-bright": "var(--surface-bright, #2c3a4c)",
+                    "on-error-container": "var(--on-error-container, #ffdad6)",
+                    "primary-fixed": "var(--primary-fixed, #dae2fd)",
+                    "surface-container-low": "var(--surface-container-low, #0d1c2d)",
+                    "on-secondary-fixed": "var(--on-secondary-fixed, #001f25)",
+                    "surface-dim": "var(--surface-dim, #051424)"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "unit": "4px",
+                    "xs": "4px",
+                    "margin-mobile": "20px",
+                    "margin-desktop": "48px",
+                    "sm": "8px",
+                    "md": "16px",
+                    "lg": "24px",
+                    "xl": "40px",
+                    "gutter": "16px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "display-lg-mobile": ["Geist"],
+                    "body-lg": ["Inter"],
+                    "status-number": ["Geist"],
+                    "display-lg": ["Geist"],
+                    "headline-md": ["Geist"],
+                    "label-caps": ["Geist"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg-mobile": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "status-number": ["14px", {"lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "700"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent !important;
+            outline: none !important;
+        }
+        *:focus {
+            outline: none !important;
+        }
+
+        :root {
+            /* Colors will be overridden by native android bridge colors, with these as default fallbacks */
+            --primary: #bec6e0;
+            --secondary: #5de6ff;
+            --background: #050b14;
+            --surface: rgba(18, 30, 49, 0.4);
+            --on-surface: #e2ecf8;
+            --on-surface-variant: #abb6c8;
+            --outline-variant: rgba(255, 255, 255, 0.08);
+            --outline: rgba(255, 255, 255, 0.2);
+            --error: #ffb4ab;
+        }
+
+        body {
+            background-color: var(--background);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(93, 230, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(190, 198, 224, 0.05) 0%, transparent 40%);
+            min-height: max(884px, 100dvh);
+            overflow-x: hidden;
+        }
+
+        /* 2026 Background Nebulas */
+        @keyframes blob-float {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -40px) scale(1.08); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-nebula {
+            animation: blob-float 15s infinite alternate ease-in-out;
+        }
+
+        /* Liquid Glass Cards */
+        .liquid-glass-card {
+            background: rgba(20, 32, 51, 0.35);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            box-shadow: 
+                0 8px 32px 0 rgba(0, 0, 0, 0.25),
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @media (hover: hover) {
+            .liquid-glass-card:hover {
+                border-color: rgba(93, 230, 255, 0.25);
+                box-shadow: 
+                    0 16px 40px 0 rgba(0, 0, 0, 0.35),
+                    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
+                    0 0 20px 0 rgba(93, 230, 255, 0.05);
+                transform: translateY(-2px);
+            }
+        }
+
+        /* Input styling */
+        .liquid-glass-input {
+            background: rgba(5, 11, 20, 0.4) !important;
+            border: 1px solid rgba(255, 255, 255, 0.07) !important;
+            border-radius: 16px !important;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .liquid-glass-input:focus-within {
+            border-color: rgba(93, 230, 255, 0.4) !important;
+            box-shadow: 0 0 15px rgba(93, 230, 255, 0.1) !important;
+            background: rgba(5, 11, 20, 0.6) !important;
+        }
+
+        /* Capsule Buttons */
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, var(--secondary, #5de6ff) 0%, #2f95f4 100%);
+            color: #050b14;
+            font-weight: 600;
+            border-radius: 9999px;
+            box-shadow: 0 4px 15px rgba(93, 230, 255, 0.25);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @media (hover: hover) {
+            .btn-gradient-primary:hover {
+                box-shadow: 0 6px 20px rgba(93, 230, 255, 0.4);
+                transform: scale(1.02);
+            }
+        }
+        .btn-gradient-primary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-glass-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @media (hover: hover) {
+            .btn-glass-secondary:hover {
+                background: rgba(255, 255, 255, 0.08);
+                border-color: rgba(255, 255, 255, 0.15);
+                transform: scale(1.02);
+            }
+        }
+        .btn-glass-secondary:active {
+            transform: scale(0.97);
+        }
+
+        /* Pulsing Indicators */
+        .radial-pulse {
+            animation: pulse-ring 3s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(.33); opacity: 0; }
+            50% { opacity: 0.4; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .terminal-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: rgba(5, 11, 20, 0.2);
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Leaflet custom dark theme styling */
+        .leaflet-container {
+            background: rgba(5, 11, 20, 0.6) !important;
+        }
+        .leaflet-control-attribution {
+            font-size: 8px !important;
+            background: rgba(5, 11, 20, 0.8) !important;
+            color: #abb6c8 !important;
+            border-top-left-radius: 8px;
+        }
+        .leaflet-control-attribution a {
+            color: var(--secondary, #5de6ff) !important;
+        }
+    </style>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<<body class="text-on-surface font-body-md selection:bg-secondary/30 min-h-screen flex flex-col relative">
+
+<!-- Background Nebulas -->
+<div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute -top-[15%] -left-[15%] w-[55%] h-[55%] rounded-full bg-gradient-to-br from-secondary/12 to-primary/8 blur-[120px] animate-nebula"></div>
+    <div class="absolute -bottom-[15%] -right-[15%] w-[55%] h-[55%] rounded-full bg-gradient-to-br from-secondary/8 to-primary/12 blur-[120px] animate-nebula" style="animation-delay: -5s;"></div>
+</div>
+
+<!-- TopAppBar -->
+<header class="fixed top-4 left-4 right-4 z-50 backdrop-blur-xl bg-white/[0.03] border border-white/10 rounded-[24px] px-6 flex justify-between items-center h-14 shadow-lg mx-auto max-w-5xl transition-all">
+    <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-secondary animate-pulse" data-icon="sensors" style="font-size: 20px;">sensors</span>
+        <span class="text-lg font-semibold text-secondary tracking-tight">Aura AC</span>
+    </div>
+    <div class="flex items-center gap-6">
+        <!-- Desktop Nav -->
+        <nav class="hidden md:flex gap-6">
+            <button onclick="switchTab('dashboard')" id="desktop-tab-btn-dashboard" class="font-label-caps text-xs text-secondary px-4 py-1.5 rounded-full hover:bg-white/5 transition-all">Dashboard</button>
+            <button onclick="switchTab('permissions')" id="desktop-tab-btn-permissions" class="font-label-caps text-xs text-on-surface-variant/70 px-4 py-1.5 rounded-full hover:bg-white/5 transition-all">Permissions</button>
+            <button onclick="switchTab('settings')" id="desktop-tab-btn-settings" class="font-label-caps text-xs text-on-surface-variant/70 px-4 py-1.5 rounded-full hover:bg-white/5 transition-all">Settings</button>
+        </nav>
+        <span id="cloud-status-icon" class="material-symbols-outlined text-secondary" data-icon="cloud_done">cloud_done</span>
+    </div>
+</header>
+
+<!-- Main SPA Content Area -->
+<main class="flex-1 mt-20 mb-28 px-margin-mobile md:px-margin-desktop py-md max-w-5xl mx-auto w-full relative z-10">
+
+    <!-- TAB: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-content active space-y-md max-w-md mx-auto">
+        <!-- Map Visualization -->
+        <div class="relative liquid-glass-card p-2 aspect-square">
+            <!-- Leaflet Container -->
+            <div id="map" class="w-full h-full rounded-[24px] grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-700"></div>
+            <!-- Radius Legend -->
+            <div class="absolute bottom-4 left-4 z-30 bg-background/80 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full shadow-lg">
+                <p id="geofence-legend-text" class="text-[9px] font-bold text-secondary uppercase tracking-widest">GEOFENCE: 500M</p>
+            </div>
+        </div>
+
+        <!-- Main Status Indicator -->
+        <div id="monitoring-status-card" class="flex flex-col items-center justify-center py-8 liquid-glass-card">
+            <div class="relative flex items-center justify-center mb-md">
+                <div id="monitoring-ping" class="absolute w-16 h-16 bg-secondary/15 rounded-full animate-ping"></div>
+                <div id="monitoring-icon-bg" class="w-12 h-12 bg-secondary flex items-center justify-center rounded-full z-10 shadow-lg">
+                    <span class="material-symbols-outlined text-background text-xl" data-icon="location_searching" style="font-variation-settings: 'FILL' 1;">location_searching</span>
+                </div>
+            </div>
+            <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Climate Proximity</p>
+            <h2 id="monitoring-status-text" class="text-xl text-secondary font-bold tracking-tight">Monitoring: ACTIVE</h2>
+        </div>
+
+        <!-- Live Context Row -->
+        <div class="grid grid-cols-2 gap-md">
+            <!-- Distance Card -->
+            <div class="liquid-glass-card p-md flex flex-col justify-between h-28">
+                <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">CURRENT DISTANCE</span>
+                <div class="flex items-baseline gap-xs">
+                    <span id="txt-distance" class="text-3xl font-bold text-on-surface tracking-tight">--</span>
+                    <span class="text-on-surface-variant text-[10px] font-semibold">KM</span>
+                </div>
+            </div>
+            <!-- Home State Card -->
+            <div class="liquid-glass-card p-md flex flex-col justify-between h-28">
+                <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">HOME STATE</span>
+                <div class="flex items-center gap-sm">
+                    <span id="ac-state-indicator" class="w-2.5 h-2.5 rounded-full bg-on-surface-variant"></span>
+                    <span id="txt-ac-state" class="text-lg font-bold text-on-surface tracking-tight">AC: OFF</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radius Control Slider -->
+        <div class="liquid-glass-card p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">RADIUS CONTROL</h3>
+                <span id="lbl-radius" class="text-secondary font-bold text-sm tracking-wide">500M</span>
+            </div>
+            <input id="slider-radius" class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary focus:outline-none" max="1000" min="50" step="10" type="range" value="500"/>
+            <div class="flex justify-between mt-4 px-1">
+                <button onclick="setRadiusVal(50)" class="text-[10px] font-semibold text-on-surface-variant hover:text-secondary transition-colors">50M</button>
+                <button onclick="setRadiusVal(250)" class="text-[10px] font-semibold text-on-surface-variant hover:text-secondary transition-colors">250M</button>
+                <button onclick="setRadiusVal(500)" class="text-[10px] font-semibold text-secondary transition-colors">500M</button>
+                <button onclick="setRadiusVal(1000)" class="text-[10px] font-semibold text-on-surface-variant hover:text-secondary transition-colors">1KM</button>
+            </div>
+        </div>
+
+        <!-- Target Home Input -->
+        <div class="liquid-glass-card p-5 space-y-4 relative">
+            <div class="relative">
+                <div class="flex items-center gap-3 bg-black/35 border border-white/5 rounded-2xl px-4 h-12 focus-within:border-secondary/40 transition-all">
+                    <span class="material-symbols-outlined text-on-surface-variant text-lg" data-icon="home">home</span>
+                    <input id="home-search-input" class="bg-transparent border-none text-sm text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0" placeholder="Search home address..." type="text"/>
+                    <button id="btn-gps" onclick="triggerGPSRequest()" class="flex items-center justify-center p-2 rounded-full hover:bg-white/5 text-on-surface-variant/80 active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-lg" data-icon="my_location">my_location</span>
+                    </button>
+                </div>
+                <!-- Suggestions Dropdown -->
+                <div id="search-suggestions" class="absolute z-50 left-0 right-0 mt-2 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden hidden shadow-2xl max-h-60 overflow-y-auto">
+                    <!-- suggestions populated dynamically -->
+                </div>
+            </div>
+            <button id="btn-apply-location" onclick="commitLocation()" class="w-full py-3 btn-gradient-primary text-xs uppercase tracking-widest hidden">
+                Apply Location
+            </button>
+        </div>
+    </section>
+
+    <!-- TAB: PERMISSIONS -->
+    <section id="tab-permissions" class="tab-content space-y-md max-w-4xl mx-auto">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-6">
+            <div class="max-w-2xl">
+                <h1 class="text-2xl md:text-3xl font-bold text-on-surface mb-2 tracking-tight">Permissions Center</h1>
+                <p class="text-on-surface-variant text-sm leading-relaxed">
+                    To maintain your home's micro-climate without manual intervention, Aura requires specific system level authorizations. These enable background automation and proximity-based cooling.
+                </p>
+            </div>
+            <div class="hidden md:block">
+                <div class="bg-white/5 border border-white/10 px-4 py-2 rounded-full flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+                    <span class="text-[9px] font-bold text-secondary uppercase tracking-wider">SYSTEM MONITOR ACTIVE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bento Grid Permission List -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            
+            <!-- Fine Location Access -->
+            <div class="md:col-span-8 permission-card liquid-glass-card p-6 relative overflow-hidden group">
+                <div class="absolute top-4 right-4 z-10">
+                    <span id="badge-perm-location" class="bg-error/15 text-error text-[10px] font-bold px-3 py-0.5 rounded-full border border-error/30 uppercase">MISSING</span>
+                </div>
+                <div class="flex flex-col h-full">
+                    <div class="mb-6">
+                        <span class="material-symbols-outlined text-secondary text-3xl mb-3" data-icon="location_on">location_on</span>
+                        <h3 class="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-1">Connectivity</h3>
+                        <h2 class="text-lg font-bold text-on-surface">Fine Location Access</h2>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-6 max-w-md">
+                        Enables precise coordinate lookup. This serves as the baseline positioning to calculate your current distance from home.
+                    </p>
+                    <div class="mt-auto flex items-center gap-sm">
+                        <button id="btn-grant-location" onclick="requestNativePermission('location')" class="px-5 py-2.5 btn-gradient-primary uppercase tracking-wider text-xs">Authorize</button>
+                        <span id="lbl-status-location" class="text-[10px] font-bold text-secondary tracking-widest hidden uppercase">PRECISE GPS ENABLED</span>
+                    </div>
+                </div>
+                <div class="absolute inset-0 shimmer pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </div>
+
+            <!-- Mini Map / Coordinates Visualization -->
+            <div class="md:col-span-4 liquid-glass-card overflow-hidden min-h-[180px] relative p-5 flex flex-col justify-between">
+                <div class="absolute inset-0 bg-grid opacity-10 pointer-events-none"></div>
+                <h3 class="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold relative z-10">Current Coordinate Fix</h3>
+                <div class="relative z-10 mt-auto">
+                    <div id="lbl-current-coords" class="text-lg font-bold text-secondary tracking-tight mb-1">-- , --</div>
+                    <p class="text-[10px] text-on-surface-variant">Last checked pin in real-time</p>
+                </div>
+            </div>
+
+            <!-- Background Location Authorization -->
+            <div class="md:col-span-4 permission-card liquid-glass-card p-6 relative group">
+                <div class="absolute top-4 right-4 z-10">
+                    <span id="badge-perm-bg-location" class="bg-error/15 text-error text-[10px] font-bold px-3 py-0.5 rounded-full border border-error/30 uppercase">MISSING</span>
+                </div>
+                <div class="flex flex-col h-full justify-between gap-4">
+                    <div>
+                        <span class="material-symbols-outlined text-secondary text-3xl mb-3" data-icon="location_searching">location_searching</span>
+                        <h3 class="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-1">Background</h3>
+                        <h2 class="text-lg font-bold text-on-surface">Background Location</h2>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-4">
+                        "Always Allow" permission enables background geofence boundaries to work when the app is closed.
+                    </p>
+                    <button id="btn-grant-bg-location" onclick="requestNativePermission('backgroundLocation')" class="w-full py-3 btn-glass-secondary text-secondary border-secondary/20 hover:border-secondary/50 text-xs font-semibold uppercase tracking-wider">Authorize Always</button>
+                </div>
+            </div>
+
+            <!-- Notification Authorization -->
+            <div class="md:col-span-4 permission-card liquid-glass-card p-6 relative group">
+                <div class="absolute top-4 right-4 z-10">
+                    <span id="badge-perm-notifications" class="bg-error/15 text-error text-[10px] font-bold px-3 py-0.5 rounded-full border border-error/30 uppercase">MISSING</span>
+                </div>
+                <div class="flex flex-col h-full justify-between gap-4">
+                    <div>
+                        <span class="material-symbols-outlined text-secondary text-3xl mb-3" data-icon="notifications_active">notifications_active</span>
+                        <h3 class="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-1">Interaction</h3>
+                        <h2 class="text-lg font-bold text-on-surface">Notifications</h2>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-4">
+                        Required to display AC validation prompts on geofence border entry events.
+                    </p>
+                    <button id="btn-grant-notifications" onclick="requestNativePermission('notifications')" class="w-full py-3 btn-glass-secondary text-secondary border-secondary/20 hover:border-secondary/50 text-xs font-semibold uppercase tracking-wider">Authorize Prompts</button>
+                </div>
+            </div>
+
+            <!-- Battery Optimization Exemption -->
+            <div class="md:col-span-4 permission-card liquid-glass-card p-6 relative group">
+                <div class="absolute top-4 right-4 z-10">
+                    <span id="badge-perm-battery" class="bg-error/15 text-error text-[10px] font-bold px-3 py-0.5 rounded-full border border-error/30 uppercase">RESTRICTED</span>
+                </div>
+                <div class="flex flex-col h-full justify-between gap-4">
+                    <div>
+                        <span class="material-symbols-outlined text-secondary text-3xl mb-3" data-icon="battery_saver">battery_saver</span>
+                        <h3 class="text-[9px] text-on-surface-variant uppercase tracking-widest font-bold mb-1">Performance</h3>
+                        <h2 class="text-lg font-bold text-on-surface">Battery Optimization</h2>
+                    </div>
+                    <p class="text-on-surface-variant text-sm mb-4">
+                        Set to "Unrestricted" to prevent Android from closing the background location monitoring process.
+                    </p>
+                    <button id="btn-grant-battery" onclick="requestNativePermission('batteryOptimization')" class="w-full py-3 btn-glass-secondary text-secondary border-secondary/20 hover:border-secondary/50 text-xs font-semibold uppercase tracking-wider">Ignore Restrict</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Action Bar -->
+        <section class="mt-8">
+            <div class="liquid-glass-card p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-secondary" data-icon="build_circle">build_circle</span>
+                    </div>
+                    <div>
+                        <h4 id="compliance-title" class="text-base font-bold text-on-surface">System Compliance: --%</h4>
+                        <p id="compliance-desc" class="text-on-surface-variant text-xs mt-0.5">Verifying system level permission compliance...</p>
+                    </div>
+                </div>
+                <button id="btn-resolve-all" onclick="resolveAllPermissions()" class="w-full md:w-auto px-6 py-3 btn-gradient-primary uppercase tracking-wider text-xs">
+                    Resolve All Issues
+                </button>
+            </div>
+        </section>
+    </section>
+
+    <!-- TAB: SETTINGS -->
+    <section id="tab-settings" class="tab-content space-y-md max-w-4xl mx-auto">
+        <!-- Network Section -->
+        <section class="liquid-glass-card p-6 space-y-4">
+            <h2 class="text-[10px] text-secondary uppercase tracking-widest font-bold">Network Configuration</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider" for="endpoint">ENDPOINT URL</label>
+                    <input class="w-full bg-black/25 border border-white/5 focus:border-secondary/40 text-on-surface px-4 py-2.5 rounded-xl transition-all outline-none font-body-md" id="endpoint" placeholder="https://your-domain.ngrok-free.app/api/v1/ac/trigger" type="text"/>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider" for="secret">API SECRET</label>
+                    <input class="w-full bg-black/25 border border-white/5 focus:border-secondary/40 text-on-surface px-4 py-2.5 rounded-xl transition-all outline-none font-body-md" id="secret" type="password" placeholder="API secret key (X-API-Key)"/>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button id="btn-save-settings" onclick="saveSettings()" class="px-6 py-2.5 btn-gradient-primary text-xs uppercase tracking-widest">SAVE SETTINGS</button>
+            </div>
+        </section>
+
+        <!-- Debugging Tools & Live Cooldown -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+            <!-- Tools -->
+            <section class="md:col-span-2 liquid-glass-card p-6 space-y-4">
+                <h2 class="text-[10px] text-secondary uppercase tracking-widest font-bold">Debugging Tools</h2>
+                <div class="flex flex-wrap gap-md">
+                    <button class="flex-grow flex items-center justify-center gap-2 border border-white/5 bg-white/[0.02] text-on-surface py-4 rounded-2xl hover:bg-white/5 transition-all active:scale-[0.98]" onclick="simulateGeofenceEntry()">
+                        <span class="material-symbols-outlined text-lg" data-icon="location_on">location_on</span>
+                        <span class="font-label-caps text-xs">Simulate Geofence Entry</span>
+                    </button>
+                    <button class="flex-grow flex items-center justify-center gap-2 border border-white/5 bg-white/[0.02] text-on-surface py-4 rounded-2xl hover:bg-white/5 transition-all active:scale-[0.98]" onclick="sendTestAlert()">
+                        <span class="material-symbols-outlined text-lg" data-icon="notifications_active">notifications_active</span>
+                        <span class="font-label-caps text-xs">Send Test Alert</span>
+                    </button>
+                </div>
+            </section>
+            <!-- Cooldown -->
+            <section class="liquid-glass-card p-6 flex flex-col items-center justify-center gap-3">
+                <h2 class="text-[10px] text-secondary uppercase tracking-widest font-bold">Live Cooldown</h2>
+                <div class="text-3xl font-bold text-primary tracking-tight" id="cooldown-timer">00:00</div>
+                <button class="text-[10px] text-on-surface-variant hover:text-error transition-colors flex items-center gap-1 font-semibold" onclick="resetTimer()">
+                    <span class="material-symbols-outlined text-xs" data-icon="refresh">refresh</span>
+                    RESET
+                </button>
+            </section>
+        </div>
+
+        <!-- In-App Log / Terminal -->
+        <section class="liquid-glass-card overflow-hidden flex flex-col h-80">
+            <div class="bg-white/[0.02] px-4 py-3 flex justify-between items-center border-b border-white/5">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                    <span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">SYSTEM LOG (REAL-TIME)</span>
+                </div>
+                <div class="flex gap-4">
+                    <button class="text-[10px] font-bold text-on-surface-variant hover:text-secondary transition-colors" onclick="copyLogs()">COPY</button>
+                    <button class="text-[10px] font-bold text-on-surface-variant hover:text-secondary transition-colors" onclick="clearLogs()">CLEAR</button>
+                </div>
+            </div>
+            <div class="flex-1 p-4 font-mono text-[11px] overflow-y-auto terminal-scroll space-y-2 leading-relaxed bg-black/20" id="terminal-console">
+                <!-- log events filled dynamically -->
+            </div>
+        </section>
+    </section>
+
+</main>
+
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-4 right-4 max-w-sm mx-auto flex justify-around items-center h-16 bg-surface/30 backdrop-blur-2xl border border-outline-variant/30 rounded-full px-2 shadow-2xl z-50">
+    <!-- Dashboard -->
+    <a id="nav-btn-dashboard" class="flex flex-col items-center justify-center text-secondary active:scale-90 transition-all duration-200 cursor-pointer px-4 py-2 rounded-full" onclick="switchTab('dashboard')">
+        <span id="nav-icon-dashboard" class="material-symbols-outlined text-[22px] mb-0.5" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+        <span class="font-label-caps text-[9px] uppercase tracking-wider">Dashboard</span>
+    </a>
+    <!-- Permissions -->
+    <a id="nav-btn-permissions" class="flex flex-col items-center justify-center text-on-surface-variant/70 active:scale-90 transition-all duration-200 cursor-pointer px-4 py-2 rounded-full" onclick="switchTab('permissions')">
+        <span id="nav-icon-permissions" class="material-symbols-outlined text-[22px] mb-0.5" data-icon="security" style="font-variation-settings: 'FILL' 0;">security</span>
+        <span class="font-label-caps text-[9px] uppercase tracking-wider">Permissions</span>
+    </a>
+    <!-- Settings -->
+    <a id="nav-btn-settings" class="flex flex-col items-center justify-center text-on-surface-variant/70 active:scale-90 transition-all duration-200 cursor-pointer px-4 py-2 rounded-full" onclick="switchTab('settings')">
+        <span id="nav-icon-settings" class="material-symbols-outlined text-[22px] mb-0.5" data-icon="settings" style="font-variation-settings: 'FILL' 0;">settings</span>
+        <span class="font-label-caps text-[9px] uppercase tracking-wider">Settings</span>
+    </a>
+</nav>
+
+<!-- JavaScript Orchestration -->
+<script>
+    // Global State
+    let currentState = {
+        webhookUrl: "",
+        apiKey: "",
+        radius: 500,
+        homeLat: 0.0,
+        homeLng: 0.0,
+        homeAddress: "",
+        distance: null,
+        acState: "OFF",
+        geofenceActive: false,
+        permissions: {
+            location: false,
+            backgroundLocation: false,
+            notifications: false,
+            batteryOptimization: false
+        },
+        cooldownRemainingSeconds: 0
+    };
+
+    let map = null;
+    let homeMarker = null;
+    let geofenceCircle = null;
+    let activeTab = "dashboard";
+    let cooldownInterval = null;
+
+    // Suggestion List Helper
+    let pendingAddressSuggestion = null;
+    let searchDebounceTimeout = null;
+
+    // Load initial state
+    window.addEventListener("DOMContentLoaded", () => {
+        initLeafletMap();
+        refreshStateFromNative();
+        
+        // Cooldown tick
+        setInterval(tickCooldown, 1000);
+
+        // Bind Search Input Box
+        const searchInput = document.getElementById("home-search-input");
+        searchInput.addEventListener("input", (e) => {
+            clearTimeout(searchDebounceTimeout);
+            const query = e.target.value;
+            if (query.length < 3) {
+                hideSuggestions();
+                return;
+            }
+            searchDebounceTimeout = setTimeout(() => {
+                fetchSuggestions(query);
+            }, 600);
+        });
+
+        // Input Glow Feedback for Settings
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.parentElement.classList.add('glow-primary');
+            });
+            input.addEventListener('blur', () => {
+                input.parentElement.parentElement.classList.remove('glow-primary');
+            });
+        });
+
+        // Slider Input Microinteraction
+        const slider = document.getElementById("slider-radius");
+        slider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            updateRadiusUI(val);
+        });
+        
+        slider.addEventListener('change', (e) => {
+            const val = parseFloat(e.target.value);
+            if (window.AndroidBridge) {
+                window.AndroidBridge.saveRadius(val);
+            }
+            logEvent("GEOFENCE_RADIUS_CHANGED", `New Radius: ${val}m`, "INFO");
+        });
+    });
+
+    function initLeafletMap() {
+        if (map) return;
+        // Default to center
+        map = L.map('map', {
+            zoomControl: false,
+            attributionControl: true
+        }).setView([32.0853, 34.7818], 15);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        homeMarker = L.circleMarker([32.0853, 34.7818], {
+            radius: 6,
+            color: '#5de6ff',
+            fillColor: '#5de6ff',
+            fillOpacity: 1,
+            weight: 2
+        }).addTo(map);
+
+        geofenceCircle = L.circle([32.0853, 34.7818], {
+            color: 'rgba(93, 230, 255, 0.4)',
+            fillColor: '#00cbe6',
+            fillOpacity: 0.15,
+            weight: 1.5,
+            radius: 500
+        }).addTo(map);
+    }
+
+    function switchTab(tabId) {
+        if (activeTab === tabId) return;
+        
+        // Hide previous tab, show current
+        document.getElementById(`tab-${activeTab}`).classList.remove("active");
+        document.getElementById(`tab-${tabId}`).classList.add("active");
+
+        // Update Bottom Nav Buttons styling
+        const prevBtn = document.getElementById(`nav-btn-${activeTab}`);
+        const currentBtn = document.getElementById(`nav-btn-${tabId}`);
+        const prevIcon = document.getElementById(`nav-icon-${activeTab}`);
+        const currentIcon = document.getElementById(`nav-icon-${tabId}`);
+
+        prevBtn.classList.replace("text-secondary", "text-on-surface-variant");
+        currentBtn.classList.replace("text-on-surface-variant", "text-secondary");
+
+        prevIcon.style.fontVariationSettings = "'FILL' 0";
+        currentIcon.style.fontVariationSettings = "'FILL' 1";
+
+        // Desktop nav styling
+        const prevDesktop = document.getElementById(`desktop-tab-btn-${activeTab}`);
+        const currentDesktop = document.getElementById(`desktop-tab-btn-${tabId}`);
+        if (prevDesktop && currentDesktop) {
+            prevDesktop.classList.replace("text-secondary", "text-on-surface-variant");
+            currentDesktop.classList.replace("text-on-surface-variant", "text-secondary");
+        }
+
+        activeTab = tabId;
+
+        // Force Leaflet map redraw on tab switch back to dashboard
+        if (tabId === "dashboard" && map) {
+            setTimeout(() => { map.invalidateSize(); }, 150);
+        }
+    }
+
+    // Refresh everything from Kotlin native
+    function refreshStateFromNative() {
+        if (window.AndroidBridge && window.AndroidBridge.getInitialState) {
+            try {
+                const jsonStr = window.AndroidBridge.getInitialState();
+                const state = JSON.parse(jsonStr);
+                updateState(state);
+                loadLogsFromNative();
+            } catch (e) {
+                logEvent("UI_ERROR", "Error parsing initial state: " + e.message, "FAIL");
+            }
+        } else {
+            // Fake Mock Data for Web Browser Testing
+            console.log("No AndroidBridge found. Using simulated browser mockup state.");
+            updateState({
+                webhookUrl: "https://your-assigned-domain.ngrok-free.dev/api/v1/ac/trigger",
+                apiKey: "ac_secret_key_8497",
+                radius: 500,
+                homeLat: 32.0853,
+                homeLng: 34.7818,
+                homeAddress: "123 Aura Ln, Tel Aviv",
+                distance: 1.2,
+                acState: "OFF",
+                geofenceActive: true,
+                permissions: {
+                    location: true,
+                    backgroundLocation: false,
+                    notifications: true,
+                    batteryOptimization: true
+                },
+                cooldownRemainingSeconds: 1452
+            });
+            
+            // Populate mock logs
+            const consoleEl = document.getElementById('terminal-console');
+            consoleEl.innerHTML = `
+                <div class="text-on-primary-container"><span class="text-on-surface-variant opacity-50">[14:02:11]</span> SYSTEM_INIT: Aura AC Engine version 4.2.0-stable</div>
+                <div class="text-on-primary-container"><span class="text-on-surface-variant opacity-50">[14:02:12]</span> NETWORK: Handshake success with 192.168.1.104</div>
+                <div class="text-secondary"><span class="text-on-surface-variant opacity-50">[14:15:21]</span> INFO: Geofence radius validated at 500m</div>
+            `;
+        }
+    }
+
+    function updateState(state) {
+        currentState = { ...currentState, ...state };
+
+        // Apply Android dynamic system colors
+        if (state.colors) {
+            const root = document.documentElement;
+            for (const [key, value] of Object.entries(state.colors)) {
+                root.style.setProperty(`--${key}`, value);
+            }
+        }
+
+        // Save input values
+        document.getElementById("endpoint").value = currentState.webhookUrl;
+        document.getElementById("secret").value = currentState.apiKey;
+        document.getElementById("slider-radius").value = currentState.radius;
+        document.getElementById("home-search-input").value = currentState.homeAddress;
+
+        // Radius label
+        updateRadiusUI(currentState.radius);
+
+        // Distance & Coords
+        if (currentState.distance !== null) {
+            document.getElementById("txt-distance").textContent = currentState.distance.toFixed(2);
+        } else {
+            document.getElementById("txt-distance").textContent = "--";
+        }
+
+        // Coordinates Label in Permissions page
+        if (currentState.homeLat !== 0.0) {
+            document.getElementById("lbl-current-coords").textContent = 
+                `${currentState.homeLat.toFixed(5)} , ${currentState.homeLng.toFixed(5)}`;
+        }
+
+        // Home AC State
+        document.getElementById("txt-ac-state").textContent = `AC: ${currentState.acState}`;
+        const indicator = document.getElementById("ac-state-indicator");
+        if (currentState.acState === "ON") {
+            indicator.className = "w-2 h-2 rounded-full bg-secondary animate-pulse";
+        } else {
+            indicator.className = "w-2 h-2 rounded-full bg-on-surface-variant";
+        }
+
+        // Geofencing toggle status
+        const activeText = document.getElementById("monitoring-status-text");
+        const statusCard = document.getElementById("monitoring-status-card");
+        const monitoringPing = document.getElementById("monitoring-ping");
+        const monitoringIconBg = document.getElementById("monitoring-icon-bg");
+        const cloudIcon = document.getElementById("cloud-status-icon");
+
+        if (currentState.geofenceActive) {
+            activeText.textContent = "Monitoring: ACTIVE";
+            activeText.className = "text-xl text-secondary font-bold tracking-tight";
+            statusCard.className = "flex flex-col items-center justify-center py-8 liquid-glass-card";
+            monitoringPing.className = "absolute w-16 h-16 bg-secondary/15 rounded-full animate-ping";
+            monitoringIconBg.className = "w-12 h-12 bg-secondary flex items-center justify-center rounded-full z-10 shadow-lg";
+            cloudIcon.textContent = "cloud_done";
+            cloudIcon.className = "material-symbols-outlined text-secondary";
+        } else {
+            activeText.textContent = "Monitoring: INACTIVE";
+            activeText.className = "text-xl text-on-surface-variant/80 font-bold tracking-tight";
+            statusCard.className = "flex flex-col items-center justify-center py-8 liquid-glass-card";
+            monitoringPing.className = "hidden";
+            monitoringIconBg.className = "w-12 h-12 bg-white/5 flex items-center justify-center rounded-full z-10";
+            cloudIcon.textContent = "cloud_off";
+            cloudIcon.className = "material-symbols-outlined text-on-surface-variant/70";
+        }
+
+        // Permissions Badges and Buttons
+        updatePermissionRow("location", currentState.permissions.location);
+        updatePermissionRow("bg-location", currentState.permissions.backgroundLocation);
+        updatePermissionRow("notifications", currentState.permissions.notifications);
+        updatePermissionRow("battery", currentState.permissions.batteryOptimization);
+
+        // System Compliance
+        let totalValids = 0;
+        if (currentState.permissions.location) totalValids++;
+        if (currentState.permissions.backgroundLocation) totalValids++;
+        if (currentState.permissions.notifications) totalValids++;
+        if (currentState.permissions.batteryOptimization) totalValids++;
+        const percent = Math.round((totalValids / 4) * 100);
+
+        document.getElementById("compliance-title").textContent = `System Compliance: ${percent}%`;
+        const complianceDesc = document.getElementById("compliance-desc");
+        const btnResolve = document.getElementById("btn-resolve-all");
+        if (percent === 100) {
+            complianceDesc.textContent = "All systems operational. Geofence background monitor active.";
+            btnResolve.innerHTML = `<div class="flex items-center gap-xs"><span class="material-symbols-outlined text-sm">done</span> SYSTEM CONFIGURED</div>`;
+            btnResolve.className = "w-full md:w-auto px-6 py-3 btn-glass-secondary text-secondary border border-secondary/30 font-label-caps text-label-caps rounded-full uppercase tracking-widest";
+            btnResolve.disabled = true;
+        } else {
+            complianceDesc.textContent = "Permissions are required for automated background triggers.";
+            btnResolve.textContent = "Resolve All Issues";
+            btnResolve.className = "w-full md:w-auto px-6 py-3 btn-gradient-primary font-label-caps text-label-caps uppercase tracking-widest";
+            btnResolve.disabled = false;
+        }
+
+        // Cooldown timer seconds
+        updateCooldownTimerDisplay(currentState.cooldownRemainingSeconds);
+
+        // Update Leaflet Map positions
+        if (map && currentState.homeLat !== 0.0) {
+            const latlng = [currentState.homeLat, currentState.homeLng];
+            homeMarker.setLatLng(latlng);
+            geofenceCircle.setLatLng(latlng);
+            geofenceCircle.setRadius(currentState.radius);
+            
+            // Adjust zoom level
+            let zoom = 15;
+            if (currentState.radius > 800) zoom = 13;
+            else if (currentState.radius > 500) zoom = 14;
+            else if (currentState.radius < 150) zoom = 16;
+            
+            map.setView(latlng, zoom);
+        }
+    }
+
+    function updatePermissionRow(key, isGranted) {
+        const badge = document.getElementById(`badge-perm-${key}`);
+        const btn = document.getElementById(`btn-grant-${key}`);
+        const statusLbl = document.getElementById(`lbl-status-${key}`);
+
+        if (badge) {
+            if (isGranted) {
+                badge.textContent = "ACTIVE";
+                badge.className = "bg-secondary/15 text-secondary text-[10px] font-bold px-3 py-0.5 rounded-full border border-secondary/30";
+            } else {
+                badge.textContent = key === "battery" ? "RESTRICTED" : "MISSING";
+                badge.className = "bg-error/15 text-error text-[10px] font-bold px-3 py-0.5 rounded-full border border-error/30";
+            }
+        }
+
+        if (btn) {
+            if (isGranted) {
+                btn.style.display = "none";
+                if (statusLbl) statusLbl.classList.remove("hidden");
+            } else {
+                btn.style.display = "block";
+                if (statusLbl) statusLbl.classList.add("hidden");
+            }
+        }
+    }
+
+    // Leaflet marker radius adjust in real-time on slider move
+    function updateRadiusUI(val) {
+        document.getElementById("lbl-radius").textContent = val >= 1000 ? (val / 1000).toFixed(1) + 'KM' : val + 'M';
+        document.getElementById("geofence-legend-text").textContent = `GEOFENCE: ${val >= 1000 ? (val / 1000).toFixed(1) + 'KM' : val + 'M'}`;
+        if (geofenceCircle) {
+            geofenceCircle.setRadius(val);
+        }
+    }
+
+    function setRadiusVal(val) {
+        document.getElementById("slider-radius").value = val;
+        updateRadiusUI(val);
+        if (window.AndroidBridge) {
+            window.AndroidBridge.saveRadius(val);
+        }
+        logEvent("GEOFENCE_RADIUS_CHANGED", `New Radius: ${val}m`, "INFO");
+    }
+
+    // Call native request handlers
+    function requestNativePermission(type) {
+        if (window.AndroidBridge) {
+            window.AndroidBridge.requestPermission(type);
+        } else {
+            console.log("Requested native permission: " + type);
+            // Simulate granting for mock mode
+            currentState.permissions[type] = true;
+            updateState(currentState);
+        }
+    }
+
+    function resolveAllPermissions() {
+        if (window.AndroidBridge) {
+            window.AndroidBridge.resolveAllPermissions();
+        } else {
+            console.log("Resolving all permissions...");
+            currentState.permissions.location = true;
+            currentState.permissions.backgroundLocation = true;
+            currentState.permissions.notifications = true;
+            currentState.permissions.batteryOptimization = true;
+            updateState(currentState);
+            logEvent("PERMISSIONS_RESOLVED", "All permissions successfully whitelisted.", "SUCCESS");
+        }
+    }
+
+    // Settings Network
+    function saveSettings() {
+        const endpoint = document.getElementById("endpoint").value;
+        const secret = document.getElementById("secret").value;
+        
+        if (window.AndroidBridge) {
+            window.AndroidBridge.saveSettings(endpoint, secret);
+            logEvent("SETTINGS_SAVED", "Network endpoints saved.", "SUCCESS");
+        } else {
+            currentState.webhookUrl = endpoint;
+            currentState.apiKey = secret;
+            updateState(currentState);
+            logEvent("SETTINGS_SAVED", "[MOCK] Endpoint saved to simulated memory.", "SUCCESS");
+        }
+    }
+
+    // Debug Tools calls
+    function simulateGeofenceEntry() {
+        if (window.AndroidBridge) {
+            window.AndroidBridge.simulateGeofenceEntry();
+        } else {
+            logEvent("GEOFENCE_ENTRY_SIMULATED", "Simulation broadcast dispatched.", "INFO");
+            // Set AC state to triggered
+            currentState.acState = "ON";
+            updateState(currentState);
+        }
+    }
+
+    function sendTestAlert() {
+        if (window.AndroidBridge) {
+            window.AndroidBridge.sendTestNotification();
+        } else {
+            logEvent("TEST_NOTIFICATION_PUSHED", "Test alerts dispatched to local center.", "SUCCESS");
+        }
+    }
+
+    function resetTimer() {
+        if (window.AndroidBridge) {
+            window.AndroidBridge.clearActionCooldown();
+        } else {
+            currentState.cooldownRemainingSeconds = 0;
+            updateState(currentState);
+            logEvent("COOLDOWN_MANUALLY_CLEARED", "Anti-jitter geofence locks cleared.", "INFO");
+        }
+    }
+
+    // GPS Trigger
+    function triggerGPSRequest() {
+        const gpsBtn = document.getElementById("btn-gps");
+        gpsBtn.classList.add('text-secondary');
+        setTimeout(() => gpsBtn.classList.remove('text-secondary'), 1000);
+
+        if (window.AndroidBridge) {
+            window.AndroidBridge.useCurrentLocation();
+        } else {
+            // Mock Location
+            logEvent("GPS_FIX_OBTAINED", "Coordinate lock at Tel Aviv Center.", "SUCCESS");
+            onGPSFix(32.08088, 34.78057, "Tel Aviv Center (Mock Location)");
+        }
+    }
+
+    // Callback called from Android native after Fused Location resolves
+    function onGPSFix(lat, lng, address) {
+        document.getElementById("home-search-input").value = address;
+        pendingAddressSuggestion = { displayName: address, latitude: lat, longitude: lng };
+        
+        // Show apply button
+        document.getElementById("btn-apply-location").classList.remove("hidden");
+        
+        // Temporarily center map
+        if (map) {
+            map.setView([lat, lng], 15);
+            homeMarker.setLatLng([lat, lng]);
+            geofenceCircle.setLatLng([lat, lng]);
+        }
+    }
+
+    // Nominatim Geocoding Autocomplete Search
+    async function fetchSuggestions(query) {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`, {
+                headers: { 'User-Agent': 'ACProximityApp/1.0 (ogadassi@gmail.com)' }
+            });
+            if (!res.ok) throw new Error("Search network query failed");
+            const data = await res.json();
+            
+            // Clear suggestions list
+            const dropdown = document.getElementById("search-suggestions");
+            dropdown.innerHTML = "";
+
+            if (data.length === 0) {
+                hideSuggestions();
+                return;
+            }
+
+            data.forEach(item => {
+                const parts = [];
+                const addr = item.address || {};
+                
+                let houseNumber = addr.house_number || "";
+                const road = addr.road || "";
+                const city = addr.city || addr.town || addr.village || addr.suburb || "";
+                const country = addr.country || "";
+
+                // Inject typed number if not resolved but in original search query
+                const numberRegex = /\b(\d+)\b/;
+                const match = numberRegex.exec(query);
+                const queryNumber = match ? match[1] : "";
+                if (!houseNumber && queryNumber && road) {
+                    houseNumber = queryNumber;
+                }
+
+                // Check Hebrew characters to adjust orientation
+                const isHebrew = /[\u0590-\u05FF]/.test(road);
+                const streetLine = isHebrew 
+                    ? (houseNumber ? `${road} ${houseNumber}` : road)
+                    : (houseNumber ? `${houseNumber}, ${road}` : road);
+
+                if (streetLine) parts.push(streetLine);
+                if (city) parts.push(city);
+                if (country) parts.push(country);
+
+                const displayName = parts.length > 0 ? parts.join(", ") : item.display_name;
+
+                const btn = document.createElement("button");
+                btn.className = "w-full text-left px-md py-sm hover:bg-surface-container-high text-on-surface border-b border-outline-variant/30 text-xs transition-colors";
+                btn.textContent = displayName;
+                btn.onclick = () => {
+                    document.getElementById("home-search-input").value = displayName;
+                    pendingAddressSuggestion = {
+                        displayName: displayName,
+                        latitude: parseFloat(item.lat),
+                        longitude: parseFloat(item.lon)
+                    };
+                    
+                    // Show apply button
+                    document.getElementById("btn-apply-location").classList.remove("hidden");
+                    hideSuggestions();
+
+                    // Instantly show target position on map
+                    if (map) {
+                        const target = [pendingAddressSuggestion.latitude, pendingAddressSuggestion.longitude];
+                        map.setView(target, 15);
+                        homeMarker.setLatLng(target);
+                        geofenceCircle.setLatLng(target);
+                    }
+                };
+                dropdown.appendChild(btn);
+            });
+
+            dropdown.classList.remove("hidden");
+        } catch (e) {
+            console.error("Nominatim geocoder fetch error: " + e.message);
+        }
+    }
+
+    function hideSuggestions() {
+        document.getElementById("search-suggestions").classList.add("hidden");
+    }
+
+    function commitLocation() {
+        if (!pendingAddressSuggestion) return;
+        
+        const { displayName, latitude, longitude } = pendingAddressSuggestion;
+        if (window.AndroidBridge) {
+            window.AndroidBridge.applyLocation(latitude, longitude, displayName);
+        } else {
+            currentState.homeLat = latitude;
+            currentState.homeLng = longitude;
+            currentState.homeAddress = displayName;
+            updateState(currentState);
+            logEvent("HOME_LOCATION_UPDATED", `Saved: ${displayName}`, "SUCCESS");
+        }
+        
+        document.getElementById("btn-apply-location").classList.add("hidden");
+        pendingAddressSuggestion = null;
+    }
+
+    // Cooldown ticks
+    function tickCooldown() {
+        if (currentState.cooldownRemainingSeconds > 0) {
+            currentState.cooldownRemainingSeconds--;
+            updateCooldownTimerDisplay(currentState.cooldownRemainingSeconds);
+        }
+    }
+
+    function updateCooldownTimerDisplay(seconds) {
+        const timerEl = document.getElementById("cooldown-timer");
+        if (seconds <= 0) {
+            timerEl.textContent = "00:00";
+            timerEl.className = "text-display-lg font-display-lg text-primary tracking-tighter";
+        } else {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            timerEl.className = "text-display-lg font-display-lg text-error tracking-tighter";
+        }
+    }
+
+    // Terminal log methods
+    function loadLogsFromNative() {
+        if (window.AndroidBridge && window.AndroidBridge.getLogsJSON) {
+            try {
+                const logsStr = window.AndroidBridge.getLogsJSON();
+                const logs = JSON.parse(logsStr);
+                const consoleEl = document.getElementById('terminal-console');
+                consoleEl.innerHTML = "";
+                logs.forEach(log => {
+                    renderLogLine(log.timestamp, log.level, log.message);
+                });
+                consoleEl.scrollTop = consoleEl.scrollHeight;
+            } catch (e) {
+                console.error("Failed to parse logs from native side: " + e.message);
+            }
+        }
+    }
+
+    // This is called by native side AppLogger hook in real-time!
+    window.pushLogFromNative = function(timestamp, level, message) {
+        renderLogLine(timestamp, level, message);
+        const consoleEl = document.getElementById('terminal-console');
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    };
+
+    function renderLogLine(timestamp, level, message) {
+        const consoleEl = document.getElementById('terminal-console');
+        const logEntry = document.createElement('div');
+        
+        let colorClass = 'text-on-primary-container';
+        if (level === 'ERROR') colorClass = 'text-error';
+        else if (level === 'WARN') colorClass = 'text-tertiary'; // amber/orange
+        else if (level === 'INFO') colorClass = 'text-secondary'; // cyan
+        else if (level === 'DEBUG') colorClass = 'text-on-primary-container opacity-60';
+
+        logEntry.className = colorClass;
+        logEntry.innerHTML = `<span class="text-on-surface-variant opacity-50">[${timestamp}]</span> <strong>${level}:</strong> ${message}`;
+        consoleEl.appendChild(logEntry);
+    }
+
+    function clearLogs() {
+        if (window.AndroidBridge) {
+            window.AndroidBridge.clearLogs();
+        }
+        document.getElementById('terminal-console').innerHTML = `<div class="text-on-primary-container opacity-50">// Logs cleared at ${new Date().toLocaleTimeString()}</div>`;
+    }
+
+    function copyLogs() {
+        const logs = document.getElementById('terminal-console').innerText;
+        navigator.clipboard.writeText(logs).then(() => {
+            alert('Logs copied to clipboard');
+        });
+    }
+
+    // Logger helper
+    function logEvent(tag, message, level) {
+        const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+        renderLogLine(time, level, `${tag}: ${message}`);
+        const consoleEl = document.getElementById('terminal-console');
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+</script>
+</body>
+</html>

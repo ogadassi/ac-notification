@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bright blue for light mode -->
+    <color name="notification_btn_color">#2f95f4</color>
+    <!-- Text colors for light mode -->
+    <color name="notification_title_color">#0f172a</color>
+    <color name="notification_body_color">#475569</color>
+</resources>
