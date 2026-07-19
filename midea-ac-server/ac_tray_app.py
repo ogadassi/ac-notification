@@ -228,17 +228,29 @@ def trigger_hide_window():
 # System Tray Management
 def load_icon_image():
     try:
-        img = Image.open(ICON_PATH)
-        # Resize image to standard Windows System Tray size (32x32) to prevent display bugs
+        img = Image.open(ICON_PATH).convert("RGBA")
+        datas = img.getdata()
+        newData = []
+        for item in datas:
+            # If pixel is very close to black, make it transparent
+            if item[0] < 35 and item[1] < 35 and item[2] < 35:
+                newData.append((0, 0, 0, 0))
+            else:
+                newData.append(item)
+        img.putdata(newData)
+        
         try:
             resample_filter = Image.Resampling.LANCZOS
         except AttributeError:
             resample_filter = Image.ANTIALIAS
         return img.resize((32, 32), resample_filter)
     except Exception as e:
-        log_app_event(f"Error loading custom icon, falling back to green square: {e}")
-        # Fallback to solid green image
-        return Image.new("RGB", (32, 32), "#2D5A27")
+        log_app_event(f"Error loading custom icon: {e}")
+        fallback = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        from PIL import ImageDraw
+        draw = ImageDraw.Draw(fallback)
+        draw.ellipse([4, 4, 28, 28], fill="#4cd964")
+        return fallback
 
 def toggle_start_minimized(icon, item):
     global start_minimized, config
@@ -349,15 +361,49 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("AC Proximity Server Console")
     root.geometry("750x500")
-    root.configure(bg="#0c110c")
     
-    # Modern styles
+    # Borderless Window configuration
+    root.overrideredirect(True)
+    root.configure(bg="#0c110c", highlightbackground="#4cd964", highlightcolor="#4cd964", highlightthickness=1)
+    
+    # Modern style variables
     bg_color = "#0c110c"
     surface_color = "#162217"
     accent_emerald = "#4cd964"
     accent_cyan = "#00f0ff"
     text_color = "#e0eae0"
     
+    # Drag-to-move windows logic
+    def start_drag(event):
+        root._drag_x = event.x
+        root._drag_y = event.y
+
+    def drag(event):
+        deltax = event.x - root._drag_x
+        deltay = event.y - root._drag_y
+        x = root.winfo_x() + deltax
+        y = root.winfo_y() + deltay
+        root.geometry(f"+{x}+{y}")
+        
+    # Custom Title Bar
+    title_bar = tk.Frame(root, bg="#060906", height=32)
+    title_bar.pack(fill=tk.X, side=tk.TOP)
+    title_bar.pack_propagate(False)
+    
+    title_bar.bind("<Button-1>", start_drag)
+    title_bar.bind("<B1-Motion>", drag)
+    
+    title_label = tk.Label(title_bar, text="❄  AC PROXIMITY CONTROL SYSTEM", font=("Segoe UI", 9, "bold"), fg=accent_emerald, bg="#060906")
+    title_label.pack(side=tk.LEFT, padx=12)
+    title_label.bind("<Button-1>", start_drag)
+    title_label.bind("<B1-Motion>", drag)
+    
+    btn_close_title = tk.Button(title_bar, text="✕", font=("Segoe UI", 10), bg="#060906", fg="#8aa08a", activebackground="#ff3b30", activeforeground="#ffffff", bd=0, width=5, height=1, cursor="hand2", command=hide_window)
+    btn_close_title.pack(side=tk.RIGHT, fill=tk.Y)
+    
+    btn_min_title = tk.Button(title_bar, text="—", font=("Segoe UI", 9), bg="#060906", fg="#8aa08a", activebackground=surface_color, activeforeground="#ffffff", bd=0, width=5, height=1, cursor="hand2", command=hide_window)
+    btn_min_title.pack(side=tk.RIGHT, fill=tk.Y)
+
     # Webhook URL Label
     url_frame = tk.Frame(root, bg=bg_color)
     url_frame.pack(fill=tk.X, padx=15, pady=10)
@@ -388,12 +434,46 @@ if __name__ == "__main__":
         start_subprocesses()
         log_area.insert(tk.END, "[System] Services restarting...\n")
 
-    def open_dashboard():
-        import webbrowser
-        webbrowser.open("http://localhost:3000/")
+    def force_ac_on():
+        def run():
+            try:
+                # Fetch config key
+                api_key = ""
+                try:
+                    with open("config.json", "r") as f:
+                        cfg = json.load(f)
+                        api_key = cfg.get("api_key", "")
+                except:
+                    pass
+                    
+                import urllib.request
+                import json
+                
+                url = "http://localhost:3000/api/v1/ac/trigger"
+                payload = json.dumps({
+                    "action": "ac_on",
+                    "timestamp": int(time.time() * 1000)
+                }).encode("utf-8")
+                
+                req = urllib.request.Request(url, data=payload, method="POST")
+                req.add_header("Content-Type", "application/json")
+                if api_key:
+                    req.add_header("X-API-Key", api_key)
+                    
+                with urllib.request.urlopen(req, timeout=5) as response:
+                    res_body = json.loads(response.read().decode("utf-8"))
+                    if response.status == 200 and res_body.get("success"):
+                        log_area.insert(tk.END, "[Console Control] AC Cool On successfully triggered!\n")
+                        log_area.see(tk.END)
+                    else:
+                        messagebox.showerror("Error", res_body.get("error", "Trigger failed."))
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to connect to local server: {e}")
+                
+        threading.Thread(target=run, daemon=True).start()
 
-    btn_dashboard = tk.Button(btn_frame, text="🌐 Launch Web Dashboard", font=("Segoe UI", 10, "bold"), bg=accent_emerald, fg=bg_color, activebackground=accent_cyan, activeforeground=bg_color, bd=0, padx=12, pady=5, cursor="hand2", command=open_dashboard)
-    btn_dashboard.pack(side=tk.LEFT, padx=5)
+    btn_trigger = tk.Button(btn_frame, text="❄ Force AC Cool On", font=("Segoe UI", 10, "bold"), bg=accent_emerald, fg=bg_color, activebackground=accent_cyan, activeforeground=bg_color, bd=0, padx=12, pady=5, cursor="hand2", command=force_ac_on)
+    btn_trigger.pack(side=tk.LEFT, padx=5)
 
     btn_restart = tk.Button(btn_frame, text="⟳ Restart Services", font=("Segoe UI", 9, "bold"), bg=surface_color, fg=text_color, activebackground=accent_emerald, activeforeground=bg_color, bd=0, padx=10, pady=5, cursor="hand2", command=restart_services)
     btn_restart.pack(side=tk.LEFT, padx=5)
@@ -401,8 +481,8 @@ if __name__ == "__main__":
     btn_stealth = tk.Button(btn_frame, text="Go Stealth", font=("Segoe UI", 9, "bold"), bg=surface_color, fg=text_color, activebackground=accent_emerald, activeforeground=bg_color, bd=0, padx=10, pady=5, cursor="hand2", command=go_stealth)
     btn_stealth.pack(side=tk.LEFT, padx=5)
     
-    btn_close = tk.Button(btn_frame, text="Close Window", font=("Segoe UI", 9, "bold"), bg=surface_color, fg="#ff3b30", activebackground="#ff3b30", activeforeground=bg_color, bd=0, padx=10, pady=5, cursor="hand2", command=hide_window)
-    btn_close.pack(side=tk.RIGHT, padx=5)
+    btn_shutdown = tk.Button(btn_frame, text="Exit App", font=("Segoe UI", 9, "bold"), bg=surface_color, fg="#ff3b30", activebackground="#ff3b30", activeforeground=bg_color, bd=0, padx=10, pady=5, cursor="hand2", command=shutdown_application)
+    btn_shutdown.pack(side=tk.RIGHT, padx=5)
 
     # Auto refresh log loop
     def refresh_logs():
