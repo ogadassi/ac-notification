@@ -663,14 +663,55 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
-        fun performHapticFeedbackType(type: String) {
+        fun toggleGeofence(enabled: Boolean) {
             runOnUiThread {
-                val constant = when (type) {
-                    "success", "confirm" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) android.view.HapticFeedbackConstants.CONFIRM else android.view.HapticFeedbackConstants.VIRTUAL_KEY
-                    "reject" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) android.view.HapticFeedbackConstants.REJECT else android.view.HapticFeedbackConstants.VIRTUAL_KEY
-                    else -> android.view.HapticFeedbackConstants.VIRTUAL_KEY
+                this@MainActivity.toggleGeofence(enabled)
+            }
+        }
+
+        @JavascriptInterface
+        fun verifyGeofenceMonitoring() {
+            runOnUiThread {
+                AppLogger.i("MainActivity", "=== User Tapped Monitoring Pill — Verifying Geofence Status ===")
+                window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+
+                if (geofenceManager.homeLatitude == 0.0 || geofenceManager.homeLongitude == 0.0) {
+                    mainWebView?.evaluateJavascript("showInAppNotification('Location not set — configure home address first', 'warning')", null)
+                    geofenceActive.value = false
+                    refreshUIState()
+                    return@runOnUiThread
                 }
-                window.decorView.performHapticFeedback(constant)
+
+                if (!locationPermissionGranted.value) {
+                    mainWebView?.evaluateJavascript("showInAppNotification('GPS Location permission missing', 'error')", null)
+                    geofenceActive.value = false
+                    refreshUIState()
+                    return@runOnUiThread
+                }
+
+                mainWebView?.evaluateJavascript("showInAppNotification('Verifying geofence with Play Services...', 'info')", null)
+
+                geofenceManager.registerGeofence(
+                    onSuccess = {
+                        AppLogger.i("MainActivity", "Geofence monitoring verified & active")
+                        geofenceActive.value = true
+                        refreshUIState()
+                        runOnUiThread {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+                            }
+                            mainWebView?.evaluateJavascript("showInAppNotification('Geofence monitoring verified & active', 'success')", null)
+                        }
+                    },
+                    onFailure = { e ->
+                        AppLogger.e("MainActivity", "Geofence verification failed: ${e.message}")
+                        geofenceActive.value = false
+                        refreshUIState()
+                        runOnUiThread {
+                            mainWebView?.evaluateJavascript("showInAppNotification('Monitoring re-register failed — check permissions', 'error')", null)
+                        }
+                    }
+                )
             }
         }
 

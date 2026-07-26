@@ -1086,6 +1086,15 @@
         }, 3200);
     }
 
+    function toggleGeofenceMonitoring() {
+        if (window.AndroidBridge && window.AndroidBridge.verifyGeofenceMonitoring) {
+            window.AndroidBridge.verifyGeofenceMonitoring();
+        } else {
+            // Fallback for browser testing
+            showInAppNotification("Geofence verification requires native app", "warning");
+        }
+    }
+
     function handleLogoClick(event) {
         const targetTag = event && event.target ? event.target.tagName : 'DIV';
         const targetId = event && event.target && event.target.id ? `#${event.target.id}` : '';
