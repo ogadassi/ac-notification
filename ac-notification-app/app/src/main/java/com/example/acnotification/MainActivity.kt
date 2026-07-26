@@ -370,6 +370,8 @@ class MainActivity : ComponentActivity() {
 
     private fun openChannelSettings() {
         AppLogger.i("MainActivity", "Opening App Notification Settings page")
+        val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("channel_configured", true).apply()
         try {
             // Launch main App Notification Settings page (Samsung One UI Notification pop-up style & Lock screen)
             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
@@ -575,6 +577,7 @@ class MainActivity : ComponentActivity() {
                     put("backgroundLocation", backgroundLocationGranted.value)
                     put("notifications", notificationPermissionGranted.value)
                     put("batteryOptimization", batteryOptimizationIgnored.value)
+                    put("channelSettings", prefs.getBoolean("channel_configured", false))
                 })
                 put("cooldownRemainingSeconds", cooldownRemaining)
 
