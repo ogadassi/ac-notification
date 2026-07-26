@@ -406,8 +406,11 @@
                     </svg>
                 </div>
             </div>
-            <div id="cloud-status-badge" class="flex items-center justify-center bg-white/5 border border-white/10 w-8 h-8 rounded-full backdrop-blur-md shadow-md cursor-pointer" title="Geofence Monitoring Status">
-                <span id="cloud-status-icon" class="material-symbols-outlined text-secondary text-sm">cloud_done</span>
+            <div class="relative flex items-center justify-center p-1">
+                <div id="cloud-glow-aura" class="absolute -inset-1 rounded-2xl bg-cyan-400/20 blur-lg pointer-events-none transition-all duration-500 opacity-60"></div>
+                <div id="cloud-status-badge" onclick="toggleGeofenceMonitoring()" class="liquid-glass-card w-9 h-9 rounded-2xl flex items-center justify-center border border-white/10 cursor-pointer active:scale-90 transition-all duration-200 relative z-10" title="Geofence Monitoring Status">
+                    <span id="cloud-status-icon" class="material-symbols-outlined text-secondary text-base">cloud_done</span>
+                </div>
             </div>
         </div>
         <!-- Interactive Precision Geofence Map -->
@@ -1341,6 +1344,7 @@
         updatePermissionRow("bg-location", currentState.permissions.backgroundLocation);
         updatePermissionRow("notifications", currentState.permissions.notifications);
         updatePermissionRow("battery", currentState.permissions.batteryOptimization);
+        updatePermissionRow("channel", currentState.permissions.channelSettings || false);
 
         // System Compliance
         let totalValids = 0;
@@ -1411,7 +1415,7 @@
         }
 
         // Also update Wizard Step 4 permission buttons dynamically
-        const wizardBtnKey = key === "battery" ? "battery" : key;
+        const wizardBtnKey = key === "battery" ? "battery" : (key === "channelSettings" || key === "channel" ? "channel" : key);
         const wizardBtn = document.getElementById(`wizard-btn-perm-${wizardBtnKey}`);
         if (wizardBtn) {
             if (isGranted) {
@@ -1419,7 +1423,7 @@
                 wizardBtn.className = "px-3.5 py-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full font-bold text-[10px] uppercase tracking-wider";
                 wizardBtn.disabled = true;
             } else {
-                wizardBtn.textContent = "AUTHORIZE";
+                wizardBtn.textContent = wizardBtnKey === "channel" ? "CONFIGURE" : "AUTHORIZE";
                 wizardBtn.className = "px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all";
                 wizardBtn.disabled = false;
             }
@@ -1441,10 +1445,10 @@
         presets.forEach(p => {
             const btn = document.getElementById(`preset-btn-${p}`);
             if (btn) {
-                if (p === val) {
-                    btn.className = "py-2 rounded-xl text-[10px] font-bold transition-all duration-200 bg-secondary/20 text-secondary border border-secondary/30 shadow-md shadow-secondary/10";
+                if (parseInt(p) === parseInt(val)) {
+                    btn.className = "py-1.5 rounded-lg text-xs font-bold bg-secondary/20 text-secondary border border-secondary/30 transition-all";
                 } else {
-                    btn.className = "py-2 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent";
+                    btn.className = "py-1.5 rounded-lg text-xs font-bold text-on-surface-variant/70 hover:text-on-surface transition-all";
                 }
             }
         });
@@ -1624,8 +1628,8 @@
                 const displayName = parts.length > 0 ? parts.join(", ") : item.display_name;
 
                 const btn = document.createElement("button");
-                btn.className = "w-full text-left px-4 py-2.5 hover:bg-secondary/20 text-on-surface border-b border-white/5 text-xs transition-colors cursor-pointer flex items-center gap-2";
-                btn.innerHTML = `<span class="material-symbols-outlined text-secondary text-sm">location_on</span><span class="truncate">${displayName}</span>`;
+                btn.className = "w-full text-left px-4 py-2.5 hover:bg-secondary/15 text-on-surface border-b border-white/10 text-xs font-medium transition-all cursor-pointer flex items-center gap-2.5 bg-slate-950/90";
+                btn.innerHTML = `<span class="material-symbols-outlined text-secondary text-base shrink-0">location_on</span><span class="truncate text-on-surface text-xs font-semibold">${displayName}</span>`;
 
                 btn.onclick = () => {
                     const lat = parseFloat(item.lat);
@@ -1935,14 +1939,20 @@
         const statusUrl = ep.replace("/trigger", "/status");
         fetch(statusUrl, {
             method: 'GET',
-            headers: { 'X-API-Key': sec || '' }
+            headers: { 
+                'X-API-Key': sec || '',
+                'ngrok-skip-browser-warning': 'true'
+            }
         }).then(res => {
             if (res.ok) {
                 statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 block";
                 statusEl.textContent = "✅ SERVER ONLINE (200 OK)";
+            } else if (res.status === 503) {
+                statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-amber-500/15 text-amber-400 border border-amber-500/30 block";
+                statusEl.textContent = "⚠️ HTTP 503: ngrok active, but local PC server (AC_Server_Manager.exe) is OFF on port 5000!";
             } else {
                 statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-error/15 text-error border border-error/30 block";
-                statusEl.textContent = `⚠️ Server returned status HTTP ${res.status}`;
+                statusEl.textContent = `⚠️ Server returned HTTP ${res.status}`;
             }
         }).catch(err => {
             if (statusEl) {
