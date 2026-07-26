@@ -372,17 +372,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openChannelSettings() {
-        AppLogger.i("MainActivity", "Opening notification channel settings")
+        AppLogger.i("MainActivity", "Opening App Notification Settings page")
         try {
-            val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+            // Launch main App Notification Settings page (Samsung One UI Notification pop-up style & Lock screen)
+            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                 putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                putExtra(Settings.EXTRA_CHANNEL_ID, NotificationHelper.CHANNEL_ID)
             }
             startActivity(intent)
         } catch (e: Exception) {
             try {
-                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
                     putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    putExtra(Settings.EXTRA_CHANNEL_ID, NotificationHelper.CHANNEL_ID)
                 }
                 startActivity(intent)
             } catch (ex: Exception) {
