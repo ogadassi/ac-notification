@@ -2,8 +2,8 @@
 <html class="dark" lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
-    <title>Aura AC Dashboard</title>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+    <title>AC Notification Dashboard</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
@@ -129,13 +129,29 @@
             --error: #ffb4ab;
         }
 
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
         body {
-            background-color: var(--background);
+            background-color: var(--background, #050b14);
             background-image: 
-                radial-gradient(circle at 10% 20%, rgba(93, 230, 255, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(190, 198, 224, 0.05) 0%, transparent 40%);
-            min-height: max(884px, 100dvh);
-            overflow-x: hidden;
+                radial-gradient(circle at 10% 10%, var(--secondary-glow, rgba(93, 230, 255, 0.16)) 0%, transparent 50%),
+                radial-gradient(circle at 90% 90%, var(--primary-glow, rgba(190, 198, 224, 0.08)) 0%, transparent 50%);
+        }
+
+        /* Safe area insets — keeps scrollable content inside system bar zones */
+        main {
+            padding-top: calc(2.5rem + env(safe-area-inset-top)) !important;
+            padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+        }
+
+        /* Bottom nav sits just above the gesture handle */
+        #bottom-nav {
+            bottom: env(safe-area-inset-bottom);
         }
 
         /* 2026 Background Nebulas */
@@ -151,25 +167,44 @@
 
         /* Liquid Glass Cards */
         .liquid-glass-card {
-            background: rgba(20, 32, 51, 0.35);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            box-shadow: 
-                0 8px 32px 0 rgba(0, 0, 0, 0.25),
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
-            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.05) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15) !important;
+            border-radius: 28px !important;
+            overflow: hidden !important;
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         @media (hover: hover) {
             .liquid-glass-card:hover {
-                border-color: rgba(93, 230, 255, 0.25);
-                box-shadow: 
-                    0 16px 40px 0 rgba(0, 0, 0, 0.35),
-                    inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
-                    0 0 20px 0 rgba(93, 230, 255, 0.05);
+                border-color: rgba(93, 230, 255, 0.25) !important;
+                box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.2) !important;
                 transform: translateY(-2px);
             }
+        }
+
+        /* Liquid Glass iOS 27 Notification Pill (Flicker-Free Translucent) */
+        .liquid-glass-pill {
+            background: rgba(255, 255, 255, 0.04) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 9999px !important;
+            box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15) !important;
+            overflow: hidden !important;
+        }
+
+        /* Liquid Glass Navigation Capsule Signature */
+        .liquid-glass-nav {
+            background: rgba(255, 255, 255, 0.05) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            border: 1px solid rgba(93, 230, 255, 0.25) !important;
+            box-shadow: 
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.2),
+                0 10px 32px 0 rgba(0, 0, 0, 0.4) !important;
+            border-radius: 9999px !important;
         }
 
         /* Input styling */
@@ -285,9 +320,43 @@
         .tab-content.active {
             display: block;
         }
+        /* Zero-Scroll Dashboard Layout Rules */
+        #tab-dashboard {
+            overflow: visible !important;
+        }
+        .map-card-container {
+            height: 33vh !important;
+            max-height: 280px !important;
+            min-height: 160px !important;
+            width: 100% !important;
+        }
+
+        /* Landscape Layout Optimizations */
+        @media (orientation: landscape) and (max-height: 600px) {
+            #tab-dashboard {
+                max-width: 100% !important;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+                align-items: start !important;
+            }
+            .dashboard-header-row {
+                grid-column: span 2 !important;
+                padding-top: 0 !important;
+                padding-bottom: 2px !important;
+            }
+            .map-card-container {
+                height: 210px !important;
+                max-height: 210px !important;
+            }
+            main {
+                padding-top: calc(0.25rem + env(safe-area-inset-top)) !important;
+                padding-bottom: calc(3.5rem + env(safe-area-inset-bottom)) !important;
+            }
+        }
     </style>
 </head>
-<<body class="text-on-surface font-body-md selection:bg-secondary/30 min-h-screen flex flex-col relative">
+<body class="text-on-surface font-body-md selection:bg-secondary/30 min-h-screen flex flex-col relative">
 
 <!-- Background Nebulas -->
 <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -295,103 +364,102 @@
     <div class="absolute -bottom-[15%] -right-[15%] w-[55%] h-[55%] rounded-full bg-gradient-to-br from-secondary/8 to-primary/12 blur-[120px] animate-nebula" style="animation-delay: -5s;"></div>
 </div>
 
-<!-- TopAppBar -->
-<header class="fixed top-4 left-4 right-4 z-50 backdrop-blur-xl bg-white/[0.03] border border-white/10 rounded-[24px] px-6 flex justify-between items-center h-14 shadow-lg mx-auto max-w-5xl transition-all">
-    <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-secondary animate-pulse" data-icon="sensors" style="font-size: 20px;">sensors</span>
-        <span class="text-lg font-semibold text-secondary tracking-tight">Aura AC</span>
+<!-- Floating Liquid Glass iOS 27 Notification & Action Pill -->
+<div id="in-app-toast" class="fixed top-11 left-4 right-4 max-w-sm mx-auto z-50 pointer-events-none transition-transform duration-300 ease-out transform -translate-y-24 will-change-transform">
+    <div id="in-app-toast-card" class="liquid-glass-pill px-4 py-2.5 flex items-center justify-between pointer-events-auto">
+        <div class="flex items-center gap-2.5 min-w-0">
+            <div id="in-app-toast-icon-bg" class="w-7 h-7 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
+                <span id="in-app-toast-icon" class="material-symbols-outlined text-secondary text-base" data-icon="ac_unit">ac_unit</span>
+            </div>
+            <span id="in-app-toast-text" class="text-xs font-semibold text-on-surface tracking-wide truncate">--</span>
+        </div>
+        <!-- Action Buttons (shown when prompt action is requested) -->
+        <div id="in-app-toast-actions" class="hidden flex items-center gap-2 shrink-0 ml-2">
+            <button onclick="confirmTurnOffAC()" class="px-3 py-1 bg-error/20 hover:bg-error/30 text-error border border-error/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Turn OFF</button>
+            <button onclick="dismissInAppToast()" class="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-on-surface-variant border border-white/10 rounded-full font-semibold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Keep ON</button>
+        </div>
     </div>
-    <div class="flex items-center gap-6">
-        <!-- Desktop Nav -->
-        <nav class="hidden md:flex gap-6">
-            <button onclick="switchTab('dashboard')" id="desktop-tab-btn-dashboard" class="font-label-caps text-xs text-secondary px-4 py-1.5 rounded-full hover:bg-white/5 transition-all">Dashboard</button>
-            <button onclick="switchTab('permissions')" id="desktop-tab-btn-permissions" class="font-label-caps text-xs text-on-surface-variant/70 px-4 py-1.5 rounded-full hover:bg-white/5 transition-all">Permissions</button>
-            <button onclick="switchTab('settings')" id="desktop-tab-btn-settings" class="font-label-caps text-xs text-on-surface-variant/70 px-4 py-1.5 rounded-full hover:bg-white/5 transition-all">Settings</button>
-        </nav>
-        <span id="cloud-status-icon" class="material-symbols-outlined text-secondary" data-icon="cloud_done">cloud_done</span>
-    </div>
-</header>
+</div>
 
 <!-- Main SPA Content Area -->
-<main class="flex-1 mt-20 mb-28 px-margin-mobile md:px-margin-desktop py-md max-w-5xl mx-auto w-full relative z-10">
+<main class="h-full overflow-y-auto pt-8 pb-16 px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto w-full relative z-10 terminal-scroll">
 
     <!-- TAB: DASHBOARD -->
-    <section id="tab-dashboard" class="tab-content active space-y-md max-w-md mx-auto">
+    <section id="tab-dashboard" class="tab-content active space-y-2.5 max-w-md mx-auto">
+        <!-- Inline Brand & Status Header -->
+        <div class="flex items-center justify-between dashboard-header-row px-3 pt-3 pb-1">
+            <div class="relative flex items-center justify-center p-1">
+                <!-- Radial Ambient Glow Aura Layer (Subtle Gentle Luminous Halo) -->
+                <div id="logo-glow-aura" class="absolute -inset-1 rounded-2xl bg-cyan-400/20 blur-lg pointer-events-none transition-all duration-500 opacity-80"></div>
+                <!-- Glass Button -->
+                <div id="logo-btn-container" onclick="handleLogoClick(event)" class="liquid-glass-card w-9 h-9 rounded-2xl flex items-center justify-center border border-white/10 cursor-pointer active:scale-90 transition-all duration-200 relative z-10" title="Tap AC Power Control">
+                    <svg id="logo-icon-svg" class="w-4 h-4 shrink-0 pointer-events-none transition-all duration-300" viewBox="0 0 24 24" fill="#5DE6FF">
+                        <path id="logo-icon-path" fill="#5DE6FF" d="M3 3h18c1.1 0 2 .9 2 2v7c0 1.1-.9 2-2 2H3c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 2v5h18V5H3zm1 7v1h16v-1H4zm15-4.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4zM4 16c3 2 6 2 9 0s6 0 8 1v1.5c-2-1-5-3-8-1s-6 0-9-1.5V16zm2 4c2.5 1.5 5 1.5 7.5 0s5 1.5 6.5 2.5V23.7c-1.5-1-4-2.5-6.5-1s-5 0-7.5-1.5V20z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full backdrop-blur-md shadow-md">
+                <span id="cloud-status-icon" class="material-symbols-outlined text-secondary text-sm" data-icon="cloud_done">cloud_done</span>
+                <span class="text-[10px] font-bold text-secondary uppercase tracking-widest">CONNECTED</span>
+            </div>
+        </div>
         <!-- Map Visualization -->
-        <div class="relative liquid-glass-card p-2 aspect-square">
+        <div class="relative liquid-glass-card p-1.5 map-card-container">
             <!-- Leaflet Container -->
             <div id="map" class="w-full h-full rounded-[24px] grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-700"></div>
-            <!-- Radius Legend -->
+            <!-- Radius & Distance Legend -->
             <div class="absolute bottom-4 left-4 z-30 bg-background/80 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full shadow-lg">
-                <p id="geofence-legend-text" class="text-[9px] font-bold text-secondary uppercase tracking-widest">GEOFENCE: 500M</p>
+                <p id="geofence-legend-text" class="text-[9px] font-bold text-secondary uppercase tracking-widest">GEOFENCE: 500M • DIST: --</p>
             </div>
         </div>
 
-        <!-- Main Status Indicator -->
-        <div id="monitoring-status-card" class="flex flex-col items-center justify-center py-8 liquid-glass-card">
-            <div class="relative flex items-center justify-center mb-md">
-                <div id="monitoring-ping" class="absolute w-16 h-16 bg-secondary/15 rounded-full animate-ping"></div>
-                <div id="monitoring-icon-bg" class="w-12 h-12 bg-secondary flex items-center justify-center rounded-full z-10 shadow-lg">
-                    <span class="material-symbols-outlined text-background text-xl" data-icon="location_searching" style="font-variation-settings: 'FILL' 1;">location_searching</span>
-                </div>
-            </div>
-            <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold mb-1">Climate Proximity</p>
-            <h2 id="monitoring-status-text" class="text-xl text-secondary font-bold tracking-tight">Monitoring: ACTIVE</h2>
-        </div>
+        <div class="space-y-3">
 
-        <!-- Live Context Row -->
-        <div class="grid grid-cols-2 gap-md">
-            <!-- Distance Card -->
-            <div class="liquid-glass-card p-md flex flex-col justify-between h-28">
-                <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">CURRENT DISTANCE</span>
-                <div class="flex items-baseline gap-xs">
-                    <span id="txt-distance" class="text-3xl font-bold text-on-surface tracking-tight">--</span>
-                    <span class="text-on-surface-variant text-[10px] font-semibold">KM</span>
+            <!-- Radius Control Card (Slider + Stepper + Preset Pills) -->
+            <div class="liquid-glass-card p-4 space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">GEOFENCE RADIUS</h3>
+                    <!-- Fine Stepper Control -->
+                    <div class="flex items-center gap-1.5 bg-black/35 border border-white/10 rounded-full px-2 py-0.5 shadow-inner">
+                        <button onclick="adjustRadius(-50)" class="w-6 h-6 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-white/10 active:scale-90 transition-all font-bold text-sm">-</button>
+                        <span id="lbl-radius" class="text-secondary font-bold text-xs tracking-wide px-1 min-w-[42px] text-center">500M</span>
+                        <button onclick="adjustRadius(50)" class="w-6 h-6 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-white/10 active:scale-90 transition-all font-bold text-sm">+</button>
+                    </div>
                 </div>
-            </div>
-            <!-- Home State Card -->
-            <div class="liquid-glass-card p-md flex flex-col justify-between h-28">
-                <span class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">HOME STATE</span>
-                <div class="flex items-center gap-sm">
-                    <span id="ac-state-indicator" class="w-2.5 h-2.5 rounded-full bg-on-surface-variant"></span>
-                    <span id="txt-ac-state" class="text-lg font-bold text-on-surface tracking-tight">AC: OFF</span>
-                </div>
-            </div>
-        </div>
 
-        <!-- Radius Control Slider -->
-        <div class="liquid-glass-card p-6">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">RADIUS CONTROL</h3>
-                <span id="lbl-radius" class="text-secondary font-bold text-sm tracking-wide">500M</span>
+                <!-- Continuous Smooth Range Slider for Specific Precision Scrolling -->
+                <div class="pt-0.5 pb-0.5">
+                    <input id="slider-radius" class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary focus:outline-none" max="2000" min="50" step="10" type="range" value="500"/>
+                </div>
+                
+                <!-- Preset Pills -->
+                <div class="grid grid-cols-4 gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5">
+                    <button onclick="setRadiusVal(50)" id="preset-btn-50" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">50M</button>
+                    <button onclick="setRadiusVal(250)" id="preset-btn-250" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">250M</button>
+                    <button onclick="setRadiusVal(500)" id="preset-btn-500" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 bg-secondary/20 text-secondary border border-secondary/30 shadow-md shadow-secondary/10">500M</button>
+                    <button onclick="setRadiusVal(1000)" id="preset-btn-1000" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">1KM</button>
+                </div>
             </div>
-            <input id="slider-radius" class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary focus:outline-none" max="1000" min="50" step="10" type="range" value="500"/>
-            <div class="flex justify-between mt-4 px-1">
-                <button onclick="setRadiusVal(50)" class="text-[10px] font-semibold text-on-surface-variant hover:text-secondary transition-colors">50M</button>
-                <button onclick="setRadiusVal(250)" class="text-[10px] font-semibold text-on-surface-variant hover:text-secondary transition-colors">250M</button>
-                <button onclick="setRadiusVal(500)" class="text-[10px] font-semibold text-secondary transition-colors">500M</button>
-                <button onclick="setRadiusVal(1000)" class="text-[10px] font-semibold text-on-surface-variant hover:text-secondary transition-colors">1KM</button>
-            </div>
-        </div>
 
-        <!-- Target Home Input -->
-        <div class="liquid-glass-card p-5 space-y-4 relative">
-            <div class="relative">
-                <div class="flex items-center gap-3 bg-black/35 border border-white/5 rounded-2xl px-4 h-12 focus-within:border-secondary/40 transition-all">
-                    <span class="material-symbols-outlined text-on-surface-variant text-lg" data-icon="home">home</span>
-                    <input id="home-search-input" class="bg-transparent border-none text-sm text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0" placeholder="Search home address..." type="text"/>
-                    <button id="btn-gps" onclick="triggerGPSRequest()" class="flex items-center justify-center p-2 rounded-full hover:bg-white/5 text-on-surface-variant/80 active:scale-95 transition-all">
-                        <span class="material-symbols-outlined text-lg" data-icon="my_location">my_location</span>
-                    </button>
+            <!-- Target Home Input -->
+            <div class="liquid-glass-card p-4 space-y-3 relative">
+                <div class="relative">
+                    <div class="flex items-center gap-3 bg-black/35 border border-white/5 rounded-2xl px-3.5 h-11 focus-within:border-secondary/40 transition-all">
+                        <span class="material-symbols-outlined text-on-surface-variant text-base" data-icon="home">home</span>
+                        <input id="home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0" placeholder="Search home address..." type="text"/>
+                        <button id="btn-gps" onclick="triggerGPSRequest()" class="flex items-center justify-center p-1.5 rounded-full hover:bg-white/5 text-on-surface-variant/80 active:scale-95 transition-all">
+                            <span class="material-symbols-outlined text-base" data-icon="my_location">my_location</span>
+                        </button>
+                    </div>
+                    <!-- Suggestions Dropdown -->
+                    <div id="search-suggestions" class="absolute z-50 left-0 right-0 mt-2 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden hidden shadow-2xl max-h-60 overflow-y-auto">
+                        <!-- suggestions populated dynamically -->
+                    </div>
                 </div>
-                <!-- Suggestions Dropdown -->
-                <div id="search-suggestions" class="absolute z-50 left-0 right-0 mt-2 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden hidden shadow-2xl max-h-60 overflow-y-auto">
-                    <!-- suggestions populated dynamically -->
-                </div>
+                <button id="btn-apply-location" onclick="commitLocation()" class="w-full py-2.5 btn-gradient-primary text-xs uppercase tracking-widest hidden">
+                    Apply Location
+                </button>
             </div>
-            <button id="btn-apply-location" onclick="commitLocation()" class="w-full py-3 btn-gradient-primary text-xs uppercase tracking-widest hidden">
-                Apply Location
-            </button>
         </div>
     </section>
 
@@ -401,7 +469,7 @@
             <div class="max-w-2xl">
                 <h1 class="text-2xl md:text-3xl font-bold text-on-surface mb-2 tracking-tight">Permissions Center</h1>
                 <p class="text-on-surface-variant text-sm leading-relaxed">
-                    To maintain your home's micro-climate without manual intervention, Aura requires specific system level authorizations. These enable background automation and proximity-based cooling.
+                    To maintain your home's micro-climate without manual intervention, AC Notification requires specific system level authorizations. These enable background automation and proximity-based cooling.
                 </p>
             </div>
             <div class="hidden md:block">
@@ -500,6 +568,31 @@
                     <button id="btn-grant-battery" onclick="requestNativePermission('batteryOptimization')" class="w-full py-3 btn-glass-secondary text-secondary border-secondary/20 hover:border-secondary/50 text-xs font-semibold uppercase tracking-wider">Ignore Restrict</button>
                 </div>
             </div>
+
+            <!-- Pop-up & Banner Expansion Settings -->
+            <div class="md:col-span-12 permission-card liquid-glass-card p-6 relative group">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center shrink-0 mt-1">
+                            <span class="material-symbols-outlined text-secondary text-2xl" data-icon="open_in_full">open_in_full</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-3 mb-1">
+                                <h3 class="text-[9px] text-secondary uppercase tracking-widest font-bold">SYSTEM CHANNEL SETTINGS</h3>
+                                <span class="bg-secondary/15 text-secondary text-[9px] font-bold px-2.5 py-0.5 rounded-full border border-secondary/30 uppercase tracking-wider">SYSTEM TOGGLE</span>
+                            </div>
+                            <h2 class="text-lg font-bold text-on-surface mb-1">Expanded Pop-up & Banner Notifications</h2>
+                            <p class="text-on-surface-variant text-sm max-w-2xl leading-relaxed">
+                                On Samsung, Pixel, and Xiaomi devices, Android requires <strong>"Pop on screen"</strong> or <strong>"Expanded Notifications"</strong> to be enabled in system settings so the <strong>"✅ Turn on AC"</strong> action button appears immediately without manual swiping.
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="requestNativePermission('channelSettings')" class="w-full md:w-auto px-6 py-3 btn-glass-secondary text-secondary border-secondary/20 hover:border-secondary/50 text-xs font-semibold uppercase tracking-wider shrink-0 flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-base" data-icon="tune">tune</span>
+                        Configure Channel Banners
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Global Action Bar -->
@@ -523,6 +616,18 @@
 
     <!-- TAB: SETTINGS -->
     <section id="tab-settings" class="tab-content space-y-md max-w-4xl mx-auto">
+        <!-- Geofence Monitor Status -->
+        <section class="liquid-glass-card px-5 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span id="settings-monitor-icon" class="material-symbols-outlined text-secondary text-lg" style="font-variation-settings: 'FILL' 1;">sensors</span>
+                <div>
+                    <p class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">Geofence Monitor</p>
+                    <p id="settings-monitor-desc" class="text-xs text-on-surface-variant/60 mt-0.5">Background proximity tracking active</p>
+                </div>
+            </div>
+            <span id="settings-monitor-badge" class="bg-secondary/15 text-secondary text-[10px] font-bold px-3 py-1 rounded-full border border-secondary/30 tracking-widest">ACTIVE</span>
+        </section>
+
         <!-- Network Section -->
         <section class="liquid-glass-card p-6 space-y-4">
             <h2 class="text-[10px] text-secondary uppercase tracking-widest font-bold">Network Configuration</h2>
@@ -547,11 +652,15 @@
             <section class="md:col-span-2 liquid-glass-card p-6 space-y-4">
                 <h2 class="text-[10px] text-secondary uppercase tracking-widest font-bold">Debugging Tools</h2>
                 <div class="flex flex-wrap gap-md">
-                    <button class="flex-grow flex items-center justify-center gap-2 border border-white/5 bg-white/[0.02] text-on-surface py-4 rounded-2xl hover:bg-white/5 transition-all active:scale-[0.98]" onclick="simulateGeofenceEntry()">
+                    <button class="flex-grow flex items-center justify-center gap-2 border border-secondary/30 bg-secondary/10 text-secondary py-3.5 px-4 rounded-2xl hover:bg-secondary/20 transition-all active:scale-[0.98]" onclick="openWelcomeWizard()">
+                        <span class="material-symbols-outlined text-lg" data-icon="auto_stories">auto_stories</span>
+                        <span class="font-label-caps text-xs uppercase tracking-wider font-bold">Re-run Setup Wizard</span>
+                    </button>
+                    <button class="flex-grow flex items-center justify-center gap-2 border border-white/5 bg-white/[0.02] text-on-surface py-3.5 px-4 rounded-2xl hover:bg-white/5 transition-all active:scale-[0.98]" onclick="simulateGeofenceEntry()">
                         <span class="material-symbols-outlined text-lg" data-icon="location_on">location_on</span>
                         <span class="font-label-caps text-xs">Simulate Geofence Entry</span>
                     </button>
-                    <button class="flex-grow flex items-center justify-center gap-2 border border-white/5 bg-white/[0.02] text-on-surface py-4 rounded-2xl hover:bg-white/5 transition-all active:scale-[0.98]" onclick="sendTestAlert()">
+                    <button class="flex-grow flex items-center justify-center gap-2 border border-white/5 bg-white/[0.02] text-on-surface py-3.5 px-4 rounded-2xl hover:bg-white/5 transition-all active:scale-[0.98]" onclick="sendTestAlert()">
                         <span class="material-symbols-outlined text-lg" data-icon="notifications_active">notifications_active</span>
                         <span class="font-label-caps text-xs">Send Test Alert</span>
                     </button>
@@ -589,23 +698,210 @@
 </main>
 
 <!-- BottomNavBar -->
-<nav class="fixed bottom-6 left-4 right-4 max-w-sm mx-auto flex justify-around items-center h-16 bg-surface/30 backdrop-blur-2xl border border-outline-variant/30 rounded-full px-2 shadow-2xl z-50">
+<nav id="bottom-nav" class="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xs grid grid-cols-3 items-center h-14 liquid-glass-nav px-1 z-50">
     <!-- Dashboard -->
-    <a id="nav-btn-dashboard" class="flex flex-col items-center justify-center text-secondary active:scale-90 transition-all duration-200 cursor-pointer px-4 py-2 rounded-full" onclick="switchTab('dashboard')">
-        <span id="nav-icon-dashboard" class="material-symbols-outlined text-[22px] mb-0.5" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+    <a id="nav-btn-dashboard" class="flex flex-col items-center justify-center text-center text-secondary active:scale-90 transition-all duration-200 cursor-pointer py-1.5 rounded-full" onclick="switchTab('dashboard')">
+        <span id="nav-icon-dashboard" class="material-symbols-outlined text-[20px] mb-0.5" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
         <span class="font-label-caps text-[9px] uppercase tracking-wider">Dashboard</span>
     </a>
     <!-- Permissions -->
-    <a id="nav-btn-permissions" class="flex flex-col items-center justify-center text-on-surface-variant/70 active:scale-90 transition-all duration-200 cursor-pointer px-4 py-2 rounded-full" onclick="switchTab('permissions')">
-        <span id="nav-icon-permissions" class="material-symbols-outlined text-[22px] mb-0.5" data-icon="security" style="font-variation-settings: 'FILL' 0;">security</span>
+    <a id="nav-btn-permissions" class="flex flex-col items-center justify-center text-center text-on-surface-variant/70 active:scale-90 transition-all duration-200 cursor-pointer py-1.5 rounded-full" onclick="switchTab('permissions')">
+        <span id="nav-icon-permissions" class="material-symbols-outlined text-[20px] mb-0.5" data-icon="shield" style="font-variation-settings: 'FILL' 0;">shield</span>
         <span class="font-label-caps text-[9px] uppercase tracking-wider">Permissions</span>
     </a>
     <!-- Settings -->
-    <a id="nav-btn-settings" class="flex flex-col items-center justify-center text-on-surface-variant/70 active:scale-90 transition-all duration-200 cursor-pointer px-4 py-2 rounded-full" onclick="switchTab('settings')">
-        <span id="nav-icon-settings" class="material-symbols-outlined text-[22px] mb-0.5" data-icon="settings" style="font-variation-settings: 'FILL' 0;">settings</span>
+    <a id="nav-btn-settings" class="flex flex-col items-center justify-center text-center text-on-surface-variant/70 active:scale-90 transition-all duration-200 cursor-pointer py-1.5 rounded-full" onclick="switchTab('settings')">
+        <span id="nav-icon-settings" class="material-symbols-outlined text-[20px] mb-0.5" data-icon="settings" style="font-variation-settings: 'FILL' 0;">settings</span>
         <span class="font-label-caps text-[9px] uppercase tracking-wider">Settings</span>
     </a>
 </nav>
+
+<!-- Full-Screen Liquid Glass Onboarding & Setup Wizard Modal -->
+<div id="welcome-wizard-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-2xl hidden transition-all duration-300">
+    <div class="liquid-glass-card max-w-lg w-full p-6 relative overflow-hidden shadow-2xl border border-white/20 rounded-[32px] flex flex-col max-h-[90vh]">
+        
+        <!-- Header Step Progress Bar -->
+        <div class="flex items-center justify-between pb-4 border-b border-white/10 shrink-0 mb-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center">
+                    <span id="wizard-step-number" class="text-secondary font-bold text-xs">1</span>
+                </div>
+                <div>
+                    <h2 id="wizard-title-text" class="text-sm font-bold text-on-surface tracking-tight">Welcome to AC Notification</h2>
+                    <p id="wizard-subtitle-text" class="text-[10px] text-on-surface-variant font-medium">Step 1 of 5 • Overview</p>
+                </div>
+            </div>
+            <button onclick="closeWelcomeWizard()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-95 transition-all">
+                <span class="material-symbols-outlined text-base">close</span>
+            </button>
+        </div>
+
+        <!-- Scrollable Slide Content Container -->
+        <div class="flex-1 overflow-y-auto terminal-scroll space-y-4 pr-1">
+            
+            <!-- STEP 1: Welcome & Architecture -->
+            <div id="wizard-step-1" class="wizard-step-content space-y-4">
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-secondary/10 to-primary/5 border border-white/10 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary shrink-0">
+                        <span class="material-symbols-outlined text-2xl">ac_unit</span>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-on-surface">Proximity-Based Climate Automation</h3>
+                        <p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">Automates your home air conditioner using secure zero-touch geofencing before you arrive home.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-2.5">
+                    <h4 class="text-[10px] text-secondary font-bold uppercase tracking-widest">How It Works</h4>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+                            <span class="material-symbols-outlined text-secondary text-lg">near_me</span>
+                            <p class="text-[10px] font-bold text-on-surface">1. Approach Home</p>
+                            <p class="text-[9px] text-on-surface-variant/70">Phone enters geofence radius</p>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+                            <span class="material-symbols-outlined text-secondary text-lg">webhook</span>
+                            <p class="text-[10px] font-bold text-on-surface">2. Fire Webhook</p>
+                            <p class="text-[9px] text-on-surface-variant/70">Secure API ping to PC server</p>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+                            <span class="material-symbols-outlined text-emerald-400 text-lg">cool_to_dry</span>
+                            <p class="text-[10px] font-bold text-on-surface">3. Cool Home</p>
+                            <p class="text-[9px] text-on-surface-variant/70">AC turns ON before arrival</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Server Pairing & PC Setup Tutorial -->
+            <div id="wizard-step-2" class="wizard-step-content space-y-4 hidden">
+                <!-- Hardware Compatibility Banner -->
+                <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-secondary font-bold uppercase tracking-wider">HARDWARE COMPATIBILITY</span>
+                        <span class="bg-secondary/15 text-secondary text-[9px] font-bold px-2 py-0.5 rounded-full border border-secondary/30">UNIVERSAL WEBHOOKS</span>
+                    </div>
+                    <p class="text-xs text-on-surface-variant leading-relaxed">
+                        Built-in server script supports <strong class="text-on-surface">Midea, Electra, Carrier, Toshiba, Comfee, Inventor, MDV</strong> Wi-Fi ACs. Also compatible with <strong class="text-on-surface">Home Assistant, Node-RED, Tuya, SmartThings</strong> or any custom webhook server!
+                    </p>
+                    <a href="https://github.com/ogadassi/ac-notification" target="_blank" class="w-full py-2 bg-secondary/15 hover:bg-secondary/25 text-secondary border border-secondary/30 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 mt-1 no-underline">
+                        <span class="material-symbols-outlined text-base">open_in_new</span>
+                        <span>Get PC Server EXE & Setup Guide (GitHub)</span>
+                    </a>
+                </div>
+
+                <!-- Input Fields & Live Ping Test -->
+                <div class="space-y-3 pt-1">
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">ENDPOINT URL</label>
+                        <input id="wizard-endpoint" class="w-full bg-black/35 border border-white/10 focus:border-secondary/40 text-on-surface px-3.5 py-2.5 rounded-xl text-xs outline-none" placeholder="https://your-domain.ngrok-free.app/api/v1/ac/trigger" type="text"/>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">API SECRET KEY</label>
+                        <input id="wizard-secret" class="w-full bg-black/35 border border-white/10 focus:border-secondary/40 text-on-surface px-3.5 py-2.5 rounded-xl text-xs outline-none" type="password" placeholder="API secret key (X-API-Key)"/>
+                    </div>
+                    <button onclick="testWizardServerPing()" class="w-full py-2.5 btn-gradient-primary text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-sm">wifi_tethering</span>
+                        Test Server Connection Ping
+                    </button>
+                    <div id="wizard-ping-status" class="hidden p-2.5 rounded-xl text-xs font-bold text-center"></div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Home & Geofence Radius -->
+            <div id="wizard-step-3" class="wizard-step-content space-y-4 hidden">
+                <div class="space-y-2">
+                    <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">TARGET HOME ADDRESS</label>
+                    <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded-2xl px-3.5 h-11">
+                        <span class="material-symbols-outlined text-on-surface-variant text-base">home</span>
+                        <input id="wizard-home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none" placeholder="Search home address..." type="text"/>
+                        <button onclick="triggerWizardGPS()" class="flex items-center justify-center p-1.5 rounded-full hover:bg-white/5 text-secondary">
+                            <span class="material-symbols-outlined text-base">my_location</span>
+                        </button>
+                    </div>
+                    <div id="wizard-lbl-coords" class="text-[10px] font-bold text-secondary tracking-wide">Coordinates: Unset</div>
+                </div>
+
+                <div class="space-y-2 pt-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">GEOFENCE RADIUS</label>
+                        <span id="wizard-lbl-radius" class="text-secondary font-bold text-xs">500M</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5">
+                        <button onclick="setWizardRadius(50)" id="wizard-preset-50" class="py-1.5 rounded-xl text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">50M</button>
+                        <button onclick="setWizardRadius(250)" id="wizard-preset-250" class="py-1.5 rounded-xl text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">250M</button>
+                        <button onclick="setWizardRadius(500)" id="wizard-preset-500" class="py-1.5 rounded-xl text-[10px] font-bold bg-secondary/20 text-secondary border border-secondary/30">500M</button>
+                        <button onclick="setWizardRadius(1000)" id="wizard-preset-1000" class="py-1.5 rounded-xl text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">1KM</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 4: System Permissions Authorization -->
+            <div id="wizard-step-4" class="wizard-step-content space-y-3 hidden">
+                <p class="text-xs text-on-surface-variant leading-relaxed">
+                    Android OS requires specific system authorizations for zero-touch background operation. Tap each item to grant:
+                </p>
+                <div class="space-y-2 text-xs">
+                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <div>
+                            <strong class="text-on-surface block">Precise Location (GPS)</strong>
+                            <span class="text-[10px] text-on-surface-variant">Accurate coordinate lookup</span>
+                        </div>
+                        <button id="wizard-btn-perm-location" onclick="requestNativePermission('location')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <div>
+                            <strong class="text-on-surface block">Background Location ("Allow All The Time")</strong>
+                            <span class="text-[10px] text-on-surface-variant">Triggers when screen is locked</span>
+                        </div>
+                        <button id="wizard-btn-perm-bg-location" onclick="requestNativePermission('backgroundLocation')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <div>
+                            <strong class="text-on-surface block">Notifications</strong>
+                            <span class="text-[10px] text-on-surface-variant">System alerts & status toasts</span>
+                        </div>
+                        <button id="wizard-btn-perm-notifications" onclick="requestNativePermission('notifications')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <div>
+                            <strong class="text-on-surface block">Unrestricted Battery</strong>
+                            <span class="text-[10px] text-on-surface-variant">Prevents Android process killing</span>
+                        </div>
+                        <button id="wizard-btn-perm-battery" onclick="requestNativePermission('batteryOptimization')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 5: Verification & Launch -->
+            <div id="wizard-step-5" class="wizard-step-content space-y-4 hidden">
+                <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2">
+                    <span class="material-symbols-outlined text-emerald-400 text-3xl">verified</span>
+                    <h3 class="text-sm font-bold text-on-surface">Setup Complete & Verified</h3>
+                    <p class="text-xs text-on-surface-variant">Your AC Notification automation engine is configured and ready for automated proximity cooling.</p>
+                </div>
+                <button onclick="sendTestAlert()" class="w-full py-2.5 bg-white/5 hover:bg-white/10 text-on-surface border border-white/10 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-base">notifications_active</span>
+                    Send Test Alert Notification
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer Navigation Buttons -->
+        <div class="pt-4 border-t border-white/10 shrink-0 flex items-center justify-between mt-4">
+            <button id="wizard-btn-back" onclick="prevWizardStep()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-on-surface-variant border border-white/10 rounded-full font-bold text-xs uppercase tracking-wider active:scale-95 transition-all">Back</button>
+            <div class="flex items-center gap-1.5" id="wizard-step-dots">
+                <span class="w-2 h-2 rounded-full bg-secondary"></span>
+                <span class="w-2 h-2 rounded-full bg-white/20"></span>
+                <span class="w-2 h-2 rounded-full bg-white/20"></span>
+                <span class="w-2 h-2 rounded-full bg-white/20"></span>
+                <span class="w-2 h-2 rounded-full bg-white/20"></span>
+            </div>
+            <button id="wizard-btn-next" onclick="nextWizardStep()" class="px-5 py-2 btn-gradient-primary text-xs uppercase tracking-wider font-bold active:scale-95 transition-all">Next</button>
+        </div>
+
+    </div>
+</div>
 
 <!-- JavaScript Orchestration -->
 <script>
@@ -722,28 +1018,27 @@
         if (activeTab === tabId) return;
         
         // Hide previous tab, show current
-        document.getElementById(`tab-${activeTab}`).classList.remove("active");
-        document.getElementById(`tab-${tabId}`).classList.add("active");
+        const prevTabEl = document.getElementById(`tab-${activeTab}`);
+        const nextTabEl = document.getElementById(`tab-${tabId}`);
+        if (prevTabEl) prevTabEl.classList.remove("active");
+        if (nextTabEl) nextTabEl.classList.add("active");
 
         // Update Bottom Nav Buttons styling
-        const prevBtn = document.getElementById(`nav-btn-${activeTab}`);
-        const currentBtn = document.getElementById(`nav-btn-${tabId}`);
-        const prevIcon = document.getElementById(`nav-icon-${activeTab}`);
-        const currentIcon = document.getElementById(`nav-icon-${tabId}`);
-
-        prevBtn.classList.replace("text-secondary", "text-on-surface-variant");
-        currentBtn.classList.replace("text-on-surface-variant", "text-secondary");
-
-        prevIcon.style.fontVariationSettings = "'FILL' 0";
-        currentIcon.style.fontVariationSettings = "'FILL' 1";
-
-        // Desktop nav styling
-        const prevDesktop = document.getElementById(`desktop-tab-btn-${activeTab}`);
-        const currentDesktop = document.getElementById(`desktop-tab-btn-${tabId}`);
-        if (prevDesktop && currentDesktop) {
-            prevDesktop.classList.replace("text-secondary", "text-on-surface-variant");
-            currentDesktop.classList.replace("text-on-surface-variant", "text-secondary");
-        }
+        const tabs = ['dashboard', 'permissions', 'settings'];
+        tabs.forEach(t => {
+            const btn = document.getElementById(`nav-btn-${t}`);
+            const icon = document.getElementById(`nav-icon-${t}`);
+            if (btn) {
+                if (t === tabId) {
+                    btn.className = "flex flex-col items-center justify-center text-center text-secondary active:scale-90 transition-all duration-200 cursor-pointer py-1.5 rounded-full";
+                } else {
+                    btn.className = "flex flex-col items-center justify-center text-center text-on-surface-variant/70 active:scale-90 transition-all duration-200 cursor-pointer py-1.5 rounded-full";
+                }
+            }
+            if (icon) {
+                icon.style.fontVariationSettings = (t === tabId) ? "'FILL' 1" : "'FILL' 0";
+            }
+        });
 
         activeTab = tabId;
 
@@ -773,7 +1068,7 @@
                 radius: 500,
                 homeLat: 32.0853,
                 homeLng: 34.7818,
-                homeAddress: "123 Aura Ln, Tel Aviv",
+                homeAddress: "123 Main St, Tel Aviv",
                 distance: 1.2,
                 acState: "OFF",
                 geofenceActive: true,
@@ -789,21 +1084,213 @@
             // Populate mock logs
             const consoleEl = document.getElementById('terminal-console');
             consoleEl.innerHTML = `
-                <div class="text-on-primary-container"><span class="text-on-surface-variant opacity-50">[14:02:11]</span> SYSTEM_INIT: Aura AC Engine version 4.2.0-stable</div>
+                <div class="text-on-primary-container"><span class="text-on-surface-variant opacity-50">[14:02:11]</span> SYSTEM_INIT: AC Notification Engine version 4.2.0-stable</div>
                 <div class="text-on-primary-container"><span class="text-on-surface-variant opacity-50">[14:02:12]</span> NETWORK: Handshake success with 192.168.1.104</div>
                 <div class="text-secondary"><span class="text-on-surface-variant opacity-50">[14:15:21]</span> INFO: Geofence radius validated at 500m</div>
             `;
         }
     }
 
+    let inAppToastTimeout = null;
+
+    function showInAppNotification(message, type = 'info') {
+        const toast = document.getElementById('in-app-toast');
+        const toastText = document.getElementById('in-app-toast-text');
+        const toastIcon = document.getElementById('in-app-toast-icon');
+        const toastActions = document.getElementById('in-app-toast-actions');
+
+        if (!toast || !toastText) return;
+
+        toastText.textContent = message;
+        if (toastActions) toastActions.classList.add('hidden');
+
+        if (type === 'success') {
+            toastIcon.textContent = 'check_circle';
+            toastIcon.className = 'material-symbols-outlined text-secondary text-base animate-bounce';
+        } else if (type === 'warning' || type === 'error') {
+            toastIcon.textContent = 'error';
+            toastIcon.className = 'material-symbols-outlined text-error text-base';
+        } else {
+            toastIcon.textContent = 'ac_unit';
+            toastIcon.className = 'material-symbols-outlined text-secondary text-base animate-spin';
+        }
+
+        toast.classList.remove('-translate-y-24');
+        toast.classList.add('translate-y-0');
+
+        clearTimeout(inAppToastTimeout);
+        inAppToastTimeout = setTimeout(() => {
+            dismissInAppToast();
+        }, 3200);
+    }
+
+    function handleLogoClick(event) {
+        const targetTag = event && event.target ? event.target.tagName : 'DIV';
+        const targetId = event && event.target && event.target.id ? `#${event.target.id}` : '';
+        const targetClass = event && event.target && event.target.className ? `.${String(event.target.className).split(' ')[0]}` : '';
+        const clickDetail = `<${targetTag}${targetId}${targetClass}>`;
+
+        const logMessage = `Logo Tapped | Clicked Target: ${clickDetail} | AC State: ${currentState.acState}`;
+
+        if (window.AndroidBridge && window.AndroidBridge.logClientEvent) {
+            window.AndroidBridge.logClientEvent('UI_LOGO_CLICK', logMessage);
+        }
+        showInAppNotification(`👆 Clicked: ${clickDetail} | AC: ${currentState.acState}`, 'info');
+
+        if (navigator.vibrate) {
+            navigator.vibrate([25, 20, 25]);
+        }
+        if (window.AndroidBridge && window.AndroidBridge.performHapticFeedback) {
+            window.AndroidBridge.performHapticFeedback();
+        }
+
+        if (window.AndroidBridge && window.AndroidBridge.checkLiveACStatusAndHandleLogoTap) {
+            window.AndroidBridge.checkLiveACStatusAndHandleLogoTap();
+        } else {
+            // Standalone browser testing fallback
+            onLiveACStatusResolved(currentState.acState === 'ON');
+        }
+    }
+
+    function onLiveACStatusResolved(isAcOn) {
+        if (isAcOn) {
+            // Direct toggle: AC is ON -> Immediately Turn OFF
+            if (window.AndroidBridge && window.AndroidBridge.triggerACTurnOff) {
+                window.AndroidBridge.triggerACTurnOff();
+            } else {
+                showInAppNotification('❄️ Turning OFF AC...', 'info');
+                setTimeout(() => {
+                    showInAppNotification('✅ AC has been turned OFF', 'info');
+                    currentState.acState = 'OFF';
+                    syncAllUICompartments();
+                }, 1200);
+            }
+        } else {
+            // Direct toggle: AC is OFF -> Immediately Turn ON
+            if (window.AndroidBridge && window.AndroidBridge.triggerACTurnOn) {
+                window.AndroidBridge.triggerACTurnOn();
+            } else {
+                showInAppNotification('❄️ Turning on AC...', 'info');
+                setTimeout(() => {
+                    showInAppNotification('✅ AC is turning on! ❄️', 'success');
+                    currentState.acState = 'ON';
+                    syncAllUICompartments();
+                }, 1200);
+            }
+        }
+    }
+
+    function dismissInAppToast() {
+        const toast = document.getElementById('in-app-toast');
+        if (!toast) return;
+        toast.classList.remove('translate-y-0');
+        toast.classList.add('-translate-y-24');
+    }
+
+    function confirmTurnOffAC() {
+        dismissInAppToast();
+        if (window.AndroidBridge && window.AndroidBridge.triggerACTurnOff) {
+            window.AndroidBridge.triggerACTurnOff();
+        } else {
+            showInAppNotification('❄️ Turning OFF AC...', 'info');
+            setTimeout(() => {
+                showInAppNotification('✅ AC has been turned OFF', 'info');
+                currentState.acState = 'OFF';
+                syncAllUICompartments();
+            }, 1200);
+        }
+    }
+
+    function hexToRgba(hex, alpha) {
+        if (!hex) return `rgba(93, 230, 255, ${alpha})`;
+        let cleanHex = hex.replace('#', '');
+        if (cleanHex.length === 6) {
+            const r = parseInt(cleanHex.substring(0, 2), 16);
+            const g = parseInt(cleanHex.substring(2, 4), 16);
+            const b = parseInt(cleanHex.substring(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        return `rgba(93, 230, 255, ${alpha})`;
+    }
+
+    function syncAllUICompartments() {
+        const isAcOn = (currentState.acState === "ON");
+
+        // 1. Top-Left Logo Icon & Unclipped Ambient Glow Aura Styling
+        const logoAura = document.getElementById("logo-glow-aura");
+        const logoContainer = document.getElementById("logo-btn-container");
+        const logoSvg = document.getElementById("logo-icon-svg");
+        const logoPath = document.getElementById("logo-icon-path") || (logoSvg ? logoSvg.querySelector("path") : null);
+
+        if (logoAura) {
+            if (isAcOn) {
+                // Gentle Soft Rose/Coral Luminous Glass Halo
+                logoAura.className = "absolute -inset-1 rounded-2xl bg-rose-500/25 blur-lg pointer-events-none transition-all duration-500 opacity-80";
+            } else {
+                // Gentle Soft Cyan Luminous Glass Halo
+                logoAura.className = "absolute -inset-1 rounded-2xl bg-cyan-400/20 blur-lg pointer-events-none transition-all duration-500 opacity-80";
+            }
+        }
+
+        if (logoContainer && logoSvg) {
+            if (isAcOn) {
+                // AC is ON -> Button action is "Turn OFF" -> Soft Pink Glass + Vibrant Neon Red/Pink Vector Icon
+                logoContainer.style.setProperty("background", "rgba(255, 80, 100, 0.22)", "important");
+                logoContainer.style.setProperty("border-color", "rgba(255, 100, 120, 0.5)", "important");
+                logoContainer.style.setProperty("box-shadow", "none", "important");
+
+                logoSvg.style.setProperty("color", "#FF3B30", "important");
+                logoSvg.style.setProperty("fill", "#FF3B30", "important");
+                logoSvg.style.setProperty("filter", "none", "important");
+                if (logoPath) {
+                    logoPath.setAttribute("fill", "#FF3B30");
+                    logoPath.style.setProperty("fill", "#FF3B30", "important");
+                }
+            } else {
+                // AC is OFF -> Button action is "Turn ON" -> Soft Cyan Glass + Vibrant Neon Cyan Vector Icon
+                logoContainer.style.setProperty("background", "rgba(93, 230, 255, 0.15)", "important");
+                logoContainer.style.setProperty("border-color", "rgba(93, 230, 255, 0.4)", "important");
+                logoContainer.style.setProperty("box-shadow", "none", "important");
+
+                logoSvg.style.setProperty("color", "#5DE6FF", "important");
+                logoSvg.style.setProperty("fill", "#5DE6FF", "important");
+                logoSvg.style.setProperty("filter", "none", "important");
+                if (logoPath) {
+                    logoPath.setAttribute("fill", "#5DE6FF");
+                    logoPath.style.setProperty("fill", "#5DE6FF", "important");
+                }
+            }
+        }
+
+        // 2. Map Overlay Badge: Combined Geofence Radius & Distance
+        const legendEl = document.getElementById("geofence-legend-text");
+        if (legendEl) {
+            const distStr = currentState.distance !== null ? `${currentState.distance.toFixed(2)}KM` : "--";
+            const radStr = currentState.radius >= 1000 ? `${(currentState.radius / 1000).toFixed(1)}KM` : `${currentState.radius}M`;
+            legendEl.textContent = `GEOFENCE: ${radStr} • DIST: ${distStr}`;
+        }
+    }
+
     function updateState(state) {
         currentState = { ...currentState, ...state };
 
-        // Apply Android dynamic system colors
+        // Auto-open Welcome Wizard on first run
+        if (state.hasCompletedOnboarding === false && !currentState._wizardAutoOpened) {
+            currentState._wizardAutoOpened = true;
+            setTimeout(() => { openWelcomeWizard(); }, 300);
+        }
+
+        // Apply Android dynamic system colors from Material You
         if (state.colors) {
             const root = document.documentElement;
             for (const [key, value] of Object.entries(state.colors)) {
                 root.style.setProperty(`--${key}`, value);
+            }
+            if (state.colors.secondary) {
+                root.style.setProperty('--secondary-glow', hexToRgba(state.colors.secondary, 0.16));
+            }
+            if (state.colors.primary) {
+                root.style.setProperty('--primary-glow', hexToRgba(state.colors.primary, 0.08));
             }
         }
 
@@ -816,51 +1303,38 @@
         // Radius label
         updateRadiusUI(currentState.radius);
 
-        // Distance & Coords
-        if (currentState.distance !== null) {
-            document.getElementById("txt-distance").textContent = currentState.distance.toFixed(2);
-        } else {
-            document.getElementById("txt-distance").textContent = "--";
-        }
-
         // Coordinates Label in Permissions page
         if (currentState.homeLat !== 0.0) {
-            document.getElementById("lbl-current-coords").textContent = 
-                `${currentState.homeLat.toFixed(5)} , ${currentState.homeLng.toFixed(5)}`;
+            const coordsEl = document.getElementById("lbl-current-coords");
+            if (coordsEl) {
+                coordsEl.textContent = `${currentState.homeLat.toFixed(5)} , ${currentState.homeLng.toFixed(5)}`;
+            }
         }
 
-        // Home AC State
-        document.getElementById("txt-ac-state").textContent = `AC: ${currentState.acState}`;
-        const indicator = document.getElementById("ac-state-indicator");
-        if (currentState.acState === "ON") {
-            indicator.className = "w-2 h-2 rounded-full bg-secondary animate-pulse";
-        } else {
-            indicator.className = "w-2 h-2 rounded-full bg-on-surface-variant";
-        }
+        // Atomic Compartment Synchronization
+        syncAllUICompartments();
 
         // Geofencing toggle status
-        const activeText = document.getElementById("monitoring-status-text");
-        const statusCard = document.getElementById("monitoring-status-card");
-        const monitoringPing = document.getElementById("monitoring-ping");
-        const monitoringIconBg = document.getElementById("monitoring-icon-bg");
         const cloudIcon = document.getElementById("cloud-status-icon");
 
+        const settingsBadge = document.getElementById("settings-monitor-badge");
+        const settingsIcon = document.getElementById("settings-monitor-icon");
+        const settingsDesc = document.getElementById("settings-monitor-desc");
+
         if (currentState.geofenceActive) {
-            activeText.textContent = "Monitoring: ACTIVE";
-            activeText.className = "text-xl text-secondary font-bold tracking-tight";
-            statusCard.className = "flex flex-col items-center justify-center py-8 liquid-glass-card";
-            monitoringPing.className = "absolute w-16 h-16 bg-secondary/15 rounded-full animate-ping";
-            monitoringIconBg.className = "w-12 h-12 bg-secondary flex items-center justify-center rounded-full z-10 shadow-lg";
             cloudIcon.textContent = "cloud_done";
             cloudIcon.className = "material-symbols-outlined text-secondary";
+            settingsBadge.textContent = "ACTIVE";
+            settingsBadge.className = "bg-secondary/15 text-secondary text-[10px] font-bold px-3 py-1 rounded-full border border-secondary/30 tracking-widest";
+            settingsIcon.className = "material-symbols-outlined text-secondary text-lg";
+            settingsDesc.textContent = "Background proximity tracking active";
         } else {
-            activeText.textContent = "Monitoring: INACTIVE";
-            activeText.className = "text-xl text-on-surface-variant/80 font-bold tracking-tight";
-            statusCard.className = "flex flex-col items-center justify-center py-8 liquid-glass-card";
-            monitoringPing.className = "hidden";
-            monitoringIconBg.className = "w-12 h-12 bg-white/5 flex items-center justify-center rounded-full z-10";
             cloudIcon.textContent = "cloud_off";
             cloudIcon.className = "material-symbols-outlined text-on-surface-variant/70";
+            settingsBadge.textContent = "INACTIVE";
+            settingsBadge.className = "bg-error/15 text-error text-[10px] font-bold px-3 py-1 rounded-full border border-error/30 tracking-widest";
+            settingsIcon.className = "material-symbols-outlined text-on-surface-variant/50 text-lg";
+            settingsDesc.textContent = "No background proximity tracking";
         }
 
         // Permissions Badges and Buttons
@@ -936,24 +1410,63 @@
                 if (statusLbl) statusLbl.classList.add("hidden");
             }
         }
+
+        // Also update Wizard Step 4 permission buttons dynamically
+        const wizardBtnKey = key === "battery" ? "battery" : key;
+        const wizardBtn = document.getElementById(`wizard-btn-perm-${wizardBtnKey}`);
+        if (wizardBtn) {
+            if (isGranted) {
+                wizardBtn.textContent = "✓ GRANTED";
+                wizardBtn.className = "px-3.5 py-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-full font-bold text-[10px] uppercase tracking-wider";
+                wizardBtn.disabled = true;
+            } else {
+                wizardBtn.textContent = "AUTHORIZE";
+                wizardBtn.className = "px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all";
+                wizardBtn.disabled = false;
+            }
+        }
     }
 
     // Leaflet marker radius adjust in real-time on slider move
     function updateRadiusUI(val) {
-        document.getElementById("lbl-radius").textContent = val >= 1000 ? (val / 1000).toFixed(1) + 'KM' : val + 'M';
-        document.getElementById("geofence-legend-text").textContent = `GEOFENCE: ${val >= 1000 ? (val / 1000).toFixed(1) + 'KM' : val + 'M'}`;
+        currentState.radius = val;
+        const labelStr = val >= 1000 ? `${(val / 1000).toFixed(1)}KM` : `${val}M`;
+        const lbl = document.getElementById("lbl-radius");
+        if (lbl) lbl.textContent = labelStr;
+
+        const hiddenInput = document.getElementById("slider-radius");
+        if (hiddenInput) hiddenInput.value = val;
+
+        // Highlight active preset pill
+        const presets = [50, 250, 500, 1000];
+        presets.forEach(p => {
+            const btn = document.getElementById(`preset-btn-${p}`);
+            if (btn) {
+                if (p === val) {
+                    btn.className = "py-2 rounded-xl text-[10px] font-bold transition-all duration-200 bg-secondary/20 text-secondary border border-secondary/30 shadow-md shadow-secondary/10";
+                } else {
+                    btn.className = "py-2 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent";
+                }
+            }
+        });
+
         if (geofenceCircle) {
             geofenceCircle.setRadius(val);
         }
+        syncAllUICompartments();
     }
 
     function setRadiusVal(val) {
-        document.getElementById("slider-radius").value = val;
         updateRadiusUI(val);
-        if (window.AndroidBridge) {
+        if (window.AndroidBridge && window.AndroidBridge.saveRadius) {
             window.AndroidBridge.saveRadius(val);
         }
         logEvent("GEOFENCE_RADIUS_CHANGED", `New Radius: ${val}m`, "INFO");
+    }
+
+    function adjustRadius(delta) {
+        let newVal = Math.max(50, Math.min(2000, (currentState.radius || 500) + delta));
+        setRadiusVal(newVal);
     }
 
     // Call native request handlers
@@ -1240,7 +1753,202 @@
         const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
         renderLogLine(time, level, `${tag}: ${message}`);
         const consoleEl = document.getElementById('terminal-console');
-        consoleEl.scrollTop = consoleEl.scrollHeight;
+        if (consoleEl) consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    // ==========================================
+    // Onboarding & Setup Wizard State Machine
+    // ==========================================
+    let currentWizardStep = 1;
+
+    function openWelcomeWizard() {
+        const modal = document.getElementById("welcome-wizard-modal");
+        if (!modal) return;
+        
+        // Sync current settings to wizard inputs
+        const epInput = document.getElementById("wizard-endpoint");
+        const secInput = document.getElementById("wizard-secret");
+        const addrInput = document.getElementById("wizard-home-search-input");
+
+        if (epInput) epInput.value = currentState.webhookUrl || "";
+        if (secInput) secInput.value = currentState.apiKey || "";
+        if (addrInput) addrInput.value = currentState.homeAddress || "";
+        setWizardRadius(currentState.radius || 500);
+
+        currentWizardStep = 1;
+        renderWizardStep();
+        modal.classList.remove("hidden");
+    }
+
+    function closeWelcomeWizard() {
+        const modal = document.getElementById("welcome-wizard-modal");
+        if (modal) modal.classList.add("hidden");
+
+        // Save completion preference
+        if (window.AndroidBridge && window.AndroidBridge.setOnboardingCompleted) {
+            window.AndroidBridge.setOnboardingCompleted(true);
+        }
+        currentState.hasCompletedOnboarding = true;
+    }
+
+    function setWizardStep(step) {
+        currentWizardStep = Math.max(1, Math.min(5, step));
+        renderWizardStep();
+    }
+
+    function nextWizardStep() {
+        if (currentWizardStep === 2) {
+            // Save endpoint settings when proceeding from step 2
+            const ep = document.getElementById("wizard-endpoint")?.value;
+            const sec = document.getElementById("wizard-secret")?.value;
+            if (ep) {
+                document.getElementById("endpoint").value = ep;
+                document.getElementById("secret").value = sec;
+                saveSettings();
+            }
+        } else if (currentWizardStep === 5) {
+            closeWelcomeWizard();
+            return;
+        }
+        setWizardStep(currentWizardStep + 1);
+    }
+
+    function prevWizardStep() {
+        setWizardStep(currentWizardStep - 1);
+    }
+
+    function renderWizardStep() {
+        const titles = [
+            { title: "Welcome to AC Notification", sub: "Step 1 of 5 • Architecture & Overview" },
+            { title: "Pair AC Server & PC Setup", sub: "Step 2 of 5 • Hardware & Webhooks" },
+            { title: "Target Home Geofence", sub: "Step 3 of 5 • Location & Radius" },
+            { title: "System Authorizations", sub: "Step 4 of 5 • Permissions" },
+            { title: "System Complete & Ready", sub: "Step 5 of 5 • Final Verification" }
+        ];
+
+        const t = titles[currentWizardStep - 1];
+        const stepNum = document.getElementById("wizard-step-number");
+        const titleEl = document.getElementById("wizard-title-text");
+        const subEl = document.getElementById("wizard-subtitle-text");
+
+        if (stepNum) stepNum.textContent = currentWizardStep;
+        if (titleEl) titleEl.textContent = t.title;
+        if (subEl) subEl.textContent = t.sub;
+
+        // Show active slide
+        for (let i = 1; i <= 5; i++) {
+            const stepEl = document.getElementById(`wizard-step-${i}`);
+            if (stepEl) {
+                if (i === currentWizardStep) stepEl.classList.remove("hidden");
+                else stepEl.classList.add("hidden");
+            }
+        }
+
+        // Back button visibility
+        const btnBack = document.getElementById("wizard-btn-back");
+        if (btnBack) {
+            btnBack.style.visibility = currentWizardStep === 1 ? "hidden" : "visible";
+        }
+
+        // Next / Finish button label
+        const btnNext = document.getElementById("wizard-btn-next");
+        if (btnNext) {
+            btnNext.textContent = currentWizardStep === 5 ? "Launch Dashboard 🚀" : "Next";
+        }
+
+        // Update indicator dots
+        const dotsContainer = document.getElementById("wizard-step-dots");
+        if (dotsContainer) {
+            let html = "";
+            for (let i = 1; i <= 5; i++) {
+                if (i === currentWizardStep) {
+                    html += `<span class="w-2.5 h-2.5 rounded-full bg-secondary shadow-sm shadow-secondary/50 transition-all"></span>`;
+                } else {
+                    html += `<span class="w-2 h-2 rounded-full bg-white/20 transition-all"></span>`;
+                }
+            }
+            dotsContainer.innerHTML = html;
+        }
+    }
+
+    function togglePCSetupGuide() {
+        const drawer = document.getElementById("pc-setup-guide-drawer");
+        const btnText = document.getElementById("btn-pc-guide-text");
+        if (drawer) {
+            if (drawer.classList.contains("hidden")) {
+                drawer.classList.remove("hidden");
+                if (btnText) btnText.textContent = "Close PC Server Setup Tutorial";
+            } else {
+                drawer.classList.add("hidden");
+                if (btnText) btnText.textContent = "Open PC Server Setup Tutorial";
+            }
+        }
+    }
+
+    function testWizardServerPing() {
+        const ep = document.getElementById("wizard-endpoint")?.value;
+        const sec = document.getElementById("wizard-secret")?.value;
+        const statusEl = document.getElementById("wizard-ping-status");
+
+        if (!ep) {
+            if (statusEl) {
+                statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-error/15 text-error border border-error/30 block";
+                statusEl.textContent = "⚠️ Please enter an Endpoint URL first";
+            }
+            return;
+        }
+
+        if (statusEl) {
+            statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-secondary/15 text-secondary border border-secondary/30 block";
+            statusEl.textContent = "🔍 Pinging AC server status...";
+        }
+
+        const statusUrl = ep.replace("/trigger", "/status");
+        fetch(statusUrl, {
+            method: 'GET',
+            headers: { 'X-API-Key': sec || '' }
+        }).then(res => {
+            if (res.ok) {
+                statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 block";
+                statusEl.textContent = "✅ SERVER ONLINE (200 OK)";
+            } else {
+                statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-error/15 text-error border border-error/30 block";
+                statusEl.textContent = `⚠️ Server returned status HTTP ${res.status}`;
+            }
+        }).catch(err => {
+            if (statusEl) {
+                statusEl.className = "p-2.5 rounded-xl text-xs font-bold text-center bg-secondary/15 text-secondary border border-secondary/30 block";
+                statusEl.textContent = "⚡ Webhook endpoint set! Test when server is running.";
+            }
+        });
+    }
+
+    function setWizardRadius(val) {
+        setRadiusVal(val);
+        const lbl = document.getElementById("wizard-lbl-radius");
+        if (lbl) lbl.textContent = val >= 1000 ? `${(val / 1000).toFixed(1)}KM` : `${val}M`;
+
+        const presets = [50, 250, 500, 1000];
+        presets.forEach(p => {
+            const btn = document.getElementById(`wizard-preset-${p}`);
+            if (btn) {
+                if (p === val) {
+                    btn.className = "py-1.5 rounded-xl text-[10px] font-bold bg-secondary/20 text-secondary border border-secondary/30";
+                } else {
+                    btn.className = "py-1.5 rounded-xl text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface";
+                }
+            }
+        });
+    }
+
+    function triggerWizardGPS() {
+        triggerGPSRequest();
+        setTimeout(() => {
+            const lbl = document.getElementById("wizard-lbl-coords");
+            if (lbl && currentState.homeLat !== 0.0) {
+                lbl.textContent = `Coordinates: ${currentState.homeLat.toFixed(4)}, ${currentState.homeLng.toFixed(4)}`;
+            }
+        }, 800);
     }
 </script>
 </body>

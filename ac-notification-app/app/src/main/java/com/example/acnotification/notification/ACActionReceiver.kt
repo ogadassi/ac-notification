@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.example.acnotification.R
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
@@ -89,10 +90,11 @@ class ACActionReceiver : BroadcastReceiver() {
     private fun showConfirmation(context: Context, message: String) {
         NotificationHelper.createNotificationChannel(context)
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("AC Control")
             .setContentText(message)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setTimeoutAfter(10_000) // Auto-dismiss after 10 seconds
             .build()

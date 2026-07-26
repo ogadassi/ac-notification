@@ -50,7 +50,7 @@ def load_config():
 
 load_config()
 
-async def control_ac():
+async def control_ac(power_state=True):
     if not config:
         return False, "config.json is missing or invalid."
     
@@ -61,11 +61,13 @@ async def control_ac():
             device = AC(ip=config['ip'], port=6444, device_id=int(config['device_id']))
             await device.authenticate(config['token'], config['key'])
             await device.refresh()
-            device.power_state = True
-            device.operational_mode = AC.OperationalMode.COOL
-            device.target_temperature = 22.0
+            device.power_state = power_state
+            if power_state:
+                device.operational_mode = AC.OperationalMode.COOL
+                device.target_temperature = 22.0
             await device.apply()
-            return True, "AC successfully turned on to Cool 22°C"
+            msg = "AC successfully turned on to Cool 22°C" if power_state else "AC successfully turned off"
+            return True, msg
         except Exception as e:
             last_err = str(e)
             app.logger.warning(f"[control] Attempt {attempt + 1} failed: {last_err}")
@@ -142,28 +144,25 @@ def validate_trigger_payload(data):
     if not isinstance(data, dict):
         return False, "Invalid payload format."
     
-    # Check exact keys
-    if set(data.keys()) != {"action", "timestamp"}:
-        return False, "Invalid payload fields."
+    if "action" not in data:
+        return False, "Missing 'action' field in payload."
         
     action = data.get("action")
     timestamp = data.get("timestamp")
     
-    if not isinstance(action, str) or action != "ac_on":
-        return False, "Invalid action."
+    if not isinstance(action, str) or action not in ["ac_on", "ac_off"]:
+        return False, "Invalid action field (must be 'ac_on' or 'ac_off')."
         
-    if not isinstance(timestamp, (int, float)):
-        return False, "Invalid timestamp."
-        
-    # Replay protection: timestamp is in milliseconds (matches Android client System.currentTimeMillis())
-    try:
-        now_ms = int(time.time() * 1000)
-        drift_limit_ms = 10 * 60 * 1000  # 10 minutes
-        if abs(now_ms - int(timestamp)) > drift_limit_ms:
-            return False, "Request timestamp expired or out of acceptable clock-drift window."
-    except Exception:
-        return False, "Timestamp parsing error."
-        
+    # Replay protection: if timestamp is provided, verify clock drift window
+    if timestamp is not None and isinstance(timestamp, (int, float)):
+        try:
+            now_ms = int(time.time() * 1000)
+            drift_limit_ms = 10 * 60 * 1000  # 10 minutes
+            if abs(now_ms - int(timestamp)) > drift_limit_ms:
+                return False, "Request timestamp expired or out of acceptable clock-drift window."
+        except Exception:
+            pass
+            
     return True, None
 
 @app.errorhandler(Exception)
@@ -193,14 +192,17 @@ def trigger_ac():
     if not is_valid:
         return jsonify({"success": False, "error": err_msg}), 400
 
+    action = payload.get("action")
+    power_on = (action == "ac_on")
+
     with ac_lock:
-        success, message = asyncio.run(control_ac())
+        success, message = asyncio.run(control_ac(power_state=power_on))
         
     if success:
-        # Update cache immediately — we know AC is now on
-        ac_state_cache["power_on"] = True
+        # Update cache immediately
+        ac_state_cache["power_on"] = power_on
         ac_state_cache["last_updated"] = time.time()
-        return jsonify({"success": True, "message": "AC operation successfully triggered"}), 200
+        return jsonify({"success": True, "message": message, "ac_on": power_on}), 200
     else:
         # Log detail internally, return generic error message publicly
         app.logger.error("AC trigger failed: %s", message)
@@ -268,4 +270,4 @@ if __name__ == '__main__':
         debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1")
     
     port = int(os.environ.get("PORT", 3000))
-    app.run(host='::', port=port, debug=debug_mode)
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)

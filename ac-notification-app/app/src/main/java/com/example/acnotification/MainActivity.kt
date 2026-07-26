@@ -16,6 +16,7 @@ import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.core.content.ContextCompat
 import com.example.acnotification.geofence.GeofenceBroadcastReceiver
 import com.example.acnotification.geofence.GeofenceManager
@@ -128,7 +131,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(
+                android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.dark(
+                android.graphics.Color.TRANSPARENT
+            )
+        )
         setContent {
             ACNotificationTheme {
                 val colorScheme = MaterialTheme.colorScheme
@@ -164,10 +174,10 @@ class MainActivity : ComponentActivity() {
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF051424)
+                    color = Color(0xFF050B14)
                 ) {
                     AndroidView(
-                        modifier = Modifier.fillMaxSize().systemBarsPadding(),
+                        modifier = Modifier.fillMaxSize(),
                         factory = { ctx ->
                             WebView(ctx).apply {
                                 layoutParams = ViewGroup.LayoutParams(
@@ -347,6 +357,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun openChannelSettings() {
+        AppLogger.i("MainActivity", "Opening notification channel settings")
+        try {
+            val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                putExtra(Settings.EXTRA_CHANNEL_ID, NotificationHelper.CHANNEL_ID)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                }
+                startActivity(intent)
+            } catch (ex: Exception) {
+                AppLogger.e("MainActivity", "Could not open notification settings: ${ex.message}")
+            }
+        }
+    }
+
     private fun setHomeLocationFromSearch(lat: Double, lng: Double, addressName: String) {
         AppLogger.i("MainActivity", "Applying Location: '$addressName' ($lat, $lng)")
         geofenceManager.setHomeLocation(lat, lng, addressName)
@@ -453,6 +483,7 @@ class MainActivity : ComponentActivity() {
             val homeLng = geofenceManager.homeLongitude
             val homeAddress = geofenceManager.homeAddressName
             val geofenceActiveVal = geofenceManager.isGeofenceActive
+            val hasCompletedOnboarding = prefs.getBoolean("has_completed_onboarding", false)
 
             val lastActionTime = prefs.getLong("last_action_time", 0L)
             val cooldownMillis = 30 * 60 * 1000L
@@ -473,6 +504,7 @@ class MainActivity : ComponentActivity() {
                 put("distance", lastLocationDist ?: org.json.JSONObject.NULL)
                 put("acState", realACState)
                 put("geofenceActive", geofenceActiveVal)
+                put("hasCompletedOnboarding", hasCompletedOnboarding)
                 put("permissions", org.json.JSONObject().apply {
                     put("location", locationPermissionGranted.value)
                     put("backgroundLocation", backgroundLocationGranted.value)
@@ -493,6 +525,13 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun setOnboardingCompleted(completed: Boolean) {
+            val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("has_completed_onboarding", completed).apply()
+            AppLogger.i("MainActivity", "Onboarding completed saved: $completed")
+        }
+
+        @JavascriptInterface
         fun requestPermission(type: String) {
             runOnUiThread {
                 when (type) {
@@ -500,7 +539,198 @@ class MainActivity : ComponentActivity() {
                     "backgroundLocation" -> requestBackgroundLocation()
                     "notifications" -> requestNotificationPermission()
                     "batteryOptimization" -> disableBatteryOptimization()
+                    "channelSettings" -> openChannelSettings()
                 }
+            }
+        }
+
+        @JavascriptInterface
+        fun logClientEvent(tag: String, msg: String) {
+            AppLogger.i(tag, msg)
+        }
+
+        @JavascriptInterface
+        fun performHapticFeedback() {
+            runOnUiThread {
+                window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+            }
+        }
+
+        @JavascriptInterface
+        fun checkLiveACStatusAndHandleLogoTap() {
+            runOnUiThread {
+                AppLogger.i("MainActivity", "Logo tapped — Querying live AC status from server first...")
+                window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+
+                val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                val webhookUrl = prefs.getString("webhook_url", "") ?: ""
+                val apiKey = prefs.getString("api_key", "") ?: ""
+
+                if (webhookUrl.isBlank()) {
+                    mainWebView?.evaluateJavascript("showInAppNotification('⚠️ No webhook URL configured', 'warning')", null)
+                    return@runOnUiThread
+                }
+
+                mainWebView?.evaluateJavascript("showInAppNotification('🔍 Checking live AC status...', 'info')", null)
+
+                val baseUrl = webhookUrl.substringBefore("/api/v1/")
+                val statusUrl = "$baseUrl/api/v1/ac/status"
+
+                val request = okhttp3.Request.Builder()
+                    .url(statusUrl)
+                    .get()
+                    .apply {
+                        if (apiKey.isNotBlank()) addHeader("X-API-Key", apiKey)
+                        addHeader("ngrok-skip-browser-warning", "true")
+                    }
+                    .build()
+
+                httpClient.newCall(request).enqueue(object : okhttp3.Callback {
+                    override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
+                        AppLogger.w("MainActivity", "Live status check failed, using cached state: ${e.message}")
+                        val cachedState = prefs.getString("real_ac_state", "OFF") ?: "OFF"
+                        val isAcOn = cachedState.equals("ON", ignoreCase = true)
+                        runOnUiThread {
+                            mainWebView?.evaluateJavascript("onLiveACStatusResolved($isAcOn)", null)
+                        }
+                    }
+
+                    override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                        response.use { resp ->
+                            var isAcOn = false
+                            if (resp.isSuccessful) {
+                                val body = resp.body?.string()
+                                if (body != null) {
+                                    try {
+                                        val json = org.json.JSONObject(body)
+                                        isAcOn = json.optBoolean("ac_on", false)
+                                        prefs.edit().putString("real_ac_state", if (isAcOn) "ON" else "OFF").apply()
+                                        realACState = if (isAcOn) "ON" else "OFF"
+                                    } catch (e: Exception) {
+                                        AppLogger.e("MainActivity", "Parsing status failed: ${e.message}")
+                                    }
+                                }
+                            }
+                            runOnUiThread {
+                                refreshUIState()
+                                mainWebView?.evaluateJavascript("onLiveACStatusResolved($isAcOn)", null)
+                            }
+                        }
+                    }
+                })
+            }
+        }
+
+        @JavascriptInterface
+        fun triggerACTurnOn() {
+            runOnUiThread {
+                AppLogger.i("MainActivity", "Logo tapped — Triggering AC Turn On")
+                window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+
+                val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                val webhookUrl = prefs.getString("webhook_url", "") ?: ""
+                val apiKey = prefs.getString("api_key", "") ?: ""
+
+                if (webhookUrl.isBlank()) {
+                    AppLogger.w("MainActivity", "No webhook URL configured for logo click")
+                    mainWebView?.evaluateJavascript("showInAppNotification('⚠️ No webhook URL configured', 'warning')", null)
+                    return@runOnUiThread
+                }
+
+                mainWebView?.evaluateJavascript("showInAppNotification('❄️ Turning on AC...', 'info')", null)
+
+                Thread {
+                    try {
+                        val client = okhttp3.OkHttpClient()
+                        val jsonBody = "{\"action\": \"ac_on\", \"timestamp\": ${System.currentTimeMillis()}}"
+                        val body = jsonBody.toRequestBody("application/json".toMediaType())
+
+                        val request = okhttp3.Request.Builder()
+                            .url(webhookUrl)
+                            .addHeader("X-API-Key", apiKey)
+                            .addHeader("ngrok-skip-browser-warning", "true")
+                            .post(body)
+                            .build()
+
+                        val response = client.newCall(request).execute()
+                        response.use { resp ->
+                            if (resp.isSuccessful) {
+                                prefs.edit().putLong("last_action_time", System.currentTimeMillis()).apply()
+                                prefs.edit().putString("real_ac_state", "ON").apply()
+                                realACState = "ON"
+                                runOnUiThread {
+                                    mainWebView?.evaluateJavascript("showInAppNotification('✅ AC is turning on! ❄️', 'success')", null)
+                                    refreshUIState()
+                                }
+                            } else {
+                                runOnUiThread {
+                                    mainWebView?.evaluateJavascript("showInAppNotification('❌ Webhook error: ${resp.code}', 'error')", null)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.e("MainActivity", "Logo AC trigger failed: ${e.message}")
+                        runOnUiThread {
+                            mainWebView?.evaluateJavascript("showInAppNotification('❌ Failed to reach AC server', 'error')", null)
+                        }
+                    }
+                }.start()
+            }
+        }
+
+        @JavascriptInterface
+        fun triggerACTurnOff() {
+            runOnUiThread {
+                AppLogger.i("MainActivity", "Logo tapped — Triggering AC Turn OFF")
+                window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+
+                val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                val webhookUrl = prefs.getString("webhook_url", "") ?: ""
+                val apiKey = prefs.getString("api_key", "") ?: ""
+
+                if (webhookUrl.isBlank()) {
+                    AppLogger.w("MainActivity", "No webhook URL configured for logo click")
+                    mainWebView?.evaluateJavascript("showInAppNotification('⚠️ No webhook URL configured', 'warning')", null)
+                    return@runOnUiThread
+                }
+
+                mainWebView?.evaluateJavascript("showInAppNotification('❄️ Turning OFF AC...', 'info')", null)
+
+                Thread {
+                    try {
+                        val client = okhttp3.OkHttpClient()
+                        val jsonBody = "{\"action\": \"ac_off\", \"timestamp\": ${System.currentTimeMillis()}}"
+                        val body = jsonBody.toRequestBody("application/json".toMediaType())
+
+                        val request = okhttp3.Request.Builder()
+                            .url(webhookUrl)
+                            .addHeader("X-API-Key", apiKey)
+                            .addHeader("ngrok-skip-browser-warning", "true")
+                            .post(body)
+                            .build()
+
+                        val response = client.newCall(request).execute()
+                        response.use { resp ->
+                            if (resp.isSuccessful) {
+                                prefs.edit().putString("real_ac_state", "OFF").apply()
+                                realACState = "OFF"
+                                runOnUiThread {
+                                    mainWebView?.evaluateJavascript("showInAppNotification('✅ AC has been turned OFF', 'info')", null)
+                                    refreshUIState()
+                                }
+                            } else {
+                                runOnUiThread {
+                                    mainWebView?.evaluateJavascript("showInAppNotification('❌ Webhook error: ${resp.code}', 'error')", null)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.e("MainActivity", "Logo AC turn off failed: ${e.message}")
+                        runOnUiThread {
+                            mainWebView?.evaluateJavascript("showInAppNotification('❌ Failed to reach AC server', 'error')", null)
+                        }
+                    }
+                }.start()
             }
         }
 

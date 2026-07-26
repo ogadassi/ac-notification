@@ -153,6 +153,12 @@ def start_subprocesses():
     stop_subprocesses()
     current_webhook_url = "Starting..."
     
+    # Clean up any orphaned/stale ngrok instances before checking port or launching
+    try:
+        subprocess.run(["taskkill", "/f", "/im", "ngrok.exe"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+    except:
+        pass
+    
     if is_port_busy(3000):
         with logs_lock:
             log_messages.append("[System] Port 3000 is occupied. Connecting to existing background services...\n")
@@ -203,6 +209,12 @@ def stop_subprocesses():
         except:
             pass
         tunnel_proc = None
+    
+    # Clean up ngrok process explicitly on stop
+    try:
+        subprocess.run(["taskkill", "/f", "/im", "ngrok.exe"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+    except:
+        pass
 
 # Thread-safe window show/hide triggers
 def trigger_show_window():
