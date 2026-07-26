@@ -191,6 +191,20 @@ class MainActivity : ComponentActivity() {
                                 settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                 
                                 webViewClient = object : WebViewClient() {
+                                    override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                                        val url = request?.url?.toString() ?: return false
+                                        if (url.startsWith("http://") || url.startsWith("https://")) {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                ctx.startActivity(intent)
+                                            } catch (e: Exception) {
+                                                AppLogger.e("MainActivity", "Failed to open external link: ${e.message}")
+                                            }
+                                            return true
+                                        }
+                                        return false
+                                    }
+
                                     override fun onPageFinished(view: WebView?, url: String?) {
                                         super.onPageFinished(view, url)
                                         refreshUIState()
@@ -529,6 +543,19 @@ class MainActivity : ComponentActivity() {
             val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
             prefs.edit().putBoolean("has_completed_onboarding", completed).apply()
             AppLogger.i("MainActivity", "Onboarding completed saved: $completed")
+        }
+
+        @JavascriptInterface
+        fun openExternalUrl(url: String) {
+            runOnUiThread {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    context.startActivity(intent)
+                    AppLogger.i("MainActivity", "Launched external URL intent: $url")
+                } catch (e: Exception) {
+                    AppLogger.e("MainActivity", "Failed to launch external URL: ${e.message}")
+                }
+            }
         }
 
         @JavascriptInterface

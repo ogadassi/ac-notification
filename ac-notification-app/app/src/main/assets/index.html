@@ -751,10 +751,10 @@
                     <p class="text-xs text-on-surface-variant/80">Connect your server webhook endpoint.</p>
                 </div>
                 
-                <a href="https://github.com/ogadassi/ac-notification" target="_blank" class="w-full py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 no-underline">
+                <button onclick="openExternalLink('https://github.com/ogadassi/ac-notification')" class="w-full py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                     <span class="material-symbols-outlined text-sm">open_in_new</span>
                     <span>Get PC App & Guide (GitHub)</span>
-                </a>
+                </button>
 
                 <div class="space-y-2 pt-1">
                     <input id="wizard-endpoint" class="w-full bg-black/40 border border-white/10 focus:border-secondary/40 text-on-surface px-3.5 py-2.5 rounded-xl text-xs outline-none" placeholder="Endpoint URL..." type="text"/>
@@ -1867,7 +1867,12 @@
             if (lbl && currentState.homeLat !== 0.0) {
                 lbl.textContent = `Coordinates: ${currentState.homeLat.toFixed(4)}, ${currentState.homeLng.toFixed(4)}`;
             }
-        }, 800);
+    function openExternalLink(url) {
+        if (window.AndroidBridge && window.AndroidBridge.openExternalUrl) {
+            window.AndroidBridge.openExternalUrl(url);
+        } else {
+            window.open(url, '_blank');
+        }
     }
 </script>
 </body>
