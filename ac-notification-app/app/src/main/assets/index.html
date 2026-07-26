@@ -381,6 +381,14 @@
     </div>
 </div>
 
+<!-- Liquid Glass Pull-To-Refresh Indicator -->
+<div id="pull-refresh-indicator" class="fixed top-3 left-0 right-0 z-[150] flex justify-center pointer-events-none transition-all duration-300 transform -translate-y-20 opacity-0">
+    <div class="bg-black/85 backdrop-blur-2xl border border-white/20 text-secondary px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold tracking-wide">
+        <span id="pull-refresh-spinner" class="material-symbols-outlined text-base transition-transform duration-300">arrow_downward</span>
+        <span id="pull-refresh-text">Pull to refresh preconditions...</span>
+    </div>
+</div>
+
 <!-- Main SPA Content Area -->
 <main class="h-full overflow-y-auto pt-8 pb-16 px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto w-full relative z-10 terminal-scroll">
 
@@ -1954,6 +1962,99 @@
             }
         });
     });
+
+    // Pull-To-Refresh Gesture Orchestration
+    let touchStartY = 0;
+    let touchCurrentY = 0;
+    let isPulling = false;
+
+    document.addEventListener("touchstart", (e) => {
+        const mainScroll = document.querySelector("main");
+        const scrollTop = mainScroll ? mainScroll.scrollTop : window.scrollY;
+        if (scrollTop === 0) {
+            touchStartY = e.touches[0].clientY;
+            isPulling = true;
+        } else {
+            isPulling = false;
+        }
+    }, { passive: true });
+
+    document.addEventListener("touchmove", (e) => {
+        if (!isPulling) return;
+        touchCurrentY = e.touches[0].clientY;
+        const diffY = touchCurrentY - touchStartY;
+
+        const mainScroll = document.querySelector("main");
+        const scrollTop = mainScroll ? mainScroll.scrollTop : window.scrollY;
+
+        if (diffY > 10 && scrollTop === 0) {
+            const indicator = document.getElementById("pull-refresh-indicator");
+            const spinner = document.getElementById("pull-refresh-spinner");
+            const text = document.getElementById("pull-refresh-text");
+            if (!indicator) return;
+
+            const pullDistance = Math.min(diffY * 0.4, 75);
+            indicator.style.transform = `translateY(${pullDistance}px)`;
+            indicator.style.opacity = Math.min(pullDistance / 50, 1);
+
+            if (pullDistance >= 50) {
+                if (spinner) {
+                    spinner.textContent = "refresh";
+                    spinner.classList.add("animate-spin");
+                }
+                if (text) text.textContent = "Release to refresh...";
+            } else {
+                if (spinner) {
+                    spinner.textContent = "arrow_downward";
+                    spinner.classList.remove("animate-spin");
+                }
+                if (text) text.textContent = "Pull to refresh preconditions...";
+            }
+        }
+    }, { passive: true });
+
+    document.addEventListener("touchend", () => {
+        if (!isPulling) return;
+        const diffY = touchCurrentY - touchStartY;
+        isPulling = false;
+
+        const indicator = document.getElementById("pull-refresh-indicator");
+        const spinner = document.getElementById("pull-refresh-spinner");
+        const text = document.getElementById("pull-refresh-text");
+
+        if (diffY * 0.4 >= 50) {
+            if (spinner) {
+                spinner.textContent = "refresh";
+                spinner.classList.add("animate-spin");
+            }
+            if (text) text.textContent = "Refreshing AC & Preconditions...";
+
+            performFullRefreshTrigger();
+
+            setTimeout(() => {
+                if (indicator) {
+                    indicator.style.transform = "translateY(-80px)";
+                    indicator.style.opacity = "0";
+                }
+                if (spinner) spinner.classList.remove("animate-spin");
+            }, 1200);
+        } else {
+            if (indicator) {
+                indicator.style.transform = "translateY(-80px)";
+                indicator.style.opacity = "0";
+            }
+        }
+        touchStartY = 0;
+        touchCurrentY = 0;
+    });
+
+    function performFullRefreshTrigger() {
+        if (window.AndroidBridge && window.AndroidBridge.performFullRefresh) {
+            window.AndroidBridge.performFullRefresh();
+        }
+        queryServerACStatus();
+        showInAppToast("ac_unit", "Preconditions & AC status updated", false);
+    }
 
     function openExternalLink(url) {
         if (window.AndroidBridge && window.AndroidBridge.openExternalUrl) {

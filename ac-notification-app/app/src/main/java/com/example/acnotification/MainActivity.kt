@@ -428,6 +428,60 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun checkAndTriggerProximityIfNeeded() {
+        val homeLat = geofenceManager.homeLatitude
+        val homeLng = geofenceManager.homeLongitude
+        val radius = geofenceManager.radiusMeters
+        val isMonitoring = geofenceManager.isGeofenceActive
+
+        if (!isMonitoring || homeLat == 0.0 || homeLng == 0.0) return
+
+        val currentLoc = lastKnownLocation ?: return
+        val results = FloatArray(1)
+        android.location.Location.distanceBetween(
+            currentLoc.latitude, currentLoc.longitude,
+            homeLat, homeLng,
+            results
+        )
+        val currentDistanceMeters = results[0]
+
+        AppLogger.i("MainActivity", "Refresh Proximity Audit: Distance=${currentDistanceMeters.toInt()}m, Geofence Radius=${radius}m")
+
+        if (currentDistanceMeters <= radius) {
+            val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+            val webhookUrl = prefs.getString("webhook_url", "") ?: ""
+            val apiKey = prefs.getString("api_key", "") ?: ""
+            
+            if (webhookUrl.isNotEmpty()) {
+                val statusUrl = webhookUrl.replace("/trigger", "/status")
+                kotlin.concurrent.thread {
+                    try {
+                        val conn = java.net.URL(statusUrl).openConnection() as java.net.HttpURLConnection
+                        conn.requestMethod = "GET"
+                        conn.connectTimeout = 3000
+                        conn.readTimeout = 3000
+                        if (apiKey.isNotEmpty()) conn.setRequestProperty("X-API-Key", apiKey)
+                        
+                        if (conn.responseCode == 200) {
+                            val responseText = conn.inputStream.bufferedReader().readText()
+                            val json = org.json.JSONObject(responseText)
+                            val isAcOn = json.optBoolean("power", false) || json.optString("state", "").equals("ON", ignoreCase = true)
+                            
+                            if (!isAcOn) {
+                                AppLogger.i("MainActivity", "Pull-To-Refresh Proximity Trigger: User inside radius & AC is OFF! Triggering Notification Prompt...")
+                                com.example.acnotification.notification.NotificationHelper.showACNotification(this@MainActivity)
+                            } else {
+                                AppLogger.i("MainActivity", "Pull-To-Refresh Proximity Trigger: User inside radius, but AC is ALREADY ON.")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        AppLogger.w("MainActivity", "Proximity server audit error: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
     private fun refreshUIState() {
         val webView = mainWebView ?: return
         val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
@@ -536,6 +590,21 @@ class MainActivity : ComponentActivity() {
             }
             queryRealACState()
             return json.toString()
+        }
+
+        @JavascriptInterface
+        fun performFullRefresh() {
+            runOnUiThread {
+                AppLogger.i("MainActivity", "=== Pull-To-Refresh Requested by User ===")
+                checkPermissions()
+                fetchLastKnownLocation()
+                geofenceActive.value = geofenceManager.isGeofenceActive
+                homeLatitude.value = geofenceManager.homeLatitude
+                homeLongitude.value = geofenceManager.homeLongitude
+                homeAddressName.value = geofenceManager.homeAddressName
+                checkAndTriggerProximityIfNeeded()
+                refreshUIState()
+            }
         }
 
         @JavascriptInterface
