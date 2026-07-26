@@ -398,9 +398,8 @@ class MainActivity : ComponentActivity() {
         homeLongitude.value = lng
         homeAddressName.value = addressName
         Toast.makeText(this, "Home address set successfully", Toast.LENGTH_SHORT).show()
-        if (geofenceActive.value) {
-            toggleGeofence(true)
-        }
+        // Auto-activate geofence monitoring when a location is registered
+        toggleGeofence(true)
     }
 
     private fun setHomeToCurrentLocationWeb() {
@@ -598,7 +597,14 @@ class MainActivity : ComponentActivity() {
                 AppLogger.i("MainActivity", "=== Pull-To-Refresh Requested by User ===")
                 checkPermissions()
                 fetchLastKnownLocation()
-                geofenceActive.value = geofenceManager.isGeofenceActive
+                
+                // Auto-register/enable geofence monitoring if location is configured and fine location permission is granted
+                if (geofenceManager.homeLatitude != 0.0 && locationPermissionGranted.value) {
+                    toggleGeofence(true)
+                } else {
+                    geofenceActive.value = geofenceManager.isGeofenceActive
+                }
+
                 homeLatitude.value = geofenceManager.homeLatitude
                 homeLongitude.value = geofenceManager.homeLongitude
                 homeAddressName.value = geofenceManager.homeAddressName
