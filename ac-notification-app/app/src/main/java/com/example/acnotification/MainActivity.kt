@@ -75,9 +75,6 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         locationPermissionGranted.value = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-        if (locationPermissionGranted.value) {
-            requestBackgroundLocation()
-        }
         refreshUIState()
     }
 
