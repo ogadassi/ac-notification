@@ -406,22 +406,21 @@
                     </svg>
                 </div>
             </div>
-            <div id="cloud-status-badge" class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full backdrop-blur-md shadow-md">
-                <span id="cloud-status-icon" class="material-symbols-outlined text-secondary text-sm" data-icon="cloud_done">cloud_done</span>
-                <span id="lbl-cloud-status" class="text-[10px] font-bold text-secondary uppercase tracking-widest">DISCONNECTED</span>
+            <div id="cloud-status-badge" class="flex items-center justify-center bg-white/5 border border-white/10 w-8 h-8 rounded-full backdrop-blur-md shadow-md cursor-pointer" title="Geofence Monitoring Status">
+                <span id="cloud-status-icon" class="material-symbols-outlined text-secondary text-sm">cloud_done</span>
             </div>
         </div>
-        <!-- Map Visualization -->
+        <!-- Interactive Precision Geofence Map -->
         <div class="relative liquid-glass-card p-1.5 map-card-container">
             <!-- Leaflet Container -->
             <div id="map" class="w-full h-full rounded-[24px] grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-700"></div>
-            <!-- Radius & Distance Legend -->
-            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-black/40 backdrop-blur-md border border-white/10 px-3.5 py-2 rounded-2xl z-[400] text-xs">
+            <!-- Dynamic Geofence Radius & Distance Overlay Legend -->
+            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-black/50 backdrop-blur-md border border-white/10 px-3.5 py-2 rounded-2xl z-[400] text-xs">
                 <div class="flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
-                    <span class="text-on-surface font-semibold text-[11px]">Proximity Boundary</span>
+                    <span id="lbl-geofence-map-legend" class="text-on-surface font-semibold text-[11px]">GEOFENCE: --</span>
                 </div>
-                <span id="lbl-radius-map" class="text-secondary font-bold text-[11px] font-mono tracking-wider">500M</span>
+                <span id="lbl-distance-map-legend" class="text-secondary font-bold text-[11px] font-mono tracking-wider">DIST: --</span>
             </div>
         </div>
 
@@ -834,6 +833,10 @@
                         <span class="text-on-surface text-[11px] font-medium">Unrestricted Battery</span>
                         <button id="wizard-btn-perm-battery" onclick="requestNativePermission('batteryOptimization')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Grant</button>
                     </div>
+                    <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <span class="text-on-surface text-[11px] font-medium">Detailed Pop-Up Style</span>
+                        <button id="wizard-btn-perm-channel" onclick="requestNativePermission('channelSettings')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Configure</button>
+                    </div>
                 </div>
             </div>
 
@@ -1218,12 +1221,23 @@
             }
         }
 
-        // 2. Map Overlay Badge: Combined Geofence Radius & Distance
-        const legendEl = document.getElementById("geofence-legend-text");
-        if (legendEl) {
-            const distStr = currentState.distance !== null ? `${currentState.distance.toFixed(2)}KM` : "--";
-            const radStr = currentState.radius >= 1000 ? `${(currentState.radius / 1000).toFixed(1)}KM` : `${currentState.radius}M`;
-            legendEl.textContent = `GEOFENCE: ${radStr} • DIST: ${distStr}`;
+        // 2. Map Overlay Badge: Combined Geofence Radius & Live Distance
+        const radMapLegend = document.getElementById("lbl-geofence-map-legend");
+        const distMapLegend = document.getElementById("lbl-distance-map-legend");
+        const radVal = currentState.radius || 200;
+        const radStr = radVal >= 1000 ? `${(radVal / 1000).toFixed(1)}KM` : `${radVal}M`;
+
+        if (radMapLegend) {
+            radMapLegend.textContent = `GEOFENCE: ${radStr}`;
+        }
+        if (distMapLegend) {
+            if (currentState.distance !== null && currentState.distance !== undefined) {
+                distMapLegend.textContent = currentState.distance >= 1 
+                    ? `DIST: ${currentState.distance.toFixed(2)}KM` 
+                    : `DIST: ${Math.round(currentState.distance * 1000)}M`;
+            } else {
+                distMapLegend.textContent = "DIST: --";
+            }
         }
     }
 
