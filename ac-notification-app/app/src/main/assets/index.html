@@ -398,9 +398,9 @@
                     </svg>
                 </div>
             </div>
-            <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full backdrop-blur-md shadow-md">
+            <div id="cloud-status-badge" class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full backdrop-blur-md shadow-md">
                 <span id="cloud-status-icon" class="material-symbols-outlined text-secondary text-sm" data-icon="cloud_done">cloud_done</span>
-                <span class="text-[10px] font-bold text-secondary uppercase tracking-widest">CONNECTED</span>
+                <span id="lbl-cloud-status" class="text-[10px] font-bold text-secondary uppercase tracking-widest">DISCONNECTED</span>
             </div>
         </div>
         <!-- Map Visualization -->
@@ -408,58 +408,62 @@
             <!-- Leaflet Container -->
             <div id="map" class="w-full h-full rounded-[24px] grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-700"></div>
             <!-- Radius & Distance Legend -->
-            <div class="absolute bottom-4 left-4 z-30 bg-background/80 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full shadow-lg">
-                <p id="geofence-legend-text" class="text-[9px] font-bold text-secondary uppercase tracking-widest">GEOFENCE: 500M • DIST: --</p>
+            <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between bg-black/40 backdrop-blur-md border border-white/10 px-3.5 py-2 rounded-2xl z-[400] text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
+                    <span class="text-on-surface font-semibold text-[11px]">Proximity Boundary</span>
+                </div>
+                <span id="lbl-radius-map" class="text-secondary font-bold text-[11px] font-mono tracking-wider">500M</span>
             </div>
         </div>
 
-        <div class="space-y-3">
-
-            <!-- Radius Control Card (Slider + Stepper + Preset Pills) -->
-            <div class="liquid-glass-card p-4 space-y-3">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-[10px] text-on-surface-variant uppercase tracking-widest font-semibold">GEOFENCE RADIUS</h3>
-                    <!-- Fine Stepper Control -->
-                    <div class="flex items-center gap-1.5 bg-black/35 border border-white/10 rounded-full px-2 py-0.5 shadow-inner">
-                        <button onclick="adjustRadius(-50)" class="w-6 h-6 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-white/10 active:scale-90 transition-all font-bold text-sm">-</button>
-                        <span id="lbl-radius" class="text-secondary font-bold text-xs tracking-wide px-1 min-w-[42px] text-center">500M</span>
-                        <button onclick="adjustRadius(50)" class="w-6 h-6 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-white/10 active:scale-90 transition-all font-bold text-sm">+</button>
-                    </div>
+        <!-- 3-in-1 Precision Radius Control Suite -->
+        <div class="liquid-glass-card p-4 space-y-3">
+            <!-- Section Title & Active Radius Label -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-secondary text-base" data-icon="radar">radar</span>
+                    <span class="text-xs font-bold text-on-surface tracking-wide">GEOFENCE RADIUS</span>
                 </div>
-
-                <!-- Continuous Smooth Range Slider for Specific Precision Scrolling -->
-                <div class="pt-0.5 pb-0.5">
-                    <input id="slider-radius" class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary focus:outline-none" max="2000" min="50" step="10" type="range" value="500"/>
-                </div>
-                
-                <!-- Preset Pills -->
-                <div class="grid grid-cols-4 gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5">
-                    <button onclick="setRadiusVal(50)" id="preset-btn-50" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">50M</button>
-                    <button onclick="setRadiusVal(250)" id="preset-btn-250" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">250M</button>
-                    <button onclick="setRadiusVal(500)" id="preset-btn-500" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 bg-secondary/20 text-secondary border border-secondary/30 shadow-md shadow-secondary/10">500M</button>
-                    <button onclick="setRadiusVal(1000)" id="preset-btn-1000" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">1KM</button>
-                </div>
+                <span id="lbl-radius" class="text-xs font-bold text-secondary font-mono tracking-wider">500M</span>
             </div>
 
-            <!-- Target Home Input -->
-            <div class="liquid-glass-card p-4 space-y-3 relative">
-                <div class="relative">
-                    <div class="flex items-center gap-3 bg-black/35 border border-white/5 rounded-2xl px-3.5 h-11 focus-within:border-secondary/40 transition-all">
-                        <span class="material-symbols-outlined text-on-surface-variant text-base" data-icon="home">home</span>
-                        <input id="home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0" placeholder="Search home address..." type="text"/>
-                        <button id="btn-gps" onclick="triggerGPSRequest()" class="flex items-center justify-center p-1.5 rounded-full hover:bg-white/5 text-on-surface-variant/80 active:scale-95 transition-all">
-                            <span class="material-symbols-outlined text-base" data-icon="my_location">my_location</span>
-                        </button>
-                    </div>
-                    <!-- Suggestions Dropdown -->
-                    <div id="search-suggestions" class="absolute z-50 left-0 right-0 mt-2 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden hidden shadow-2xl max-h-60 overflow-y-auto">
-                        <!-- suggestions populated dynamically -->
-                    </div>
+            <!-- Precision Range Slider + Stepper Controls -->
+            <div class="flex items-center gap-3">
+                <button onclick="stepRadius(-50)" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-on-surface font-bold text-sm flex items-center justify-center transition-all shrink-0" title="Decrease 50m">-</button>
+                <div class="flex-1 relative flex items-center">
+                    <input id="slider-radius" type="range" min="50" max="2000" step="10" value="500" oninput="updateRadiusUI(parseInt(this.value))" class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-secondary focus:outline-none"/>
                 </div>
-                <button id="btn-apply-location" onclick="commitLocation()" class="w-full py-2.5 btn-gradient-primary text-xs uppercase tracking-widest hidden">
-                    Apply Location
-                </button>
+                <button onclick="stepRadius(50)" class="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-on-surface font-bold text-sm flex items-center justify-center transition-all shrink-0" title="Increase 50m">+</button>
             </div>
+
+            <!-- 4 Equal-Segment Glass Preset Pills -->
+            <div class="grid grid-cols-4 gap-2 pt-1 border-t border-white/5">
+                <button onclick="setRadiusVal(50)" id="preset-btn-50" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">50M</button>
+                <button onclick="setRadiusVal(250)" id="preset-btn-250" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">250M</button>
+                <button onclick="setRadiusVal(500)" id="preset-btn-500" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 bg-secondary/20 text-secondary border border-secondary/30 shadow-md shadow-secondary/10">500M</button>
+                <button onclick="setRadiusVal(1000)" id="preset-btn-1000" class="py-1.5 rounded-xl text-[10px] font-bold transition-all duration-200 text-on-surface-variant/70 hover:text-on-surface hover:bg-white/5 border border-transparent">1KM</button>
+            </div>
+        </div>
+
+        <!-- Target Home Input -->
+        <div class="liquid-glass-card p-4 space-y-3 relative !overflow-visible">
+            <div class="relative">
+                <div class="flex items-center gap-3 bg-black/35 border border-white/5 rounded-2xl px-3.5 h-11 focus-within:border-secondary/40 transition-all">
+                    <span class="material-symbols-outlined text-on-surface-variant text-base" data-icon="home">home</span>
+                    <input id="home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-0" placeholder="Search home address..." type="text"/>
+                    <button id="btn-gps" onclick="triggerGPSRequest()" class="flex items-center justify-center p-1.5 rounded-full hover:bg-white/5 text-on-surface-variant/80 active:scale-95 transition-all">
+                        <span class="material-symbols-outlined text-base" data-icon="my_location">my_location</span>
+                    </button>
+                </div>
+                <!-- Suggestions Dropdown -->
+                <div id="search-suggestions" class="absolute z-[200] left-0 right-0 top-full mt-1.5 bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-2xl overflow-hidden hidden shadow-2xl max-h-60 overflow-y-auto">
+                    <!-- suggestions populated dynamically -->
+                </div>
+            </div>
+            <button id="btn-apply-location" onclick="commitLocation()" class="w-full py-2.5 btn-gradient-primary text-xs uppercase tracking-widest hidden">
+                Apply Location
+            </button>
         </div>
     </section>
 
@@ -1509,33 +1513,39 @@
     }
 
     // Nominatim Geocoding Autocomplete Search
-    async function fetchSuggestions(query) {
+    async function fetchSuggestions(query, isWizard = false) {
         try {
+            const dropdownId = isWizard ? "wizard-search-suggestions" : "search-suggestions";
+            const dropdown = document.getElementById(dropdownId);
+            if (!dropdown) return;
+
+            dropdown.innerHTML = "";
+
+            if (!query || query.trim().length < 2) {
+                dropdown.classList.add("hidden");
+                return;
+            }
+
             const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`, {
                 headers: { 'User-Agent': 'ACProximityApp/1.0 (ogadassi@gmail.com)' }
             });
             if (!res.ok) throw new Error("Search network query failed");
             const data = await res.json();
-            
-            // Clear suggestions list
-            const dropdown = document.getElementById("search-suggestions");
-            dropdown.innerHTML = "";
 
             if (data.length === 0) {
-                hideSuggestions();
+                dropdown.classList.add("hidden");
                 return;
             }
 
             data.forEach(item => {
                 const parts = [];
                 const addr = item.address || {};
-                
+
                 let houseNumber = addr.house_number || "";
                 const road = addr.road || "";
                 const city = addr.city || addr.town || addr.village || addr.suburb || "";
                 const country = addr.country || "";
 
-                // Inject typed number if not resolved but in original search query
                 const numberRegex = /\b(\d+)\b/;
                 const match = numberRegex.exec(query);
                 const queryNumber = match ? match[1] : "";
@@ -1543,7 +1553,6 @@
                     houseNumber = queryNumber;
                 }
 
-                // Check Hebrew characters to adjust orientation
                 const isHebrew = /[\u0590-\u05FF]/.test(road);
                 const streetLine = isHebrew 
                     ? (houseNumber ? `${road} ${houseNumber}` : road)
@@ -1556,27 +1565,34 @@
                 const displayName = parts.length > 0 ? parts.join(", ") : item.display_name;
 
                 const btn = document.createElement("button");
-                btn.className = "w-full text-left px-md py-sm hover:bg-surface-container-high text-on-surface border-b border-outline-variant/30 text-xs transition-colors";
-                btn.textContent = displayName;
-                btn.onclick = () => {
-                    document.getElementById("home-search-input").value = displayName;
-                    pendingAddressSuggestion = {
-                        displayName: displayName,
-                        latitude: parseFloat(item.lat),
-                        longitude: parseFloat(item.lon)
-                    };
-                    
-                    // Show apply button
-                    document.getElementById("btn-apply-location").classList.remove("hidden");
-                    hideSuggestions();
+                btn.className = "w-full text-left px-4 py-2.5 hover:bg-secondary/20 text-on-surface border-b border-white/5 text-xs transition-colors cursor-pointer flex items-center gap-2";
+                btn.innerHTML = `<span class="material-symbols-outlined text-secondary text-sm">location_on</span><span class="truncate">${displayName}</span>`;
 
-                    // Instantly show target position on map
-                    if (map) {
-                        const target = [pendingAddressSuggestion.latitude, pendingAddressSuggestion.longitude];
-                        map.setView(target, 15);
-                        homeMarker.setLatLng(target);
-                        geofenceCircle.setLatLng(target);
+                btn.onclick = () => {
+                    const lat = parseFloat(item.lat);
+                    const lng = parseFloat(item.lon);
+                    pendingAddressSuggestion = { displayName, latitude: lat, longitude: lng };
+
+                    if (isWizard) {
+                        const wizInput = document.getElementById("wizard-home-search-input");
+                        if (wizInput) wizInput.value = displayName;
+                        const wizCoords = document.getElementById("wizard-lbl-coords");
+                        if (wizCoords) wizCoords.textContent = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        
+                        // Instantly update current state location from wizard selection
+                        currentState.homeLat = lat;
+                        currentState.homeLng = lng;
+                        currentState.homeAddress = displayName;
+                    } else {
+                        document.getElementById("home-search-input").value = displayName;
+                        document.getElementById("btn-apply-location").classList.remove("hidden");
+                        if (map) {
+                            map.setView([lat, lng], 15);
+                            homeMarker.setLatLng([lat, lng]);
+                            geofenceCircle.setLatLng([lat, lng]);
+                        }
                     }
+                    dropdown.classList.add("hidden");
                 };
                 dropdown.appendChild(btn);
             });
@@ -1588,7 +1604,10 @@
     }
 
     function hideSuggestions() {
-        document.getElementById("search-suggestions").classList.add("hidden");
+        const d1 = document.getElementById("search-suggestions");
+        const d2 = document.getElementById("wizard-search-suggestions");
+        if (d1) d1.classList.add("hidden");
+        if (d2) d2.classList.add("hidden");
     }
 
     function commitLocation() {
@@ -1725,6 +1744,22 @@
             window.AndroidBridge.setOnboardingCompleted(true);
         }
         currentState.hasCompletedOnboarding = true;
+
+        // Automatically commit location & turn on location monitoring if coordinates exist!
+        if (currentState.homeLat !== 0.0 && currentState.homeLng !== 0.0) {
+            if (window.AndroidBridge && window.AndroidBridge.applyLocation) {
+                window.AndroidBridge.applyLocation(
+                    currentState.homeLat,
+                    currentState.homeLng,
+                    currentState.homeAddress || "Home Location"
+                );
+            }
+            if (window.AndroidBridge && window.AndroidBridge.toggleGeofence) {
+                window.AndroidBridge.toggleGeofence(true);
+            }
+            currentState.geofenceActive = true;
+            updateState(currentState);
+        }
     }
 
     function setWizardStep(step) {
@@ -1741,6 +1776,22 @@
                 document.getElementById("endpoint").value = ep;
                 document.getElementById("secret").value = sec;
                 saveSettings();
+            }
+        } else if (currentWizardStep === 3) {
+            // Save location & enable geofence when advancing from step 3
+            if (currentState.homeLat !== 0.0 && currentState.homeLng !== 0.0) {
+                if (window.AndroidBridge && window.AndroidBridge.applyLocation) {
+                    window.AndroidBridge.applyLocation(
+                        currentState.homeLat,
+                        currentState.homeLng,
+                        currentState.homeAddress || "Home Location"
+                    );
+                }
+                if (window.AndroidBridge && window.AndroidBridge.toggleGeofence) {
+                    window.AndroidBridge.toggleGeofence(true);
+                }
+                currentState.geofenceActive = true;
+                updateState(currentState);
             }
         } else if (currentWizardStep === 5) {
             closeWelcomeWizard();
@@ -1867,6 +1918,43 @@
             if (lbl && currentState.homeLat !== 0.0) {
                 lbl.textContent = `Coordinates: ${currentState.homeLat.toFixed(4)}, ${currentState.homeLng.toFixed(4)}`;
             }
+        }, 800);
+    }
+
+    let searchDebounceTimer = null;
+    document.addEventListener("DOMContentLoaded", () => {
+        const mainSearchInput = document.getElementById("home-search-input");
+        if (mainSearchInput) {
+            mainSearchInput.addEventListener("input", (e) => {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => {
+                    fetchSuggestions(e.target.value, false);
+                }, 500);
+            });
+        }
+
+        const wizardSearchInput = document.getElementById("wizard-home-search-input");
+        if (wizardSearchInput) {
+            wizardSearchInput.addEventListener("input", (e) => {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => {
+                    fetchSuggestions(e.target.value, true);
+                }, 500);
+            });
+        }
+
+        document.addEventListener("click", (e) => {
+            const mainDropdown = document.getElementById("search-suggestions");
+            const wizDropdown = document.getElementById("wizard-search-suggestions");
+            if (mainDropdown && !e.target.closest("#home-search-input") && !e.target.closest("#search-suggestions")) {
+                mainDropdown.classList.add("hidden");
+            }
+            if (wizDropdown && !e.target.closest("#wizard-home-search-input") && !e.target.closest("#wizard-search-suggestions")) {
+                wizDropdown.classList.add("hidden");
+            }
+        });
+    });
+
     function openExternalLink(url) {
         if (window.AndroidBridge && window.AndroidBridge.openExternalUrl) {
             window.AndroidBridge.openExternalUrl(url);
