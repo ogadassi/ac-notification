@@ -611,6 +611,9 @@ class MainActivity : ComponentActivity() {
                 homeAddressName.value = geofenceManager.homeAddressName
                 checkAndTriggerProximityIfNeeded()
                 refreshUIState()
+
+                // Notify WebView JS immediately upon refresh completion
+                mainWebView?.evaluateJavascript("if (window.onFullRefreshCompleted) { window.onFullRefreshCompleted(); }", null)
             }
         }
 
@@ -656,6 +659,18 @@ class MainActivity : ComponentActivity() {
         fun performHapticFeedback() {
             runOnUiThread {
                 window.decorView.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+            }
+        }
+
+        @JavascriptInterface
+        fun performHapticFeedbackType(type: String) {
+            runOnUiThread {
+                val constant = when (type) {
+                    "success", "confirm" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) android.view.HapticFeedbackConstants.CONFIRM else android.view.HapticFeedbackConstants.VIRTUAL_KEY
+                    "reject" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) android.view.HapticFeedbackConstants.REJECT else android.view.HapticFeedbackConstants.VIRTUAL_KEY
+                    else -> android.view.HapticFeedbackConstants.VIRTUAL_KEY
+                }
+                window.decorView.performHapticFeedback(constant)
             }
         }
 

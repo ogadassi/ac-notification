@@ -2096,21 +2096,18 @@
         const text = document.getElementById("pull-refresh-text");
 
         if (diffY * 0.4 >= 50) {
+            // Informational haptic tick on drag release
+            if (window.AndroidBridge && window.AndroidBridge.performHapticFeedback) {
+                window.AndroidBridge.performHapticFeedback();
+            }
+
             if (spinner) {
                 spinner.textContent = "refresh";
                 spinner.classList.add("animate-spin");
             }
-            if (text) text.textContent = "Refreshing AC & Preconditions...";
+            if (text) text.textContent = "Auditing system...";
 
             performFullRefreshTrigger();
-
-            setTimeout(() => {
-                if (indicator) {
-                    indicator.style.transform = "translateY(-80px)";
-                    indicator.style.opacity = "0";
-                }
-                if (spinner) spinner.classList.remove("animate-spin");
-            }, 1200);
         } else {
             if (indicator) {
                 indicator.style.transform = "translateY(-80px)";
@@ -2121,9 +2118,34 @@
         touchCurrentY = 0;
     });
 
+    window.onFullRefreshCompleted = function() {
+        const indicator = document.getElementById("pull-refresh-indicator");
+        const spinner = document.getElementById("pull-refresh-spinner");
+        const text = document.getElementById("pull-refresh-text");
+
+        // Tactile confirmation vibration on system state completion
+        if (window.AndroidBridge && window.AndroidBridge.performHapticFeedbackType) {
+            window.AndroidBridge.performHapticFeedbackType("success");
+        }
+
+        if (text) text.textContent = "Preconditions verified!";
+
+        setTimeout(() => {
+            if (indicator) {
+                indicator.style.transform = "translateY(-80px)";
+                indicator.style.opacity = "0";
+            }
+            if (spinner) spinner.classList.remove("animate-spin");
+        }, 300);
+    };
+
     function performFullRefreshTrigger() {
         if (window.AndroidBridge && window.AndroidBridge.performFullRefresh) {
             window.AndroidBridge.performFullRefresh();
+        } else {
+            setTimeout(() => {
+                if (window.onFullRefreshCompleted) window.onFullRefreshCompleted();
+            }, 300);
         }
         queryServerACStatus();
         showInAppToast("ac_unit", "Preconditions & AC status updated", false);
