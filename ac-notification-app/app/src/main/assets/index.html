@@ -1272,25 +1272,54 @@
 
         // Geofencing toggle status
         const cloudIcon = document.getElementById("cloud-status-icon");
-
+        const cloudLbl = document.getElementById("lbl-cloud-status");
+        const cloudBadge = document.getElementById("cloud-status-badge");
         const settingsBadge = document.getElementById("settings-monitor-badge");
         const settingsIcon = document.getElementById("settings-monitor-icon");
         const settingsDesc = document.getElementById("settings-monitor-desc");
 
         if (currentState.geofenceActive) {
-            cloudIcon.textContent = "cloud_done";
-            cloudIcon.className = "material-symbols-outlined text-secondary";
-            settingsBadge.textContent = "ACTIVE";
-            settingsBadge.className = "bg-secondary/15 text-secondary text-[10px] font-bold px-3 py-1 rounded-full border border-secondary/30 tracking-widest";
-            settingsIcon.className = "material-symbols-outlined text-secondary text-lg";
-            settingsDesc.textContent = "Background proximity tracking active";
+            if (cloudIcon) {
+                cloudIcon.textContent = "cloud_done";
+                cloudIcon.className = "material-symbols-outlined text-secondary text-sm";
+            }
+            if (cloudLbl) cloudLbl.textContent = "CONNECTED";
+            if (cloudBadge) cloudBadge.className = "flex items-center gap-2 bg-secondary/15 border border-secondary/30 px-3 py-1 rounded-full backdrop-blur-md shadow-md text-secondary";
+
+            if (settingsBadge) {
+                settingsBadge.textContent = "ACTIVE";
+                settingsBadge.className = "bg-secondary/15 text-secondary text-[10px] font-bold px-3 py-1 rounded-full border border-secondary/30 tracking-widest";
+            }
+            if (settingsIcon) settingsIcon.className = "material-symbols-outlined text-secondary text-lg";
+            if (settingsDesc) settingsDesc.textContent = "Background proximity tracking active";
+        } else if (currentState.homeLat === 0.0) {
+            if (cloudIcon) {
+                cloudIcon.textContent = "location_off";
+                cloudIcon.className = "material-symbols-outlined text-amber-400 text-sm";
+            }
+            if (cloudLbl) cloudLbl.textContent = "NO LOCATION";
+            if (cloudBadge) cloudBadge.className = "flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full backdrop-blur-md shadow-md text-amber-400";
+
+            if (settingsBadge) {
+                settingsBadge.textContent = "INACTIVE";
+                settingsBadge.className = "bg-error/15 text-error text-[10px] font-bold px-3 py-1 rounded-full border border-error/30 tracking-widest";
+            }
+            if (settingsIcon) settingsIcon.className = "material-symbols-outlined text-on-surface-variant/50 text-lg";
+            if (settingsDesc) settingsDesc.textContent = "Location not configured";
         } else {
-            cloudIcon.textContent = "cloud_off";
-            cloudIcon.className = "material-symbols-outlined text-on-surface-variant/70";
-            settingsBadge.textContent = "INACTIVE";
-            settingsBadge.className = "bg-error/15 text-error text-[10px] font-bold px-3 py-1 rounded-full border border-error/30 tracking-widest";
-            settingsIcon.className = "material-symbols-outlined text-on-surface-variant/50 text-lg";
-            settingsDesc.textContent = "No background proximity tracking";
+            if (cloudIcon) {
+                cloudIcon.textContent = "cloud_queue";
+                cloudIcon.className = "material-symbols-outlined text-secondary/80 text-sm";
+            }
+            if (cloudLbl) cloudLbl.textContent = "READY";
+            if (cloudBadge) cloudBadge.className = "flex items-center gap-2 bg-secondary/10 border border-secondary/20 px-3 py-1 rounded-full backdrop-blur-md shadow-md text-secondary/80";
+
+            if (settingsBadge) {
+                settingsBadge.textContent = "READY";
+                settingsBadge.className = "bg-secondary/10 text-secondary text-[10px] font-bold px-3 py-1 rounded-full border border-secondary/20 tracking-widest";
+            }
+            if (settingsIcon) settingsIcon.className = "material-symbols-outlined text-secondary/80 text-lg";
+            if (settingsDesc) settingsDesc.textContent = "Location configured & ready";
         }
 
         // Permissions Badges and Buttons
