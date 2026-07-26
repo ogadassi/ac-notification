@@ -660,6 +660,21 @@
             </div>
         </section>
 
+        <!-- Notification Style Tip -->
+        <section class="liquid-glass-card px-5 py-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-amber-400 text-base" style="font-variation-settings: 'FILL' 1;">tips_and_updates</span>
+                </div>
+                <div>
+                    <p class="text-[10px] text-amber-400 uppercase tracking-widest font-bold">Recommended</p>
+                    <p class="text-xs text-on-surface font-medium">Enable Detailed Pop-Up Style</p>
+                    <p class="text-[10px] text-on-surface-variant/60 mt-0.5">App Info → Notifications → Pop-Up Style → Detailed Pop-Up</p>
+                </div>
+            </div>
+            <button onclick="if(window.AndroidBridge&&window.AndroidBridge.requestPermission)window.AndroidBridge.requestPermission('channelSettings')" class="shrink-0 px-3 py-1.5 bg-amber-400/10 text-amber-400 border border-amber-400/25 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Open</button>
+        </section>
+
         <!-- Debugging Tools & Live Cooldown -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
             <!-- Tools -->
@@ -836,10 +851,7 @@
                         <span class="text-on-surface text-[11px] font-medium">Unrestricted Battery</span>
                         <button id="wizard-btn-perm-battery" onclick="requestNativePermission('batteryOptimization')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Grant</button>
                     </div>
-                    <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
-                        <span class="text-on-surface text-[11px] font-medium">Detailed Pop-Up Style</span>
-                        <button id="wizard-btn-perm-channel" onclick="requestNativePermission('channelSettings')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Configure</button>
-                    </div>
+
                 </div>
             </div>
 
