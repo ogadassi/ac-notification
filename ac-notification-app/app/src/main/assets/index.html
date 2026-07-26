@@ -730,7 +730,7 @@
 
 <!-- Full-Screen Liquid Glass Onboarding & Setup Wizard Modal (Ultra-Minimalist) -->
 <div id="welcome-wizard-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl hidden transition-all duration-300">
-    <div class="liquid-glass-card max-w-sm w-full p-6 relative overflow-hidden shadow-2xl border border-white/15 rounded-[32px] flex flex-col min-h-[410px] justify-between">
+    <div class="liquid-glass-card max-w-sm w-full p-6 relative shadow-2xl border border-white/15 rounded-[32px] flex flex-col min-h-[410px] justify-between !overflow-visible">
         
         <!-- Top Navigation / Close Button -->
         <div class="flex items-center justify-between">
@@ -780,19 +780,27 @@
             </div>
 
             <!-- STEP 3: Home & Geofence -->
-            <div id="wizard-step-3" class="wizard-step-content space-y-3 hidden">
+            <div id="wizard-step-3" class="wizard-step-content space-y-3 hidden !overflow-visible">
                 <div class="text-center space-y-1 mb-2">
                     <h2 class="text-lg font-bold text-on-surface tracking-tight">Home Geofence</h2>
                     <p class="text-xs text-on-surface-variant/80">Set target location and radius.</p>
                 </div>
 
-                <div class="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 h-10">
-                    <span class="material-symbols-outlined text-on-surface-variant text-base">home</span>
-                    <input id="wizard-home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none" placeholder="Search home address..." type="text"/>
-                    <button onclick="triggerWizardGPS()" class="text-secondary hover:scale-105 transition-all">
-                        <span class="material-symbols-outlined text-base">my_location</span>
-                    </button>
+                <div class="relative !overflow-visible">
+                    <div class="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 h-10 focus-within:border-secondary/40 transition-all">
+                        <span class="material-symbols-outlined text-on-surface-variant text-base">home</span>
+                        <input id="wizard-home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none" placeholder="Search home address..." type="text"/>
+                        <button onclick="triggerWizardGPS()" class="text-secondary hover:scale-105 transition-all" title="Use current location">
+                            <span class="material-symbols-outlined text-base">my_location</span>
+                        </button>
+                    </div>
+                    <!-- Wizard Suggestions Dropdown -->
+                    <div id="wizard-search-suggestions" class="absolute z-[300] left-0 right-0 top-full mt-1.5 bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-xl overflow-hidden hidden shadow-2xl max-h-48 overflow-y-auto">
+                        <!-- wizard suggestions populated dynamically -->
+                    </div>
                 </div>
+
+                <div id="wizard-lbl-coords" class="text-[10px] font-bold text-secondary text-center tracking-wide">Coordinates: Unset</div>
 
                 <div class="grid grid-cols-4 gap-1.5 pt-1">
                     <button onclick="setWizardRadius(50)" id="wizard-preset-50" class="py-1.5 rounded-lg text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">50M</button>
