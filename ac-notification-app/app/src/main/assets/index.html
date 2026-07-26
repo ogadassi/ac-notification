@@ -716,188 +716,124 @@
     </a>
 </nav>
 
-<!-- Full-Screen Liquid Glass Onboarding & Setup Wizard Modal -->
-<div id="welcome-wizard-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-2xl hidden transition-all duration-300">
-    <div class="liquid-glass-card max-w-lg w-full p-6 relative overflow-hidden shadow-2xl border border-white/20 rounded-[32px] flex flex-col max-h-[90vh]">
+<!-- Full-Screen Liquid Glass Onboarding & Setup Wizard Modal (Ultra-Minimalist) -->
+<div id="welcome-wizard-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl hidden transition-all duration-300">
+    <div class="liquid-glass-card max-w-sm w-full p-6 relative overflow-hidden shadow-2xl border border-white/15 rounded-[32px] flex flex-col min-h-[410px] justify-between">
         
-        <!-- Header Step Progress Bar -->
-        <div class="flex items-center justify-between pb-4 border-b border-white/10 shrink-0 mb-4">
-            <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center">
-                    <span id="wizard-step-number" class="text-secondary font-bold text-xs">1</span>
-                </div>
-                <div>
-                    <h2 id="wizard-title-text" class="text-sm font-bold text-on-surface tracking-tight">Welcome to AC Notification</h2>
-                    <p id="wizard-subtitle-text" class="text-[10px] text-on-surface-variant font-medium">Step 1 of 5 • Overview</p>
-                </div>
+        <!-- Top Navigation / Close Button -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5" id="wizard-step-dots">
+                <!-- Dots populated dynamically -->
             </div>
-            <button onclick="closeWelcomeWizard()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant hover:text-on-surface active:scale-95 transition-all">
+            <button onclick="closeWelcomeWizard()" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-on-surface-variant/70 hover:text-on-surface active:scale-95 transition-all">
                 <span class="material-symbols-outlined text-base">close</span>
             </button>
         </div>
 
-        <!-- Scrollable Slide Content Container -->
-        <div class="flex-1 overflow-y-auto terminal-scroll space-y-4 pr-1">
+        <!-- Center Slide Content -->
+        <div class="py-2 my-auto">
             
-            <!-- STEP 1: Welcome & Architecture -->
-            <div id="wizard-step-1" class="wizard-step-content space-y-4">
-                <div class="p-4 rounded-2xl bg-gradient-to-br from-secondary/10 to-primary/5 border border-white/10 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary shrink-0">
-                        <span class="material-symbols-outlined text-2xl">ac_unit</span>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-on-surface">Proximity-Based Climate Automation</h3>
-                        <p class="text-xs text-on-surface-variant leading-relaxed mt-0.5">Automates your home air conditioner using secure zero-touch geofencing before you arrive home.</p>
-                    </div>
+            <!-- STEP 1: Welcome -->
+            <div id="wizard-step-1" class="wizard-step-content space-y-4 text-center">
+                <div class="w-16 h-16 rounded-3xl bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary mx-auto shadow-lg shadow-secondary/10">
+                    <span class="material-symbols-outlined text-3xl">ac_unit</span>
                 </div>
-
-                <div class="space-y-2.5">
-                    <h4 class="text-[10px] text-secondary font-bold uppercase tracking-widest">How It Works</h4>
-                    <div class="grid grid-cols-3 gap-2 text-center">
-                        <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-                            <span class="material-symbols-outlined text-secondary text-lg">near_me</span>
-                            <p class="text-[10px] font-bold text-on-surface">1. Approach Home</p>
-                            <p class="text-[9px] text-on-surface-variant/70">Phone enters geofence radius</p>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-                            <span class="material-symbols-outlined text-secondary text-lg">webhook</span>
-                            <p class="text-[10px] font-bold text-on-surface">2. Fire Webhook</p>
-                            <p class="text-[9px] text-on-surface-variant/70">Secure API ping to PC server</p>
-                        </div>
-                        <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-                            <span class="material-symbols-outlined text-emerald-400 text-lg">cool_to_dry</span>
-                            <p class="text-[10px] font-bold text-on-surface">3. Cool Home</p>
-                            <p class="text-[9px] text-on-surface-variant/70">AC turns ON before arrival</p>
-                        </div>
-                    </div>
+                <div class="space-y-1.5">
+                    <h2 class="text-lg font-bold text-on-surface tracking-tight">Proximity Cooling</h2>
+                    <p class="text-xs text-on-surface-variant/80 leading-relaxed px-2">Automates your home AC before you arrive.</p>
                 </div>
             </div>
 
-            <!-- STEP 2: Server Pairing & PC Setup Tutorial -->
-            <div id="wizard-step-2" class="wizard-step-content space-y-4 hidden">
-                <!-- Hardware Compatibility Banner -->
-                <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] text-secondary font-bold uppercase tracking-wider">HARDWARE COMPATIBILITY</span>
-                        <span class="bg-secondary/15 text-secondary text-[9px] font-bold px-2 py-0.5 rounded-full border border-secondary/30">UNIVERSAL WEBHOOKS</span>
-                    </div>
-                    <p class="text-xs text-on-surface-variant leading-relaxed">
-                        Built-in server script supports <strong class="text-on-surface">Midea, Electra, Carrier, Toshiba, Comfee, Inventor, MDV</strong> Wi-Fi ACs. Also compatible with <strong class="text-on-surface">Home Assistant, Node-RED, Tuya, SmartThings</strong> or any custom webhook server!
-                    </p>
-                    <a href="https://github.com/ogadassi/ac-notification" target="_blank" class="w-full py-2 bg-secondary/15 hover:bg-secondary/25 text-secondary border border-secondary/30 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 mt-1 no-underline">
-                        <span class="material-symbols-outlined text-base">open_in_new</span>
-                        <span>Get PC Server EXE & Setup Guide (GitHub)</span>
-                    </a>
+            <!-- STEP 2: Server Pairing -->
+            <div id="wizard-step-2" class="wizard-step-content space-y-3 hidden">
+                <div class="text-center space-y-1 mb-2">
+                    <h2 class="text-lg font-bold text-on-surface tracking-tight">Pair AC Server</h2>
+                    <p class="text-xs text-on-surface-variant/80">Connect your server webhook endpoint.</p>
                 </div>
+                
+                <a href="https://github.com/ogadassi/ac-notification" target="_blank" class="w-full py-2 bg-secondary/10 hover:bg-secondary/20 text-secondary border border-secondary/30 rounded-xl font-bold text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 no-underline">
+                    <span class="material-symbols-outlined text-sm">open_in_new</span>
+                    <span>Get PC App & Guide (GitHub)</span>
+                </a>
 
-                <!-- Input Fields & Live Ping Test -->
-                <div class="space-y-3 pt-1">
-                    <div class="space-y-1">
-                        <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">ENDPOINT URL</label>
-                        <input id="wizard-endpoint" class="w-full bg-black/35 border border-white/10 focus:border-secondary/40 text-on-surface px-3.5 py-2.5 rounded-xl text-xs outline-none" placeholder="https://your-domain.ngrok-free.app/api/v1/ac/trigger" type="text"/>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">API SECRET KEY</label>
-                        <input id="wizard-secret" class="w-full bg-black/35 border border-white/10 focus:border-secondary/40 text-on-surface px-3.5 py-2.5 rounded-xl text-xs outline-none" type="password" placeholder="API secret key (X-API-Key)"/>
-                    </div>
-                    <button onclick="testWizardServerPing()" class="w-full py-2.5 btn-gradient-primary text-xs uppercase tracking-wider flex items-center justify-center gap-2">
+                <div class="space-y-2 pt-1">
+                    <input id="wizard-endpoint" class="w-full bg-black/40 border border-white/10 focus:border-secondary/40 text-on-surface px-3.5 py-2.5 rounded-xl text-xs outline-none" placeholder="Endpoint URL..." type="text"/>
+                    <input id="wizard-secret" class="w-full bg-black/40 border border-white/10 focus:border-secondary/40 text-on-surface px-3.5 py-2.5 rounded-xl text-xs outline-none" type="password" placeholder="API Secret Key..."/>
+                    <button onclick="testWizardServerPing()" class="w-full py-2 bg-white/5 hover:bg-white/10 text-on-surface border border-white/10 text-xs rounded-xl font-bold transition-all flex items-center justify-center gap-1.5">
                         <span class="material-symbols-outlined text-sm">wifi_tethering</span>
-                        Test Server Connection Ping
+                        Test Ping
                     </button>
-                    <div id="wizard-ping-status" class="hidden p-2.5 rounded-xl text-xs font-bold text-center"></div>
+                    <div id="wizard-ping-status" class="hidden p-2 rounded-xl text-[11px] font-bold text-center"></div>
                 </div>
             </div>
 
-            <!-- STEP 3: Home & Geofence Radius -->
-            <div id="wizard-step-3" class="wizard-step-content space-y-4 hidden">
-                <div class="space-y-2">
-                    <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">TARGET HOME ADDRESS</label>
-                    <div class="flex items-center gap-2 bg-black/35 border border-white/10 rounded-2xl px-3.5 h-11">
-                        <span class="material-symbols-outlined text-on-surface-variant text-base">home</span>
-                        <input id="wizard-home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none" placeholder="Search home address..." type="text"/>
-                        <button onclick="triggerWizardGPS()" class="flex items-center justify-center p-1.5 rounded-full hover:bg-white/5 text-secondary">
-                            <span class="material-symbols-outlined text-base">my_location</span>
-                        </button>
-                    </div>
-                    <div id="wizard-lbl-coords" class="text-[10px] font-bold text-secondary tracking-wide">Coordinates: Unset</div>
+            <!-- STEP 3: Home & Geofence -->
+            <div id="wizard-step-3" class="wizard-step-content space-y-3 hidden">
+                <div class="text-center space-y-1 mb-2">
+                    <h2 class="text-lg font-bold text-on-surface tracking-tight">Home Geofence</h2>
+                    <p class="text-xs text-on-surface-variant/80">Set target location and radius.</p>
                 </div>
 
-                <div class="space-y-2 pt-2">
-                    <div class="flex justify-between items-center">
-                        <label class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">GEOFENCE RADIUS</label>
-                        <span id="wizard-lbl-radius" class="text-secondary font-bold text-xs">500M</span>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5">
-                        <button onclick="setWizardRadius(50)" id="wizard-preset-50" class="py-1.5 rounded-xl text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">50M</button>
-                        <button onclick="setWizardRadius(250)" id="wizard-preset-250" class="py-1.5 rounded-xl text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">250M</button>
-                        <button onclick="setWizardRadius(500)" id="wizard-preset-500" class="py-1.5 rounded-xl text-[10px] font-bold bg-secondary/20 text-secondary border border-secondary/30">500M</button>
-                        <button onclick="setWizardRadius(1000)" id="wizard-preset-1000" class="py-1.5 rounded-xl text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">1KM</button>
-                    </div>
+                <div class="flex items-center gap-2 bg-black/40 border border-white/10 rounded-xl px-3 h-10">
+                    <span class="material-symbols-outlined text-on-surface-variant text-base">home</span>
+                    <input id="wizard-home-search-input" class="bg-transparent border-none text-xs text-on-surface w-full placeholder:text-on-surface-variant/40 focus:outline-none" placeholder="Search home address..." type="text"/>
+                    <button onclick="triggerWizardGPS()" class="text-secondary hover:scale-105 transition-all">
+                        <span class="material-symbols-outlined text-base">my_location</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-4 gap-1.5 pt-1">
+                    <button onclick="setWizardRadius(50)" id="wizard-preset-50" class="py-1.5 rounded-lg text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">50M</button>
+                    <button onclick="setWizardRadius(250)" id="wizard-preset-250" class="py-1.5 rounded-lg text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">250M</button>
+                    <button onclick="setWizardRadius(500)" id="wizard-preset-500" class="py-1.5 rounded-lg text-[10px] font-bold bg-secondary/20 text-secondary border border-secondary/30">500M</button>
+                    <button onclick="setWizardRadius(1000)" id="wizard-preset-1000" class="py-1.5 rounded-lg text-[10px] font-bold text-on-surface-variant/70 hover:text-on-surface">1KM</button>
                 </div>
             </div>
 
-            <!-- STEP 4: System Permissions Authorization -->
-            <div id="wizard-step-4" class="wizard-step-content space-y-3 hidden">
-                <p class="text-xs text-on-surface-variant leading-relaxed">
-                    Android OS requires specific system authorizations for zero-touch background operation. Tap each item to grant:
-                </p>
-                <div class="space-y-2 text-xs">
-                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
-                        <div>
-                            <strong class="text-on-surface block">Precise Location (GPS)</strong>
-                            <span class="text-[10px] text-on-surface-variant">Accurate coordinate lookup</span>
-                        </div>
-                        <button id="wizard-btn-perm-location" onclick="requestNativePermission('location')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+            <!-- STEP 4: Permissions -->
+            <div id="wizard-step-4" class="wizard-step-content space-y-2 hidden">
+                <div class="text-center space-y-1 mb-2">
+                    <h2 class="text-lg font-bold text-on-surface tracking-tight">Permissions</h2>
+                    <p class="text-xs text-on-surface-variant/80">Required for background triggers.</p>
+                </div>
+
+                <div class="space-y-1.5 text-xs">
+                    <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <span class="text-on-surface text-[11px] font-medium">GPS Location</span>
+                        <button id="wizard-btn-perm-location" onclick="requestNativePermission('location')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Grant</button>
                     </div>
-                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
-                        <div>
-                            <strong class="text-on-surface block">Background Location ("Allow All The Time")</strong>
-                            <span class="text-[10px] text-on-surface-variant">Triggers when screen is locked</span>
-                        </div>
-                        <button id="wizard-btn-perm-bg-location" onclick="requestNativePermission('backgroundLocation')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+                    <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <span class="text-on-surface text-[11px] font-medium">Background Location</span>
+                        <button id="wizard-btn-perm-bg-location" onclick="requestNativePermission('backgroundLocation')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Grant</button>
                     </div>
-                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
-                        <div>
-                            <strong class="text-on-surface block">Notifications</strong>
-                            <span class="text-[10px] text-on-surface-variant">System alerts & status toasts</span>
-                        </div>
-                        <button id="wizard-btn-perm-notifications" onclick="requestNativePermission('notifications')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+                    <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <span class="text-on-surface text-[11px] font-medium">Notifications</span>
+                        <button id="wizard-btn-perm-notifications" onclick="requestNativePermission('notifications')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Grant</button>
                     </div>
-                    <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
-                        <div>
-                            <strong class="text-on-surface block">Unrestricted Battery</strong>
-                            <span class="text-[10px] text-on-surface-variant">Prevents Android process killing</span>
-                        </div>
-                        <button id="wizard-btn-perm-battery" onclick="requestNativePermission('batteryOptimization')" class="px-3.5 py-1.5 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[10px] uppercase tracking-wider active:scale-95 transition-all">Authorize</button>
+                    <div class="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                        <span class="text-on-surface text-[11px] font-medium">Unrestricted Battery</span>
+                        <button id="wizard-btn-perm-battery" onclick="requestNativePermission('batteryOptimization')" class="px-3 py-1 bg-secondary/15 text-secondary border border-secondary/30 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Grant</button>
                     </div>
                 </div>
             </div>
 
-            <!-- STEP 5: Verification & Launch -->
-            <div id="wizard-step-5" class="wizard-step-content space-y-4 hidden">
-                <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2">
-                    <span class="material-symbols-outlined text-emerald-400 text-3xl">verified</span>
-                    <h3 class="text-sm font-bold text-on-surface">Setup Complete & Verified</h3>
-                    <p class="text-xs text-on-surface-variant">Your AC Notification automation engine is configured and ready for automated proximity cooling.</p>
+            <!-- STEP 5: All Set -->
+            <div id="wizard-step-5" class="wizard-step-content space-y-3 text-center hidden">
+                <div class="w-16 h-16 rounded-3xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto shadow-lg shadow-emerald-500/10">
+                    <span class="material-symbols-outlined text-3xl">verified</span>
                 </div>
-                <button onclick="sendTestAlert()" class="w-full py-2.5 bg-white/5 hover:bg-white/10 text-on-surface border border-white/10 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-base">notifications_active</span>
-                    Send Test Alert Notification
-                </button>
+                <div class="space-y-1.5">
+                    <h2 class="text-lg font-bold text-on-surface tracking-tight">All Set!</h2>
+                    <p class="text-xs text-on-surface-variant/80 leading-relaxed px-2">Your proximity climate engine is configured and active.</p>
+                </div>
             </div>
+
         </div>
 
-        <!-- Footer Navigation Buttons -->
-        <div class="pt-4 border-t border-white/10 shrink-0 flex items-center justify-between mt-4">
-            <button id="wizard-btn-back" onclick="prevWizardStep()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-on-surface-variant border border-white/10 rounded-full font-bold text-xs uppercase tracking-wider active:scale-95 transition-all">Back</button>
-            <div class="flex items-center gap-1.5" id="wizard-step-dots">
-                <span class="w-2 h-2 rounded-full bg-secondary"></span>
-                <span class="w-2 h-2 rounded-full bg-white/20"></span>
-                <span class="w-2 h-2 rounded-full bg-white/20"></span>
-                <span class="w-2 h-2 rounded-full bg-white/20"></span>
-                <span class="w-2 h-2 rounded-full bg-white/20"></span>
-            </div>
-            <button id="wizard-btn-next" onclick="nextWizardStep()" class="px-5 py-2 btn-gradient-primary text-xs uppercase tracking-wider font-bold active:scale-95 transition-all">Next</button>
+        <!-- Bottom Action Bar -->
+        <div class="flex items-center justify-between pt-2">
+            <button id="wizard-btn-back" onclick="prevWizardStep()" class="text-xs text-on-surface-variant/70 hover:text-on-surface font-semibold px-2 py-1 transition-all">Back</button>
+            <button id="wizard-btn-next" onclick="nextWizardStep()" class="px-6 py-2.5 btn-gradient-primary text-xs uppercase tracking-wider font-bold rounded-full shadow-lg active:scale-95 transition-all">Next</button>
         </div>
 
     </div>
@@ -1818,23 +1754,6 @@
     }
 
     function renderWizardStep() {
-        const titles = [
-            { title: "Welcome to AC Notification", sub: "Step 1 of 5 • Architecture & Overview" },
-            { title: "Pair AC Server & PC Setup", sub: "Step 2 of 5 • Hardware & Webhooks" },
-            { title: "Target Home Geofence", sub: "Step 3 of 5 • Location & Radius" },
-            { title: "System Authorizations", sub: "Step 4 of 5 • Permissions" },
-            { title: "System Complete & Ready", sub: "Step 5 of 5 • Final Verification" }
-        ];
-
-        const t = titles[currentWizardStep - 1];
-        const stepNum = document.getElementById("wizard-step-number");
-        const titleEl = document.getElementById("wizard-title-text");
-        const subEl = document.getElementById("wizard-subtitle-text");
-
-        if (stepNum) stepNum.textContent = currentWizardStep;
-        if (titleEl) titleEl.textContent = t.title;
-        if (subEl) subEl.textContent = t.sub;
-
         // Show active slide
         for (let i = 1; i <= 5; i++) {
             const stepEl = document.getElementById(`wizard-step-${i}`);
@@ -1862,9 +1781,9 @@
             let html = "";
             for (let i = 1; i <= 5; i++) {
                 if (i === currentWizardStep) {
-                    html += `<span class="w-2.5 h-2.5 rounded-full bg-secondary shadow-sm shadow-secondary/50 transition-all"></span>`;
+                    html += `<span class="w-3.5 h-1.5 rounded-full bg-secondary shadow-sm shadow-secondary/50 transition-all"></span>`;
                 } else {
-                    html += `<span class="w-2 h-2 rounded-full bg-white/20 transition-all"></span>`;
+                    html += `<span class="w-1.5 h-1.5 rounded-full bg-white/20 transition-all"></span>`;
                 }
             }
             dotsContainer.innerHTML = html;
