@@ -246,7 +246,7 @@ class ACServerManagerGUI:
         def run_flask():
             try:
                 from midea_server import app
-                app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+                app.run(host="0.0.0.0", port=3000, debug=False, use_reloader=False)
             except Exception as e:
                 self.log("ERROR", f"Flask server error: {e}")
 
