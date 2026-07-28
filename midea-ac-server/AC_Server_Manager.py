@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
 AC Server Manager — Standalone Windows Control Center
-Designed with high-contrast Slate & Cyber Cyan aesthetics (#0F172A, #38BDF8, #F8FAFC),
-zero UI artifacts, clear typography, and a 3-step setup wizard.
+Features:
+- System Tray Minimization (Server stays running in background 24/7 on window close [X])
+- Native Windows Startup Registry Integration (Zero external .bat files needed!)
+- High-contrast Slate & Cyber Cyan aesthetics (#0F172A, #38BDF8, #F8FAFC)
+- 3-step setup wizard with live server logging
 """
 
 import sys
@@ -13,8 +16,11 @@ import secrets
 import threading
 import subprocess
 import urllib.request
+import winreg
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
+import pystray
+from PIL import Image, ImageDraw
 
 CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
@@ -25,6 +31,9 @@ DEFAULT_CONFIG = {
     "api_key": "ac_secret_key_8497",
     "ngrok_domain": "oxidant-widely-endanger.ngrok-free.dev"
 }
+
+REG_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
+REG_APP_NAME = "ACNotificationServer"
 
 # High-Contrast Professional Palette
 COLOR_CANVAS = "#0F172A"       # Deep Slate 900 Canvas
@@ -39,6 +48,22 @@ COLOR_BUTTON_SLATE = "#334155"  # Dark Slate Secondary Button
 COLOR_SUCCESS = "#4ADE80"      # Bright Emerald Green Status
 COLOR_LOG_BG = "#020617"       # Terminal Console Midnight
 
+def create_tray_image():
+    img = Image.new('RGBA', (64, 64), color=(0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse((4, 4, 60, 60), fill=(2, 132, 199, 255), outline=(56, 189, 248, 255), width=4)
+    draw.rectangle((20, 24, 44, 40), fill=(255, 255, 255, 255))
+    return img
+
+def is_autostart_enabled():
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_KEY_PATH, 0, winreg.KEY_READ)
+        value, _ = winreg.QueryValueEx(key, REG_APP_NAME)
+        winreg.CloseKey(key)
+        return bool(value)
+    except Exception:
+        return False
+
 class ACServerManagerGUI:
     def __init__(self, root):
         self.root = root
@@ -51,10 +76,12 @@ class ACServerManagerGUI:
         self.public_url = f"https://{DEFAULT_CONFIG['ngrok_domain']}/api/v1/ac/trigger"
         self.is_running = False
         self.show_advanced = False
+        self.tray_icon = None
 
         self.load_config_data()
         self.build_ui()
         self.start_all_services()
+        self.setup_tray_icon()
 
     def load_config_data(self):
         if not os.path.exists(CONFIG_FILE):
@@ -165,14 +192,66 @@ class ACServerManagerGUI:
         log_btn_row = tk.Frame(group_step3, bg=COLOR_CANVAS)
         log_btn_row.pack(fill="x", pady=(0, 4))
 
-        btn_autostart = tk.Button(log_btn_row, text="🚀 Enable Windows Auto-Start", bg=COLOR_BUTTON_SLATE, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.install_boot_service, cursor="hand2", bd=1)
-        btn_autostart.pack(side="left")
+        autostart_text = "✓ Windows Auto-Start: Enabled" if is_autostart_enabled() else "🚀 Enable Windows Auto-Start"
+        autostart_bg = COLOR_BUTTON_TEAL if is_autostart_enabled() else COLOR_BUTTON_SLATE
+
+        self.btn_autostart = tk.Button(log_btn_row, text=autostart_text, bg=autostart_bg, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.toggle_autostart, cursor="hand2", bd=1)
+        self.btn_autostart.pack(side="left")
 
         btn_restart = tk.Button(log_btn_row, text="⚡ Restart Server Services", bg=COLOR_BUTTON_SLATE, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.restart_all_services, cursor="hand2", bd=1)
         btn_restart.pack(side="right")
 
         self.txt_log = scrolledtext.ScrolledText(group_step3, bg=COLOR_LOG_BG, fg=COLOR_CYAN, font=("Consolas", 8), height=7, borderwidth=1, relief="solid")
         self.txt_log.pack(fill="both", expand=True, pady=(2, 0))
+
+    def setup_tray_icon(self):
+        self.root.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
+        menu = pystray.Menu(
+            pystray.MenuItem("Open Control Center", self.show_from_tray, default=True),
+            pystray.MenuItem("Server Status: ONLINE", None, enabled=False),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Exit Server Completely", self.exit_app_completely)
+        )
+        self.tray_icon = pystray.Icon("ACNotificationServer", create_tray_image(), "AC Notification Server", menu)
+        threading.Thread(target=self.tray_icon.run, daemon=True).start()
+
+    def hide_to_tray(self):
+        self.root.withdraw()
+        self.log("SYSTEM", "Control Center minimized to System Tray (Server continues running in background)")
+
+    def show_from_tray(self, icon=None, item=None):
+        self.root.after(0, self._deiconify_root)
+
+    def _deiconify_root(self):
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def exit_app_completely(self, icon=None, item=None):
+        self.log("SYSTEM", "Shutting down AC Notification Server...")
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self.root.after(0, self.root.destroy)
+
+    def toggle_autostart(self):
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_KEY_PATH, 0, winreg.KEY_ALL_ACCESS)
+            if is_autostart_enabled():
+                winreg.DeleteValue(key, REG_APP_NAME)
+                winreg.CloseKey(key)
+                self.btn_autostart.config(text="🚀 Enable Windows Auto-Start", bg=COLOR_BUTTON_SLATE)
+                messagebox.showinfo("Auto-Start Disabled", "AC Notification Server removed from Windows startup.")
+                self.log("REGISTRY", "Windows Auto-Start disabled.")
+            else:
+                exe_path = f'"{os.path.abspath(sys.executable)}"' if getattr(sys, 'frozen', False) else f'"{sys.executable}" "{os.path.abspath(__file__)}"'
+                winreg.SetValueEx(key, REG_APP_NAME, 0, winreg.REG_SZ, exe_path)
+                winreg.CloseKey(key)
+                self.btn_autostart.config(text="✓ Windows Auto-Start: Enabled", bg=COLOR_BUTTON_TEAL)
+                messagebox.showinfo("Auto-Start Enabled", "AC Notification Server registered to start automatically on Windows boot!")
+                self.log("REGISTRY", "Windows Auto-Start enabled successfully.")
+        except Exception as e:
+            messagebox.showerror("Auto-Start Error", f"Failed to modify Windows startup registry: {e}")
+            self.log("ERROR", f"Auto-start registry error: {e}")
 
     def toggle_advanced_settings(self):
         if self.show_advanced:
@@ -295,17 +374,6 @@ class ACServerManagerGUI:
         self.log("SYSTEM", "Restarting server services...")
         self.start_all_services()
         messagebox.showinfo("Restarted", "Server services restarted successfully!")
-
-    def install_boot_service(self):
-        bat_file = os.path.abspath("install_boot_service.bat")
-        if os.path.exists(bat_file):
-            try:
-                subprocess.run(["cmd.exe", "/c", bat_file], check=True)
-                messagebox.showinfo("Auto-Start Enabled", "AC Notification Server registered to start automatically on Windows boot!")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to register boot task: {e}")
-        else:
-            messagebox.showwarning("File Missing", "install_boot_service.bat not found in current directory.")
 
 if __name__ == "__main__":
     root = tk.Tk()
