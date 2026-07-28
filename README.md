@@ -88,9 +88,12 @@ flowchart TD
 > [!IMPORTANT]
 > **📶 Network Requirement**: The PC or laptop running `AC_Server_Manager.exe` MUST be connected to the **same home Wi-Fi network** as your Air Conditioner. The server controls your AC locally over Wi-Fi, while the ngrok tunnel receives pings securely over the internet from your phone anywhere in the world.
 
-1. Double-click `AC_Server_Manager.exe` on your PC connected to home Wi-Fi.
-2. Click **`🔍 Auto-Discover Wi-Fi AC`** to automatically detect your air conditioner.
-3. Click **`📋 Copy Endpoint URL`** to get your public ngrok Webhook URL (`https://...ngrok-free.app/api/v1/ac/trigger`).
+> [!NOTE]
+> **🛡️ Windows SmartScreen Notice**: When launching `AC_Server_Manager.exe`, Windows may display a standard *"Windows protected your PC"* popup. Click **`More info`** → **`Run anyway`** to launch.
+
+1. Download and run **`AC_Server_Manager.exe`** (Single-file executable, zero Python required!).
+2. Click **`🔍 1. Auto-Discover Wi-Fi AC`** to detect your air conditioner on home Wi-Fi.
+3. Click **`📋 2. Copy Webhook URL`** and **`🔑 Copy Secret Key`** for your phone app.
 
 ### 3. Open Mobile App & Complete Setup Wizard
 1. Open **AC Notification** on your Android phone.

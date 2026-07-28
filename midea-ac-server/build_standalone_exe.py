@@ -24,7 +24,7 @@ def build_exe():
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
-        "--onedir",
+        "--onefile",
         "--windowed",
         "--name=AC_Server_Manager",
         "--clean",

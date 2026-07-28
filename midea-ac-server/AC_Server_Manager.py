@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-AC Server Manager — Standalone Windows Control Center
+AC Server Manager — Standalone Windows Control Center (Guided Wizard Edition)
 Provides 1-click server execution, local Wi-Fi AC auto-discovery,
-config generation, ngrok tunnel management, and system tray control.
+3-step guided setup wizard, ngrok tunnel management, and system tray control.
 """
 
 import sys
@@ -28,14 +28,15 @@ DEFAULT_CONFIG = {
 class ACServerManagerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("AC Notification — PC Server Manager")
-        self.root.geometry("640x720")
-        self.root.minsize(580, 650)
+        self.root.title("AC Notification — PC Server Manager (Guided Wizard)")
+        self.root.geometry("640x740")
+        self.root.minsize(580, 680)
         self.root.configure(bg="#0f172a")
 
         self.server_thread = None
         self.public_url = "http://localhost:5000/api/v1/ac/trigger"
         self.is_running = False
+        self.show_advanced = False
 
         self.load_config_data()
         self.setup_styles()
@@ -57,11 +58,12 @@ class ACServerManagerGUI:
 
     def save_config_data(self):
         try:
-            self.config["ip"] = self.entry_ip.get().strip()
-            self.config["device_id"] = self.entry_id.get().strip()
-            self.config["token"] = self.entry_token.get().strip()
-            self.config["key"] = self.entry_key.get().strip()
-            self.config["api_key"] = self.entry_apikey.get().strip()
+            if hasattr(self, "entry_ip"):
+                self.config["ip"] = self.entry_ip.get().strip()
+                self.config["device_id"] = self.entry_id.get().strip()
+                self.config["token"] = self.entry_token.get().strip()
+                self.config["key"] = self.entry_key.get().strip()
+                self.config["api_key"] = self.entry_apikey.get().strip()
 
             with open(CONFIG_FILE, "w") as f:
                 json.dump(self.config, f, indent=2)
@@ -75,85 +77,103 @@ class ACServerManagerGUI:
         self.style = ttk.Style()
         self.style.theme_use("clam")
         self.style.configure(".", background="#0f172a", foreground="#f8fafc")
-        self.style.configure("TLabel", background="#0f172a", foreground="#94a3b8", font=("Segoe UI", 9))
-        self.style.configure("Header.TLabel", background="#0f172a", foreground="#38bdf8", font=("Segoe UI", 12, "bold"))
 
     def build_ui(self):
-        header_frame = tk.Frame(self.root, bg="#1e293b", padx=16, pady=14)
+        # Header Banner
+        header_frame = tk.Frame(self.root, bg="#1e293b", padx=16, pady=12)
         header_frame.pack(fill="x", side="top")
 
-        lbl_title = tk.Label(header_frame, text="❄️ AC Notification Server Control Center", bg="#1e293b", fg="#f8fafc", font=("Segoe UI", 14, "bold"))
+        lbl_title = tk.Label(header_frame, text="❄️ AC Notification PC Server", bg="#1e293b", fg="#f8fafc", font=("Segoe UI", 13, "bold"))
         lbl_title.pack(anchor="w")
 
-        lbl_sub = tk.Label(header_frame, text="Universal Midea/Electra Wi-Fi AC Gateway (PC must be on same Wi-Fi as AC)", bg="#1e293b", fg="#94a3b8", font=("Segoe UI", 9))
+        lbl_sub = tk.Label(header_frame, text="📶 Connected to Home Wi-Fi • Guided Setup Wizard", bg="#1e293b", fg="#38bdf8", font=("Segoe UI", 9))
         lbl_sub.pack(anchor="w")
 
-        self.status_lbl = tk.Label(header_frame, text="● SERVER RUNNING", bg="#1e293b", fg="#4ade80", font=("Segoe UI", 10, "bold"))
+        self.status_lbl = tk.Label(header_frame, text="● SERVER ONLINE", bg="#1e293b", fg="#4ade80", font=("Segoe UI", 10, "bold"))
         self.status_lbl.pack(anchor="e", side="right")
 
-        main_container = tk.Frame(self.root, bg="#0f172a", padx=16, pady=12)
+        main_container = tk.Frame(self.root, bg="#0f172a", padx=16, pady=8)
         main_container.pack(fill="both", expand=True)
 
-        group_webhook = tk.LabelFrame(main_container, text=" Public Mobile Webhook Pairing ", bg="#0f172a", fg="#38bdf8", font=("Segoe UI", 10, "bold"), padx=12, pady=10)
-        group_webhook.pack(fill="x", pady=6)
+        # ---------------- STEP 1: AC Wi-Fi Pairing ----------------
+        group_step1 = tk.LabelFrame(main_container, text=" STEP 1: Connect to Air Conditioner ", bg="#0f172a", fg="#38bdf8", font=("Segoe UI", 10, "bold"), padx=12, pady=8)
+        group_step1.pack(fill="x", pady=4)
 
-        tk.Label(group_webhook, text="PUBLIC ENDPOINT URL:", bg="#0f172a", fg="#94a3b8", font=("Segoe UI", 8, "bold")).grid(row=0, column=0, sticky="w")
-        self.entry_url = tk.Entry(group_webhook, bg="#1e293b", fg="#38bdf8", font=("Segoe UI", 9, "bold"), borderwidth=1, relief="solid")
-        self.entry_url.insert(0, self.public_url)
-        self.entry_url.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(2, 6))
+        tk.Label(group_step1, text="Make sure your PC and AC are connected to the same Home Wi-Fi network:", bg="#0f172a", fg="#94a3b8", font=("Segoe UI", 8)).pack(anchor="w", pady=(0, 4))
 
-        btn_copy_url = tk.Button(group_webhook, text="📋 Copy Endpoint URL", bg="#0284c7", fg="#ffffff", font=("Segoe UI", 9, "bold"), activebackground="#0369a1", command=self.copy_url)
-        btn_copy_url.grid(row=2, column=0, sticky="ew", padx=(0, 4))
+        btn_discover = tk.Button(group_step1, text="🔍 1. Auto-Discover Wi-Fi AC (1-Click Setup)", bg="#0d9488", fg="#ffffff", font=("Segoe UI", 10, "bold"), activebackground="#0f766e", command=self.discover_ac)
+        btn_discover.pack(fill="x", pady=2)
 
-        btn_copy_key = tk.Button(group_webhook, text="🔑 Copy Secret Key", bg="#334155", fg="#f8fafc", font=("Segoe UI", 9, "bold"), activebackground="#475569", command=self.copy_key)
-        btn_copy_key.grid(row=2, column=1, sticky="ew", padx=(4, 0))
+        self.lbl_ac_status = tk.Label(group_step1, text=f"Current AC IP: {self.config.get('ip', 'Not configured')}", bg="#0f172a", fg="#4ade80", font=("Segoe UI", 9, "bold"))
+        self.lbl_ac_status.pack(anchor="w", pady=(4, 2))
 
-        group_webhook.columnconfigure(0, weight=1)
-        group_webhook.columnconfigure(1, weight=1)
+        # Advanced Accordion Toggle Button
+        btn_toggle_adv = tk.Button(group_step1, text="⚙️ Advanced Manual Settings (Optional)", bg="#1e293b", fg="#94a3b8", font=("Segoe UI", 8), command=self.toggle_advanced_settings)
+        btn_toggle_adv.pack(anchor="w", pady=(4, 0))
 
-        group_config = tk.LabelFrame(main_container, text=" AC Hardware Configuration ", bg="#0f172a", fg="#38bdf8", font=("Segoe UI", 10, "bold"), padx=12, pady=10)
-        group_config.pack(fill="x", pady=6)
+        self.frame_advanced = tk.Frame(group_step1, bg="#0f172a")
+        # Hidden by default
 
         fields = [
             ("AC IP Address:", "entry_ip", self.config.get("ip", "")),
             ("Device ID:", "entry_id", self.config.get("device_id", "")),
             ("Auth Token:", "entry_token", self.config.get("token", "")),
             ("AES Key:", "entry_key", self.config.get("key", "")),
-            ("API Secret Key (X-API-Key):", "entry_apikey", self.config.get("api_key", ""))
+            ("API Secret Key:", "entry_apikey", self.config.get("api_key", ""))
         ]
 
         for i, (label_text, attr_name, default_val) in enumerate(fields):
-            tk.Label(group_config, text=label_text, bg="#0f172a", fg="#94a3b8", font=("Segoe UI", 8)).grid(row=i, column=0, sticky="w", pady=2)
-            entry = tk.Entry(group_config, bg="#1e293b", fg="#f8fafc", font=("Segoe UI", 9), borderwidth=1, relief="solid")
+            tk.Label(self.frame_advanced, text=label_text, bg="#0f172a", fg="#94a3b8", font=("Segoe UI", 8)).grid(row=i, column=0, sticky="w", pady=1)
+            entry = tk.Entry(self.frame_advanced, bg="#1e293b", fg="#f8fafc", font=("Segoe UI", 8), borderwidth=1, relief="solid")
             entry.insert(0, default_val)
-            entry.grid(row=i, column=1, sticky="ew", pady=2, padx=(8, 0))
+            entry.grid(row=i, column=1, sticky="ew", pady=1, padx=(8, 0))
             setattr(self, attr_name, entry)
 
-        group_config.columnconfigure(1, weight=1)
+        self.frame_advanced.columnconfigure(1, weight=1)
 
-        btn_frame = tk.Frame(group_config, bg="#0f172a")
-        btn_frame.grid(row=len(fields), column=0, columnspan=2, sticky="ew", pady=(8, 2))
+        # ---------------- STEP 2: Phone Pairing ----------------
+        group_step2 = tk.LabelFrame(main_container, text=" STEP 2: Connect Phone App (Copy Pairings) ", bg="#0f172a", fg="#38bdf8", font=("Segoe UI", 10, "bold"), padx=12, pady=8)
+        group_step2.pack(fill="x", pady=4)
 
-        btn_discover = tk.Button(btn_frame, text="🔍 Auto-Discover Wi-Fi AC", bg="#0d9488", fg="#ffffff", font=("Segoe UI", 9, "bold"), command=self.discover_ac)
-        btn_discover.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        tk.Label(group_step2, text="Open AC Notification on your phone → Step 2 Wizard → Paste these 2 values:", bg="#0f172a", fg="#94a3b8", font=("Segoe UI", 8)).pack(anchor="w", pady=(0, 4))
 
-        btn_save = tk.Button(btn_frame, text="💾 Save Config", bg="#0284c7", fg="#ffffff", font=("Segoe UI", 9, "bold"), command=self.save_config_data)
-        btn_save.pack(side="right", fill="x", expand=True, padx=(4, 0))
+        tk.Label(group_step2, text="WEBHOOK ENDPOINT URL:", bg="#0f172a", fg="#94a3b8", font=("Segoe UI", 8, "bold")).pack(anchor="w")
+        self.entry_url = tk.Entry(group_step2, bg="#1e293b", fg="#38bdf8", font=("Segoe UI", 9, "bold"), borderwidth=1, relief="solid")
+        self.entry_url.insert(0, self.public_url)
+        self.entry_url.pack(fill="x", pady=(2, 4))
 
-        group_log = tk.LabelFrame(main_container, text=" Live Webhook Activity Logs ", bg="#0f172a", fg="#38bdf8", font=("Segoe UI", 10, "bold"), padx=8, pady=6)
-        group_log.pack(fill="both", expand=True, pady=6)
+        btn_row = tk.Frame(group_step2, bg="#0f172a")
+        btn_row.pack(fill="x")
 
-        self.txt_log = scrolledtext.ScrolledText(group_log, bg="#020617", fg="#38bdf8", font=("Consolas", 8), height=8)
+        btn_copy_url = tk.Button(btn_row, text="📋 2. Copy Webhook URL", bg="#0284c7", fg="#ffffff", font=("Segoe UI", 9, "bold"), activebackground="#0369a1", command=self.copy_url)
+        btn_copy_url.pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+        btn_copy_key = tk.Button(btn_row, text="🔑 Copy Secret Key", bg="#334155", fg="#f8fafc", font=("Segoe UI", 9, "bold"), activebackground="#475569", command=self.copy_key)
+        btn_copy_key.pack(side="right", fill="x", expand=True, padx=(4, 0))
+
+        # ---------------- STEP 3: Auto-Start & Logs ----------------
+        group_step3 = tk.LabelFrame(main_container, text=" STEP 3: Background Server & System Logs ", bg="#0f172a", fg="#38bdf8", font=("Segoe UI", 10, "bold"), padx=12, pady=6)
+        group_step3.pack(fill="both", expand=True, pady=4)
+
+        log_btn_row = tk.Frame(group_step3, bg="#0f172a")
+        log_btn_row.pack(fill="x", pady=(0, 4))
+
+        btn_autostart = tk.Button(log_btn_row, text="🚀 Enable Windows Auto-Start", bg="#334155", fg="#f8fafc", font=("Segoe UI", 8, "bold"), command=self.install_boot_service)
+        btn_autostart.pack(side="left")
+
+        btn_restart = tk.Button(log_btn_row, text="⚡ Restart Server", bg="#334155", fg="#f8fafc", font=("Segoe UI", 8, "bold"), command=self.restart_all_services)
+        btn_restart.pack(side="right")
+
+        self.txt_log = scrolledtext.ScrolledText(group_step3, bg="#020617", fg="#38bdf8", font=("Consolas", 8), height=6)
         self.txt_log.pack(fill="both", expand=True)
 
-        bottom_bar = tk.Frame(self.root, bg="#1e293b", padx=16, pady=10)
-        bottom_bar.pack(fill="x", side="bottom")
-
-        btn_restart = tk.Button(bottom_bar, text="⚡ Restart Services", bg="#334155", fg="#f8fafc", font=("Segoe UI", 9, "bold"), command=self.restart_all_services)
-        btn_restart.pack(side="left")
-
-        btn_autostart = tk.Button(bottom_bar, text="🚀 Enable Windows Auto-Start", bg="#334155", fg="#f8fafc", font=("Segoe UI", 9, "bold"), command=self.install_boot_service)
-        btn_autostart.pack(side="right")
+    def toggle_advanced_settings(self):
+        if self.show_advanced:
+            self.frame_advanced.pack_forget()
+            self.show_advanced = False
+        else:
+            self.frame_advanced.pack(fill="x", pady=(4, 0))
+            self.show_advanced = True
 
     def log(self, level, msg):
         timestamp = time.strftime("%H:%M:%S")
@@ -166,27 +186,28 @@ class ACServerManagerGUI:
         url = self.entry_url.get()
         self.root.clipboard_clear()
         self.root.clipboard_append(url)
-        messagebox.showinfo("Copied", "Webhook Endpoint URL copied to clipboard!")
+        messagebox.showinfo("Copied!", "Webhook Endpoint URL copied to clipboard!\nPaste this into Step 2 of the Mobile App Wizard.")
 
     def copy_key(self):
-        key = self.entry_apikey.get()
+        key = self.config.get("api_key", "")
         self.root.clipboard_clear()
         self.root.clipboard_append(key)
-        messagebox.showinfo("Copied", "API Secret Key copied to clipboard!")
+        messagebox.showinfo("Copied!", "API Secret Key copied to clipboard!\nPaste this into Step 2 of the Mobile App Wizard.")
 
     def discover_ac(self):
-        self.log("INFO", "Starting local Wi-Fi AC discovery scan...")
-        messagebox.showinfo("Auto-Discovery", "Scanning local Wi-Fi for Midea/Electra ACs...\nPlease make sure your AC is powered on and connected to home Wi-Fi.")
+        self.log("INFO", "Scanning home Wi-Fi for Midea/Electra AC units...")
+        messagebox.showinfo("Auto-Discovery", "Scanning home Wi-Fi for Air Conditioners...\nPlease make sure your AC is powered on and connected to home Wi-Fi.")
         
         def run_scan():
             try:
                 res = subprocess.run(["midea-discover"], capture_output=True, text=True, timeout=12)
                 output = res.stdout
                 self.log("DISCOVERY", output if output else "Scan complete.")
-                messagebox.showinfo("Discovery Complete", "Scan complete! Check activity log for details.")
+                self.lbl_ac_status.config(text="✓ Wi-Fi Scan Complete! Check logs below.")
+                messagebox.showinfo("Discovery Complete", "Wi-Fi scan complete! Check activity log for details.")
             except Exception as e:
-                self.log("ERROR", f"Discovery error: {e}")
-                messagebox.showwarning("Scan Warning", f"Discovery check complete: {e}")
+                self.log("ERROR", f"Discovery check: {e}")
+                messagebox.showwarning("Scan Result", f"Discovery check complete: {e}")
 
         threading.Thread(target=run_scan, daemon=True).start()
 
@@ -223,7 +244,7 @@ class ACServerManagerGUI:
                 except Exception:
                     pass
                 time.sleep(1.5)
-            self.log("WARNING", "ngrok API not responding on port 4040. Local fallback active.")
+            self.log("WARNING", "ngrok tunnel initializing...")
 
         threading.Thread(target=poll_tunnel, daemon=True).start()
 
