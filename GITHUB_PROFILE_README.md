@@ -8,11 +8,15 @@
 ---
 
 ### 🚀 About Me
-Full-Stack & Mobile Developer specializing in high-performance automation engines, IoT systems, and smart mobile apps. I build end-to-end proximity triggers, AI contextualizers, real-time web services, and sleek mobile utilities.
+Full-Stack & Mobile Developer specializing in high-performance automation engines, IoT hardware controls, and smart mobile applications. Experienced in building end-to-end proximity triggers, AI contextualizers, real-time web services, and mobile widgets.
 
-- 🔭 **Currently Building**: **Proximity Climate & AC Engine** (`Kotlin`, `Android Native`, `Liquid Glass UI`, `Python`, `Flask`, `ngrok`).
-- 🤖 **AI & Systems Focus**: Building autonomous agents, IoT control widgets, and real-time event processors.
-- 🛠️ **Core Stack**: Kotlin, TypeScript, JavaScript, Python, React, Node.js, Docker, REST APIs, MySQL, MongoDB.
+#### 🛠️ **Active Development & Current Projects**:
+- ❄️ **[AC Notification App](https://github.com/ogadassi/ac-notification)** — Proximity Smart AC Automation Engine (`Kotlin`, `Android Native`, `Liquid Glass UI`, `Python`, `Flask`, `ngrok`).
+- 🎬 **[WatchLater](https://github.com/ogadassi)** — Smart media bookmarking & offline watchlist platform (`TypeScript`, `React`, `Node.js`).
+- ⚽ **[RLScoreBot](https://github.com/ogadassi)** — Real-time Rocket League match tracker & live Discord/Telegram scoreboard bot (`Python`, `REST API`).
+- 📶 **[Android BT Control Widget](https://github.com/ogadassi)** — Low-latency Android Bluetooth widget for hardware remote control (`Kotlin`, `Android Native`).
+
+- 💡 **Core Tech Stack**: Kotlin, TypeScript, JavaScript, Python, React, Node.js, Docker, REST APIs, MySQL, MongoDB.
 
 ---
 
@@ -26,7 +30,7 @@ Full-Stack & Mobile Developer specializing in high-performance automation engine
 ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)
 
-#### **Backend, IoT & DevOps**
+#### **Backend, APIs & DevOps**
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![REST API](https://img.shields.io/badge/REST_API-02569B?style=for-the-badge&logo=google&logoColor=white)
@@ -36,18 +40,17 @@ Full-Stack & Mobile Developer specializing in high-performance automation engine
 
 ---
 
-### 🌟 Featured Antigravity Projects
+### 🌟 Featured Systems & Projects
 
-| Project | Technologies | Description |
-|---|---|---|
-| ❄️ **[ac-notification](https://github.com/ogadassi/ac-notification)** | `Kotlin` `Android Native` `Python` `Flask` | Proximity Smart AC Automation Engine & Google Play Geofence Notification System with liquid glass UI. |
-| 🎬 **[WatchLater](https://github.com/ogadassi)** | `TypeScript` `React` `Node.js` | Smart media bookmarking & offline watchlist management system. |
-| ⚽ **[RLScoreBot](https://github.com/ogadassi)** | `Python` `REST API` `Webhooks` | Real-time Rocket League match tracker & live Discord/Telegram scoreboard bot. |
-| 🚗 **[GarageDoors](https://github.com/ogadassi)** | `Kotlin` `IoT` `REST API` | Smart home IoT garage door monitor & remote trigger controller. |
-| 🧠 **[PROJECT-LINGUASENSE-AI](https://github.com/ogadassi)** | `TypeScript` `Python` `AI` | AI-powered language processing & smart translation contextualizer. |
-| 🎯 **[JobScout](https://github.com/ogadassi)** | `TypeScript` `Node.js` `React` | Autonomous job application tracking dashboard & opportunity aggregator. |
-| 🎲 **[D&D CustomBoard](https://github.com/ogadassi)** | `React` `Web Audio API` | Interactive tabletop D&D campaign grid & audio soundboard engine. |
-| 📶 **[Android BT Control Widget](https://github.com/ogadassi)** | `Kotlin` `Android` `Bluetooth` | Low-latency Android Bluetooth widget for hardware remote control. |
+| Project | Status | Stack | Description |
+|---|---|---|---|
+| ❄️ **[ac-notification](https://github.com/ogadassi/ac-notification)** | 🛠️ *Active* | `Kotlin` `Android Native` `Python` | Proximity Smart AC Automation Engine & Google Play Geofence Notification System with liquid glass UI. |
+| 🎬 **[WatchLater](https://github.com/ogadassi)** | 🛠️ *Active* | `TypeScript` `React` `Node.js` | Smart media bookmarking & offline watchlist management system. |
+| ⚽ **[RLScoreBot](https://github.com/ogadassi)** | 🛠️ *Active* | `Python` `REST API` `Webhooks` | Real-time Rocket League match tracker & live Discord/Telegram scoreboard bot. |
+| 📶 **[Android BT Control Widget](https://github.com/ogadassi)** | 🛠️ *Active* | `Kotlin` `Android` `Bluetooth` | Low-latency Android Bluetooth widget for hardware remote control. |
+| 🧠 **[PROJECT-LINGUASENSE-AI](https://github.com/ogadassi)** | ✅ *Completed* | `TypeScript` `Python` `AI` | AI-powered language processing & smart translation contextualizer. |
+| 🎯 **[JobScout](https://github.com/ogadassi)** | ✅ *Completed* | `TypeScript` `Node.js` `React` | Autonomous job application tracking dashboard & opportunity aggregator. |
+| 🎲 **[D&D CustomBoard](https://github.com/ogadassi)** | ✅ *Completed* | `React` `Web Audio API` | Interactive tabletop D&D campaign grid & audio soundboard engine. |
 
 ---
 
