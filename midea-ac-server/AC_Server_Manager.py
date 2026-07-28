@@ -18,11 +18,12 @@ from tkinter import ttk, messagebox, scrolledtext
 
 CONFIG_FILE = "config.json"
 DEFAULT_CONFIG = {
-    "ip": "192.168.1.105",
-    "device_id": "1234567890",
-    "token": "00000000000000000000000000000000",
-    "key": "00000000000000000000000000000000",
-    "api_key": "ac_secret_key_change_me_1234"
+    "ip": "10.0.0.5",
+    "device_id": "151732605587868",
+    "token": "571b46335cf39f12ce48d83ef4fce23b394487ac411c68043bc94986126c1502611d0ca6c47f5b7be9d37b94dbb6a04fc65c1b5aa9586b0752aee67fc317f791",
+    "key": "6388ef44e9204bda9b1d204f950a947f98c508ef431e4d6ea22cfd277e22af16",
+    "api_key": "ac_secret_key_8497",
+    "ngrok_domain": "oxidant-widely-endanger.ngrok-free.dev"
 }
 
 class ACServerManagerGUI:
