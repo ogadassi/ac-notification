@@ -1039,8 +1039,16 @@
         }).addTo(map);
     }
 
+    const tabScrollPositions = { dashboard: 0, permissions: 0, settings: 0 };
+
     function switchTab(tabId) {
         if (activeTab === tabId) return;
+
+        // Save current tab's scroll position before switching
+        const mainEl = document.querySelector("main");
+        if (mainEl && activeTab) {
+            tabScrollPositions[activeTab] = mainEl.scrollTop;
+        }
         
         // Hide previous tab, show current
         const prevTabEl = document.getElementById(`tab-${activeTab}`);
@@ -1066,6 +1074,11 @@
         });
 
         activeTab = tabId;
+
+        // Restore target tab's own saved scroll position
+        if (mainEl) {
+            mainEl.scrollTop = tabScrollPositions[tabId] || 0;
+        }
 
         // Force Leaflet map redraw on tab switch back to dashboard
         if (tabId === "dashboard" && map) {
