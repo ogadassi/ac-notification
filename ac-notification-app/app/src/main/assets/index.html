@@ -630,6 +630,73 @@
 
     <!-- TAB: SETTINGS -->
     <section id="tab-settings" class="tab-content space-y-md max-w-4xl mx-auto">
+        <!-- Developer Profile Card (Mockup Style) -->
+        <section class="liquid-glass-card p-5 md:p-6 rounded-3xl border border-white/10 space-y-5 shadow-2xl relative overflow-hidden">
+            <!-- Profile Photo Banner -->
+            <div class="w-full h-52 md:h-64 overflow-hidden rounded-2xl relative border border-white/10 shadow-lg bg-black/40">
+                <img id="dev-profile-img" src="developer_photo.png" alt="Developer Profile" class="w-full h-full object-cover object-center transition-all duration-300 hover:scale-105" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop';"/>
+            </div>
+
+            <!-- Name, Title & Bio -->
+            <div class="text-center space-y-2 px-2">
+                <h2 class="text-sm md:text-base font-extrabold text-on-surface tracking-wider uppercase">
+                    OGADASSI <span class="text-secondary font-bold">• FULL STACK DEVELOPER</span>
+                </h2>
+                <p class="text-xs md:text-sm text-on-surface-variant/90 font-medium max-w-lg mx-auto leading-relaxed">
+                    Building high-performance automation engines and geofencing solutions.
+                </p>
+            </div>
+
+            <!-- Glassy Pill Row (Simple Icons for GitHub, Resume, LinkedIn) -->
+            <div class="flex items-center justify-center pt-1">
+                <div class="inline-flex items-center gap-3 p-1.5 px-4 rounded-full bg-black/40 border border-white/10 backdrop-blur-xl shadow-lg">
+                    <!-- GitHub Button -->
+                    <button onclick="openExternalLink('https://github.com/ogadassi')" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-secondary flex items-center justify-center transition-all active:scale-90 shadow-md" title="GitHub Profile">
+                        <span class="material-symbols-outlined text-lg">code</span>
+                    </button>
+                    <!-- Resume Button -->
+                    <button onclick="openExternalLink('https://github.com/ogadassi')" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-secondary flex items-center justify-center transition-all active:scale-90 shadow-md" title="Resume">
+                        <span class="material-symbols-outlined text-lg">description</span>
+                    </button>
+                    <!-- LinkedIn Button -->
+                    <button onclick="openExternalLink('https://linkedin.com')" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-secondary flex items-center justify-center transition-all active:scale-90 shadow-md" title="LinkedIn Profile">
+                        <span class="material-symbols-outlined text-lg">work</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Clean Projects List (Without individual links) -->
+            <div class="pt-4 border-t border-white/5 space-y-3">
+                <h3 class="text-[10px] text-secondary uppercase tracking-widest font-bold px-1">Featured Systems & Projects</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <!-- Project 1 -->
+                    <div class="p-3.5 rounded-2xl bg-black/25 border border-white/5 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-on-surface font-mono">ac-notification</span>
+                            <span class="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary text-[8px] font-bold uppercase tracking-wider border border-secondary/20">Kotlin</span>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant/75 leading-relaxed">Proximity Smart AC Automation & Notification Engine with Google Play Geofencing.</p>
+                    </div>
+                    <!-- Project 2 -->
+                    <div class="p-3.5 rounded-2xl bg-black/25 border border-white/5 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-on-surface font-mono">midea-ac-server</span>
+                            <span class="px-2 py-0.5 rounded-full bg-cyan-400/15 text-cyan-400 text-[8px] font-bold uppercase tracking-wider border border-cyan-400/20">Python</span>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant/75 leading-relaxed">Local PC Flask Gateway & ngrok tunnel for Midea Smart AC LAN & Cloud control.</p>
+                    </div>
+                    <!-- Project 3 -->
+                    <div class="p-3.5 rounded-2xl bg-black/25 border border-white/5 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-on-surface font-mono">ac-proximity-agent</span>
+                            <span class="px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 text-[8px] font-bold uppercase tracking-wider border border-emerald-400/20">REST API</span>
+                        </div>
+                        <p class="text-[10px] text-on-surface-variant/75 leading-relaxed">Autonomous geofence trigger processor & high-performance notification webhook handler.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Geofence Monitor Status -->
         <section class="liquid-glass-card px-5 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -675,72 +742,7 @@
             <button onclick="if(window.AndroidBridge&&window.AndroidBridge.requestPermission)window.AndroidBridge.requestPermission('channelSettings')" class="shrink-0 px-3 py-1.5 bg-amber-400/10 text-amber-400 border border-amber-400/25 rounded-full font-bold text-[9px] uppercase tracking-wider active:scale-95 transition-all">Open</button>
         </section>
 
-        <!-- Developer Profile Card (Mockup Style) -->
-        <section class="liquid-glass-card p-5 md:p-6 rounded-3xl border border-white/10 space-y-5 shadow-2xl relative overflow-hidden">
-            <!-- Profile Photo Banner -->
-            <div class="w-full h-52 md:h-64 overflow-hidden rounded-2xl relative border border-white/10 shadow-lg bg-black/40">
-                <img id="dev-profile-img" src="developer_photo.png" alt="Developer Profile" class="w-full h-full object-cover object-center transition-all duration-300 hover:scale-105" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop';"/>
-            </div>
-
-            <!-- Name, Title & Bio -->
-            <div class="text-center space-y-2 px-2">
-                <h2 class="text-sm md:text-base font-extrabold text-on-surface tracking-wider uppercase">
-                    OGADASSI <span class="text-secondary font-bold">• FULL STACK DEVELOPER</span>
-                </h2>
-                <p class="text-xs md:text-sm text-on-surface-variant/90 font-medium max-w-lg mx-auto leading-relaxed">
-                    Building high-performance automation engines and geofencing solutions.
-                </p>
-            </div>
-
-            <!-- Action Buttons Row (GitHub, Resume, LinkedIn) -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                <button onclick="openExternalLink('https://github.com/ogadassi')" class="w-full py-3 px-4 btn-gradient-primary text-xs uppercase tracking-wider font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-secondary/10">
-                    <span class="material-symbols-outlined text-sm">code</span>
-                    <span>GITHUB PROFILE</span>
-                </button>
-                <button onclick="openExternalLink('https://github.com/ogadassi')" class="w-full py-3 px-4 border border-secondary/40 bg-secondary/10 hover:bg-secondary/20 text-secondary text-xs uppercase tracking-wider font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-sm">description</span>
-                    <span>RESUME</span>
-                </button>
-                <button onclick="openExternalLink('https://linkedin.com')" class="w-full py-3 px-4 border border-white/10 bg-white/5 hover:bg-white/10 text-on-surface text-xs uppercase tracking-wider font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2">
-                    <span class="material-symbols-outlined text-sm">work</span>
-                    <span>LINKEDIN</span>
-                </button>
-            </div>
-
-            <!-- Clean Projects List (Without individual links) -->
-            <div class="pt-4 border-t border-white/5 space-y-3">
-                <h3 class="text-[10px] text-secondary uppercase tracking-widest font-bold px-1">Featured Systems & Projects</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <!-- Project 1 -->
-                    <div class="p-3.5 rounded-2xl bg-black/25 border border-white/5 space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-on-surface font-mono">ac-notification</span>
-                            <span class="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary text-[8px] font-bold uppercase tracking-wider border border-secondary/20">Kotlin</span>
-                        </div>
-                        <p class="text-[10px] text-on-surface-variant/75 leading-relaxed">Proximity Smart AC Automation & Notification Engine with Google Play Geofencing.</p>
-                    </div>
-                    <!-- Project 2 -->
-                    <div class="p-3.5 rounded-2xl bg-black/25 border border-white/5 space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-on-surface font-mono">midea-ac-server</span>
-                            <span class="px-2 py-0.5 rounded-full bg-cyan-400/15 text-cyan-400 text-[8px] font-bold uppercase tracking-wider border border-cyan-400/20">Python</span>
-                        </div>
-                        <p class="text-[10px] text-on-surface-variant/75 leading-relaxed">Local PC Flask Gateway & ngrok tunnel for Midea Smart AC LAN & Cloud control.</p>
-                    </div>
-                    <!-- Project 3 -->
-                    <div class="p-3.5 rounded-2xl bg-black/25 border border-white/5 space-y-1.5">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-on-surface font-mono">ac-proximity-agent</span>
-                            <span class="px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 text-[8px] font-bold uppercase tracking-wider border border-emerald-400/20">REST API</span>
-                        </div>
-                        <p class="text-[10px] text-on-surface-variant/75 leading-relaxed">Autonomous geofence trigger processor & high-performance notification webhook handler.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Hidden Developer Tools Container (Unlocked via Version Tap) -->
+        <!-- Hidden Developer Tools Container (Unlocked via 10 Taps) -->
         <div id="developer-tools-section" class="space-y-md hidden">
             <!-- Debugging Tools & Live Cooldown -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
@@ -794,14 +796,13 @@
             </section>
         </div>
 
-        <!-- Version Footer & Dev Mode Unlock -->
+        <!-- Version Footer (10 Secret Taps Unlock) -->
         <div class="pt-6 pb-12 flex flex-col items-center justify-center gap-1.5">
-            <button id="btn-version-toggle" onclick="handleVersionClick()" class="text-[11px] font-mono text-on-surface-variant/60 hover:text-secondary active:scale-95 transition-all flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.03] shadow-md">
-                <span class="material-symbols-outlined text-xs text-secondary">terminal</span>
+            <button id="btn-version-toggle" onclick="handleVersionClick()" class="text-[11px] font-mono text-on-surface-variant/50 hover:text-on-surface active:scale-95 transition-all flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-white/5 bg-white/[0.02]">
+                <span class="material-symbols-outlined text-xs text-on-surface-variant/40">terminal</span>
                 <span>AC Notification v1.0.4</span>
                 <span id="dev-mode-badge" class="hidden ml-1 px-1.5 py-0.5 text-[8px] font-bold bg-secondary/20 text-secondary border border-secondary/30 rounded-md">DEV MODE</span>
             </button>
-            <p id="dev-mode-hint" class="text-[9px] text-on-surface-variant/40 font-mono">Tap version 5 times to unlock Developer Tools</p>
         </div>
     </section>
 
@@ -2270,26 +2271,20 @@
             devModeClickCount = 0;
             const devSec = document.getElementById("developer-tools-section");
             const badge = document.getElementById("dev-mode-badge");
-            const hint = document.getElementById("dev-mode-hint");
             if (devSec) devSec.classList.add("hidden");
             if (badge) badge.classList.add("hidden");
-            if (hint) hint.textContent = "Tap version 5 times to unlock Developer Tools";
             showInAppNotification("Developer Mode disabled", "info");
             return;
         }
 
-        const remaining = 5 - devModeClickCount;
-        if (remaining > 0 && remaining <= 4) {
-            showInAppNotification(`Tap ${remaining} more time${remaining > 1 ? 's' : ''} for Developer Mode`, "info");
-        } else if (remaining <= 0) {
+        const remaining = 10 - devModeClickCount;
+        if (remaining <= 0) {
             isDevModeEnabled = true;
             devModeClickCount = 0;
             const devSec = document.getElementById("developer-tools-section");
             const badge = document.getElementById("dev-mode-badge");
-            const hint = document.getElementById("dev-mode-hint");
             if (devSec) devSec.classList.remove("hidden");
             if (badge) badge.classList.remove("hidden");
-            if (hint) hint.textContent = "Developer Mode Active — Tap version to hide";
             if (window.AndroidBridge && window.AndroidBridge.performHapticFeedbackType) {
                 window.AndroidBridge.performHapticFeedbackType("success");
             }
@@ -2298,7 +2293,7 @@
 
         devModeClickTimer = setTimeout(() => {
             if (!isDevModeEnabled) devModeClickCount = 0;
-        }, 3000);
+        }, 3500);
     }
 
     function openExternalLink(url) {
