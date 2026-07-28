@@ -1,56 +1,56 @@
 # AC Notification — Proximity-Based Smart Home Climate Automation
 
 <p align="center">
-  <img src="resources/app_icon.png" width="128" height="128" alt="AC Notification Icon"/>
+  <img src="resources/app_icon_transparent.png" width="128" height="128" alt="AC Notification Icon"/>
 </p>
 
-**AC Notification** is an ultra-modern, location-aware Android application and server suite designed to optimize home comfort and energy efficiency. It monitors a precision geofence around your home and automatically activates your Air Conditioner as you approach, ensuring your home is perfectly cooled before you step through the door.
+**AC Notification** is a location-aware Android application and companion server suite engineered to automate home air conditioning based on proximity. It creates a geofence around your home and automatically triggers your AC as you approach, ensuring optimal indoor temperature upon arrival.
 
 ---
 
-## 🌟 Key Highlights & Features
+## 🌟 Key Features
 
-### 1. 🎨 Liquid Glass iOS 27 Design & Material You Colors
-* **Signature Dark Glass Aesthetic**: Translucent glass panels with real-time backdrop blurs (`blur-24px`), inset highlights, and dynamic Cyber Cyan accents (`#5DE6FF`).
-* **Material You Integration**: Automatically extracts dynamic system color palettes from Android 12+ wallpaper settings.
+### 1. 🎨 Modern Interface & Material You Integration
+* **Obsidian Dark Aesthetic**: Dark theme with backdrop blurs, subtle glowing container borders, and vibrant Cyber Cyan accents (`#5DE6FF`).
+* **Material You Integration**: Dynamically inherits system color palettes on Android 12+ devices.
 
-### 2. ❄️ Dual-State Pro Logo Vector & 1-Tap Power Toggle
-* **Pro Ambient Glass Aura**: Ambient radial glow halo around the top-left logo button that shifts dynamically:
-  * **Soft Pink Translucent Halo (`#FF3B30` Vector)** when AC is ON (ready to turn OFF).
-  * **Neon Cyan Translucent Halo (`#5DE6FF` Vector)** when AC is OFF (ready to turn ON).
-* **1-Tap Direct Control**: Tapping the logo queries live AC status from the server and toggles power instantly.
+### 2. ❄️ Dynamic Power Indicator & 1-Tap Toggle
+* **Status Aura Halo**: The primary control button indicates AC status:
+  * **Soft Pink Halo (`#FF3B30`)** when AC is ON (ready to turn OFF).
+  * **Cyan Halo (`#5DE6FF`)** when AC is OFF (ready to turn ON).
+* **1-Tap Direct Control**: Tapping the logo queries live server status and toggles AC power state directly.
 
-### 3. 🎯 Precision Geofence Radius Control (3-in-1 Control)
-* **Continuous Precision Slider**: Drag or scroll smoothly to set any exact radius between `50M` and `2000M` in 10m steps.
-* **Segmented Glass Preset Pills**: Equal-width glass pills (`50M`, `250M`, `500M`, `1KM`) for instant 1-tap preset jumps.
-* **Fine-Tuning Stepper**: `[-]` and `[+]` buttons to increment/decrement by 50m.
+### 3. 🎯 Precision Geofence Radius Control
+* **Continuous Range Slider**: Smoothly adjust geofence radius from `50M` to `2000M` in 10-meter increments.
+* **Preset Buttons**: Quick-select preset pills (`50M`, `250M`, `500M`, `1KM`).
+* **Fine-Tuning Steppers**: `[-]` and `[+]` buttons to step radius by ±50m.
 
-### 4. 🧭 Floating Signature Liquid Glass Navigation Capsule
-* **Dead-Center Grid Layout**: 100% horizontally centered floating navigation bar across all screen aspect ratios with equal 33.33% column distribution.
-* **Full Solid Glyph Highlighting**: Icons for **Dashboard**, **Permissions (Shield)**, and **Settings** illuminate and fill completely (`'FILL' 1` in Cyber Cyan) when active.
+### 4. 🧭 Floating Navigation Bar
+* **Centered Grid Layout**: Horizontally centered navigation pill responsive across all screen aspect ratios.
+* **Active Section Highlighting**: Visual indication for Dashboard, Permissions, and Settings tabs.
 
-### 5. 🚀 5-Step Interactive Welcome & Setup Wizard
-* **Automatic First-Run Detection**: Full-screen Liquid Glass wizard that guides first-time users through:
-  1. **Architecture & Overview**: Visual proximity cooling flow.
-  2. **Server Pairing & PC Guide**: Webhook URL & Secret Key input with live `[ ⚡ Test Connection Ping ]` validation and direct link to the standalone Windows executable.
-  3. **Target Home Location**: Address search + `[ My Location ]` GPS pin + radius setup.
-  4. **System Authorizations**: 1-tap permission grants for Location, Background Location ("Allow All The Time"), Notifications, and Unrestricted Battery with live green `✓ GRANTED` status badges.
-  5. **Verification & Launch**: Compliance score (`100%`) and `[ 🚀 Launch Dashboard ]` action.
+### 5. 🚀 5-Step Guided Setup Wizard
+* **First-Run Onboarding**: Guides users through:
+  1. **System Overview**: Proximity cooling architecture explanation.
+  2. **Server Pairing**: Webhook URL & Secret Key pairing with live `[ ⚡ Test Connection Ping ]` verification.
+  3. **Home Location Setup**: Nominatim address search, `[ My Location ]` GPS pin drop, and radius configuration.
+  4. **System Permissions**: 1-tap grants for Fine Location, Background Location ("Allow All The Time"), Notifications, and Unrestricted Battery usage.
+  5. **Verification**: Live permission audit and dashboard launch.
 
 ### 6. 💻 Standalone Windows PC Server Manager (`AC_Server_Manager.exe`)
-* **Zero Python / Zero Pip Required**: A single, standalone Windows `.exe` installer. End-users don't need Python installed!
-* **Auto-Discovery Wizard**: Scans local Wi-Fi to auto-detect Midea/Electra ACs in 1 click.
-* **Auto-Tunneling & Webhook Display**: Automatically starts the ngrok tunnel and provides 1-click `[ Copy Endpoint URL ]` and `[ Copy Secret Key ]` buttons.
-* **System Tray Integration**: Runs quietly in the Windows Notification Area with a right-click menu and 1-click Windows boot auto-start registration.
+* **Single-File Executable**: Independent executable compiled via PyInstaller (no Python runtime required).
+* **Wi-Fi AC Auto-Discovery**: Automatically scans local subnet (10.0.0.x / 192.168.x) for Midea/Electra units.
+* **Automated Tunneling**: Integrates ngrok public gateway with 1-click endpoint URL and secret key clipboard actions.
+* **System Tray & Windows Startup**: Minimizes to Windows System Tray on close `[X]` for 24/7 background operation; includes native 1-click Windows boot startup registration.
 
 ---
 
-## 🔌 Hardware & Server Compatibility
+## 🔌 Hardware & Platform Compatibility
 
-| Category | Supported Devices & Platforms |
+| Category | Supported Systems |
 | :--- | :--- |
-| **Native PC Server Script (`midea_server.py`)** | Midea, Electra, Carrier, Toshiba, Comfee, Inventor, MDV, Kaysun, Kaisai Wi-Fi ACs |
-| **Universal Webhook Architecture** | Home Assistant, Node-RED, Tuya, SmartThings, Tado, Sensibo, Broadlink IR, Custom HTTP Servers |
+| **PC Server Gateway (`AC_Server_Manager.exe`)** | Midea, Electra, Carrier, Toshiba, Comfee, Inventor, MDV, Kaysun, Kaisai Wi-Fi ACs |
+| **Universal Webhook Support** | Home Assistant, Node-RED, Tuya, SmartThings, Tado, Sensibo, Custom HTTP Endpoints |
 
 ---
 
@@ -58,21 +58,21 @@
 
 ```mermaid
 flowchart TD
-    subgraph "Android Client App (AC Notification)"
-        A[Liquid Glass Single Page App] -->|Home Coordinates & Radius| B[Play Services Geofencing]
+    subgraph "Android Mobile App (AC Notification)"
+        A[Single Page Web Application] -->|Home Coordinates & Radius| B[Play Services Geofencing]
         B -->|Proximity ENTER Event| C[GeofenceBroadcastReceiver]
         C -->|Fire Webhook Request| D[ACActionReceiver HTTP POST]
-        E[Logo Button 1-Tap Toggle] -->|Direct Control Ping| D
+        E[Logo Button 1-Tap Toggle] -->|Direct Control Request| D
     end
 
     subgraph "Cloud Gateway"
         D -->|Secure HTTPS POST with X-API-Key| F[ngrok Public Webhook Gateway]
     end
 
-    subgraph "Home PC Server (Windows / Mac / Linux)"
+    subgraph "Home PC Server (Windows)"
         F -->|Secure Relay| G[AC_Server_Manager.exe / Flask API]
-        H[System Tray Control] -->|Logs & Config| G
-        G -->|LAN Command Decryption| I[Smart Air Conditioner]
+        H[System Tray Service] -->|Logs & Config| G
+        G -->|LAN Command Protocol| I[Midea Smart Air Conditioner]
     end
 ```
 
@@ -80,27 +80,27 @@ flowchart TD
 
 ## 🚀 Quick Start Guide
 
-### 1. Download Mobile App & Server Manager
-- Download **[`ac-notification-app.apk`](ac-notification-app.apk)** for Android.
-- Download **`AC_Server_Manager.exe`** from the `midea-ac-server/dist/` folder for Windows.
+### 1. Download Mobile App & PC Server
+- Download **[`ac-notification-app.apk`](https://github.com/ogadassi/ac-notification/releases/download/v1.0.0/ac-notification-app.apk)** for Android.
+- Download **[`AC_Server_Manager.exe`](https://github.com/ogadassi/ac-notification/releases/download/v1.0.0/AC_Server_Manager.exe)** for Windows.
 
 ### 2. Run Windows Server Manager
 > [!IMPORTANT]
-> **📶 Network Requirement**: The PC or laptop running `AC_Server_Manager.exe` MUST be connected to the **same home Wi-Fi network** as your Air Conditioner. The server controls your AC locally over Wi-Fi, while the ngrok tunnel receives pings securely over the internet from your phone anywhere in the world.
+> **📶 Network Requirement**: The PC running `AC_Server_Manager.exe` MUST be connected to the **same home Wi-Fi network** as your Air Conditioner. The server manages local AC commands over LAN, while ngrok securely receives pings over the internet.
 
 > [!NOTE]
-> **🛡️ Windows SmartScreen Notice**: When launching `AC_Server_Manager.exe`, Windows may display a standard *"Windows protected your PC"* popup. Click **`More info`** → **`Run anyway`** to launch.
+> **🛡️ Windows SmartScreen Notice**: When launching `AC_Server_Manager.exe`, Windows may display a standard *"Windows protected your PC"* prompt. Click **`More info`** → **`Run anyway`** to open.
 
-1. Download and run **`AC_Server_Manager.exe`** (Single-file executable, zero Python required!).
-2. Click **`🔍 1. Auto-Discover Wi-Fi AC`** to detect your air conditioner on home Wi-Fi.
-3. Click **`📋 2. Copy Webhook URL`** and **`🔑 Copy Secret Key`** for your phone app.
+1. Launch **`AC_Server_Manager.exe`**.
+2. Click **`🔍 1. Auto-Discover Wi-Fi AC`** to confirm your AC unit on local Wi-Fi.
+3. Click **`📋 2. Copy Webhook URL`** and **`🔑 Copy Secret Key`**.
 
-### 3. Open Mobile App & Complete Setup Wizard
-1. Open **AC Notification** on your Android phone.
-2. The **Welcome Setup Wizard** will automatically launch.
-3. Paste your Webhook URL & Secret Key in Step 2, tap `[ ⚡ Test Connection Ping ]`, authorize permissions in Step 4, and tap **`Launch Dashboard`**!
+### 3. Complete Mobile App Setup
+1. Open **AC Notification** on Android.
+2. The **Setup Wizard** will launch automatically on first run.
+3. Paste the Webhook URL & Secret Key in Step 2, run connection verification, grant system permissions in Step 4, and tap **`Launch Dashboard`**.
 
 ---
 
 ## 📜 License & Acknowledgments
-Built with ❤️ using Android Jetpack, Compose, Leaflet.js, OpenStreetMap, Tailwind CSS, Flask, `msmart-ng`, and ngrok.
+Built using Android Jetpack, Compose, Leaflet.js, OpenStreetMap, Tailwind CSS, Flask, `msmart-ng`, `pystray`, and ngrok.

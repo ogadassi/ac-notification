@@ -11,7 +11,7 @@
 Full-Stack & Mobile Developer specializing in high-performance automation engines, IoT hardware controls, and smart mobile applications. Experienced in building end-to-end proximity triggers, AI contextualizers, real-time web services, and mobile widgets.
 
 #### 🛠️ **Active Development & Current Projects**:
-- ❄️ **[AC Notification App](https://github.com/ogadassi/ac-notification)** — Proximity Smart AC Automation Engine (`Kotlin`, `Android Native`, `Liquid Glass UI`, `Python`, `Flask`, `ngrok`).
+- ❄️ **[AC Notification App](https://github.com/ogadassi/ac-notification)** — Proximity Smart AC Automation Engine (`Kotlin`, `Android Native`, `Obsidian Dark UI`, `Python`, `Flask`, `ngrok`).
 - 🎬 **[WatchLater](https://github.com/ogadassi)** — Smart media bookmarking & offline watchlist platform (`TypeScript`, `React`, `Node.js`).
 - ⚽ **[RLScoreBot](https://github.com/ogadassi)** — Real-time Rocket League match tracker & live Discord/Telegram scoreboard bot (`Python`, `REST API`).
 - 📶 **[Android BT Control Widget](https://github.com/ogadassi)** — Low-latency Android Bluetooth widget for hardware remote control (`Kotlin`, `Android Native`).
