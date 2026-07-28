@@ -48,9 +48,6 @@ Full-Stack & Mobile Developer specializing in high-performance automation engine
 | 🎬 **[WatchLater](https://github.com/ogadassi)** | 🛠️ *Active* | `TypeScript` `React` `Node.js` | Smart media bookmarking & offline watchlist management system. |
 | ⚽ **[RLScoreBot](https://github.com/ogadassi)** | 🛠️ *Active* | `Python` `REST API` `Webhooks` | Real-time Rocket League match tracker & live Discord/Telegram scoreboard bot. |
 | 📶 **[Android BT Control Widget](https://github.com/ogadassi)** | 🛠️ *Active* | `Kotlin` `Android` `Bluetooth` | Low-latency Android Bluetooth widget for hardware remote control. |
-| 🧠 **[PROJECT-LINGUASENSE-AI](https://github.com/ogadassi)** | ✅ *Completed* | `TypeScript` `Python` `AI` | AI-powered language processing & smart translation contextualizer. |
-| 🎯 **[JobScout](https://github.com/ogadassi)** | ✅ *Completed* | `TypeScript` `Node.js` `React` | Autonomous job application tracking dashboard & opportunity aggregator. |
-| 🎲 **[D&D CustomBoard](https://github.com/ogadassi)** | ✅ *Completed* | `React` `Web Audio API` | Interactive tabletop D&D campaign grid & audio soundboard engine. |
 
 ---
 
