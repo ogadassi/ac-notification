@@ -54,13 +54,16 @@ Full-Stack & Mobile Developer specializing in high-performance automation engine
 
 ---
 
-### 📊 GitHub Overview & Stats
+### 📊 GitHub Overview & Activity
 
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api?username=ogadassi&show_icons=true&theme=dark&hide_border=true" alt="Ohad's GitHub Stats" />
+  <img src="https://img.shields.io/github/followers/ogadassi?label=Followers&style=for-the-badge&color=0A66C2&logo=github" alt="Followers"/>
+  <img src="https://img.shields.io/github/stars/ogadassi/ac-notification?label=AC%20Notification%20Stars&style=for-the-badge&color=7F52FF&logo=github" alt="Stars"/>
+  <img src="https://img.shields.io/badge/Public_Repos-15+-emerald?style=for-the-badge&logo=git" alt="Repos"/>
 </p>
+
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=ogadassi&layout=compact&theme=dark&hide_border=true" alt="Top Languages" />
+  <img src="https://komarev.com/ghpvc/?username=ogadassi&color=7F52FF&style=for-the-badge&label=PROFILE+VIEWS" alt="Profile Views" />
 </p>
 
 ---
