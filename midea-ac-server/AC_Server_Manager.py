@@ -85,7 +85,7 @@ class ACServerManagerGUI:
         lbl_title = tk.Label(header_frame, text="❄️ AC Notification Server Control Center", bg="#1e293b", fg="#f8fafc", font=("Segoe UI", 14, "bold"))
         lbl_title.pack(anchor="w")
 
-        lbl_sub = tk.Label(header_frame, text="Universal Midea/Electra Wi-Fi AC & Webhook Gateway", bg="#1e293b", fg="#94a3b8", font=("Segoe UI", 9))
+        lbl_sub = tk.Label(header_frame, text="Universal Midea/Electra Wi-Fi AC Gateway (PC must be on same Wi-Fi as AC)", bg="#1e293b", fg="#94a3b8", font=("Segoe UI", 9))
         lbl_sub.pack(anchor="w")
 
         self.status_lbl = tk.Label(header_frame, text="● SERVER RUNNING", bg="#1e293b", fg="#4ade80", font=("Segoe UI", 10, "bold"))

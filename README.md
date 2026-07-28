@@ -85,6 +85,9 @@ flowchart TD
 - Download **`AC_Server_Manager.exe`** from the `midea-ac-server/dist/` folder for Windows.
 
 ### 2. Run Windows Server Manager
+> [!IMPORTANT]
+> **📶 Network Requirement**: The PC or laptop running `AC_Server_Manager.exe` MUST be connected to the **same home Wi-Fi network** as your Air Conditioner. The server controls your AC locally over Wi-Fi, while the ngrok tunnel receives pings securely over the internet from your phone anywhere in the world.
+
 1. Double-click `AC_Server_Manager.exe` on your PC connected to home Wi-Fi.
 2. Click **`🔍 Auto-Discover Wi-Fi AC`** to automatically detect your air conditioner.
 3. Click **`📋 Copy Endpoint URL`** to get your public ngrok Webhook URL (`https://...ngrok-free.app/api/v1/ac/trigger`).
