@@ -48,7 +48,18 @@ COLOR_BUTTON_SLATE = "#334155"  # Dark Slate Secondary Button
 COLOR_SUCCESS = "#4ADE80"      # Bright Emerald Green Status
 COLOR_LOG_BG = "#020617"       # Terminal Console Midnight
 
+def get_resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
+
 def create_tray_image():
+    icon_path = get_resource_path("app_icon.ico")
+    if os.path.exists(icon_path):
+        try:
+            return Image.open(icon_path)
+        except Exception:
+            pass
     img = Image.new('RGBA', (64, 64), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     draw.ellipse((4, 4, 60, 60), fill=(2, 132, 199, 255), outline=(56, 189, 248, 255), width=4)
@@ -71,6 +82,14 @@ class ACServerManagerGUI:
         self.root.geometry("640x720")
         self.root.minsize(580, 660)
         self.root.configure(bg=COLOR_CANVAS)
+
+        # Apply Official App Icon to Window Titlebar & Taskbar
+        icon_path = get_resource_path("app_icon.ico")
+        if os.path.exists(icon_path):
+            try:
+                self.root.iconbitmap(icon_path)
+            except Exception:
+                pass
 
         self.server_thread = None
         self.public_url = f"https://{DEFAULT_CONFIG['ngrok_domain']}/api/v1/ac/trigger"

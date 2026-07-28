@@ -26,6 +26,8 @@ def build_exe():
         "--noconfirm",
         "--onefile",
         "--windowed",
+        "--icon=app_icon.ico",
+        "--add-data=app_icon.ico;.",
         "--name=AC_Server_Manager",
         "--clean",
         "AC_Server_Manager.py"
