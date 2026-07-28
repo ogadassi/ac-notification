@@ -5,9 +5,17 @@ import json
 import re
 import os
 
-# Load config
+def get_app_data_dir():
+    appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
+    target_dir = os.path.join(appdata, "ACNotificationServer")
+    os.makedirs(target_dir, exist_ok=True)
+    return target_dir
+
+config_file = os.path.join(get_app_data_dir(), "config.json")
+tunnel_file = os.path.join(get_app_data_dir(), "tunnel_url.txt")
+
 try:
-    with open("config.json", "r") as f:
+    with open(config_file, "r") as f:
         config = json.load(f)
 except Exception as e:
     print(f"Error loading config.json: {e}")
@@ -75,7 +83,7 @@ while time.time() - start_time < 30:
     if '"started tunnel"' in line or "started tunnel" in line:
         url = f"https://{domain}"
         print(f"\n>>> EXTRACTED TUNNEL URL: {url} <<<")
-        with open("tunnel_url.txt", "w") as f:
+        with open(tunnel_file, "w") as f:
             f.write(url)
         url_found = True
         break
@@ -83,7 +91,7 @@ while time.time() - start_time < 30:
 if not url_found:
     print("WARNING: Could not confirm tunnel start within 30s, continuing anyway...")
     url = f"https://{domain}"
-    with open("tunnel_url.txt", "w") as f:
+    with open(tunnel_file, "w") as f:
         f.write(url)
 
 # Keep running and printing logs

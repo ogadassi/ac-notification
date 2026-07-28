@@ -22,7 +22,13 @@ from tkinter import ttk, messagebox, scrolledtext
 import pystray
 from PIL import Image, ImageDraw
 
-CONFIG_FILE = "config.json"
+def get_app_data_dir():
+    appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
+    target_dir = os.path.join(appdata, "ACNotificationServer")
+    os.makedirs(target_dir, exist_ok=True)
+    return target_dir
+
+CONFIG_FILE = os.path.join(get_app_data_dir(), "config.json")
 DEFAULT_CONFIG = {
     "ip": "10.0.0.5",
     "device_id": "151732605587868",

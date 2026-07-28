@@ -19,8 +19,13 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 
-# Load config
-CONFIG_FILE = 'config.json'
+def get_app_data_dir():
+    appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
+    target_dir = os.path.join(appdata, "ACNotificationServer")
+    os.makedirs(target_dir, exist_ok=True)
+    return target_dir
+
+CONFIG_FILE = os.path.join(get_app_data_dir(), 'config.json')
 config = {}
 
 # In-memory AC state cache — updated on trigger and on live status query
