@@ -200,14 +200,34 @@ class ACServerManagerGUI:
         
         def run_scan():
             try:
-                res = subprocess.run(["midea-discover"], capture_output=True, text=True, timeout=12)
-                output = res.stdout
-                self.log("DISCOVERY", output if output else "Scan complete.")
-                self.lbl_ac_status.config(text="✓ Wi-Fi Scan Complete! Check logs below.")
-                messagebox.showinfo("Discovery Complete", "Wi-Fi scan complete! Check activity log for details.")
+                import asyncio
+                from msmart.discover import Discover
+                
+                devices = asyncio.run(Discover.discover())
+                if devices:
+                    found_msg = []
+                    for d in devices:
+                        ip = getattr(d, 'ip', getattr(d, '_ip', 'Unknown'))
+                        dev_id = getattr(d, 'id', getattr(d, '_id', 'Unknown'))
+                        found_msg.append(f"IP: {ip} | Device ID: {dev_id}")
+                        # Auto populate IP in config if found
+                        if ip and ip != 'Unknown':
+                            self.config["ip"] = ip
+                            if hasattr(self, "entry_ip"):
+                                self.entry_ip.delete(0, "end")
+                                self.entry_ip.insert(0, ip)
+                    
+                    summary = "\n".join(found_msg)
+                    self.log("DISCOVERY", f"Found AC Devices:\n{summary}")
+                    self.lbl_ac_status.config(text=f"✓ Found {len(devices)} AC Device(s) on Wi-Fi!")
+                    messagebox.showinfo("Discovery Success", f"Found Midea AC on local Wi-Fi:\n\n{summary}")
+                else:
+                    self.log("DISCOVERY", "Scan complete. No Midea AC responses received on local Wi-Fi.")
+                    self.lbl_ac_status.config(text="● No AC found on current Wi-Fi")
+                    messagebox.showinfo("Scan Complete", "Scan complete.\nNo Midea/Electra AC responded on current Wi-Fi.")
             except Exception as e:
-                self.log("ERROR", f"Discovery check: {e}")
-                messagebox.showwarning("Scan Result", f"Discovery check complete: {e}")
+                self.log("ERROR", f"Discovery scan error: {e}")
+                messagebox.showwarning("Scan Error", f"Discovery scan error: {e}")
 
         threading.Thread(target=run_scan, daemon=True).start()
 
