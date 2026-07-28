@@ -196,7 +196,7 @@ class ACServerManagerGUI:
 
     def discover_ac(self):
         self.log("INFO", "Scanning home Wi-Fi for Midea/Electra AC units...")
-        messagebox.showinfo("Auto-Discovery", "Scanning home Wi-Fi for Air Conditioners...\nPlease make sure your AC is powered on and connected to home Wi-Fi.")
+        self.lbl_ac_status.config(text="🔍 Scanning home Wi-Fi...")
         
         def run_scan():
             try:
@@ -242,12 +242,25 @@ class ACServerManagerGUI:
             except Exception as e:
                 self.log("ERROR", f"Flask server error: {e}")
 
+        def run_tunnel():
+            try:
+                import start_tunnel
+                if hasattr(start_tunnel, "start_tunnel"):
+                    start_tunnel.start_tunnel()
+                elif hasattr(start_tunnel, "main"):
+                    start_tunnel.main()
+            except Exception as e:
+                self.log("ERROR", f"ngrok tunnel process error: {e}")
+
         self.server_thread = threading.Thread(target=run_flask, daemon=True)
         self.server_thread.start()
 
+        self.tunnel_thread = threading.Thread(target=run_tunnel, daemon=True)
+        self.tunnel_thread.start()
+
         def poll_tunnel():
             time.sleep(2)
-            for _ in range(15):
+            for _ in range(25):
                 try:
                     req = urllib.request.Request("http://127.0.0.1:4040/api/tunnels")
                     with urllib.request.urlopen(req, timeout=2) as response:
