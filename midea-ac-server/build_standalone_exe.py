@@ -37,10 +37,16 @@ def build_exe():
     result = subprocess.run(cmd)
 
     if result.returncode == 0:
-        print("==================================================")
-        print(" SUCCESS! Standalone Executable Created:")
-        print(f" Executable Path: {os.path.abspath('dist/AC_Server_Manager/AC_Server_Manager.exe')}")
-        print("==================================================")
+        dist_exe = os.path.abspath("dist/AC_Server_Manager.exe")
+        root_exe = os.path.abspath("../AC_Server_Manager.exe")
+        if os.path.exists(dist_exe):
+            import shutil
+            shutil.copy2(dist_exe, root_exe)
+            print("==================================================")
+            print(" SUCCESS! Standalone Executable Created:")
+            print(f" Dist Path: {dist_exe}")
+            print(f" Root Path: {root_exe}")
+            print("==================================================")
     else:
         print("[-] Build failed. See logs above for details.")
 
