@@ -82,6 +82,23 @@ def is_autostart_enabled():
     except Exception:
         return False
 
+def sync_autostart_path():
+    """If auto-start is enabled in registry, update the registered path to the current exe location."""
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_KEY_PATH, 0, winreg.KEY_ALL_ACCESS)
+        try:
+            value, _ = winreg.QueryValueEx(key, REG_APP_NAME)
+        except Exception:
+            value = None
+
+        if value:
+            exe_path = f'"{os.path.abspath(sys.executable)}"' if getattr(sys, 'frozen', False) else f'"{sys.executable}" "{os.path.abspath(__file__)}"'
+            if value != exe_path:
+                winreg.SetValueEx(key, REG_APP_NAME, 0, winreg.REG_SZ, exe_path)
+        winreg.CloseKey(key)
+    except Exception:
+        pass
+
 class ACServerManagerGUI:
     def __init__(self, root):
         self.root = root
@@ -105,6 +122,7 @@ class ACServerManagerGUI:
         self.tray_icon = None
 
         self.load_config_data()
+        sync_autostart_path()
         self.build_ui()
         self.start_all_services()
         self.setup_tray_icon()
