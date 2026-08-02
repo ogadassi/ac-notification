@@ -81,8 +81,8 @@ flowchart TD
 ## 🚀 Quick Start Guide
 
 ### 1. Download Mobile App & PC Server
-- Download **[`ac-notification-app.apk`](https://github.com/ogadassi/ac-notification/releases/download/v1.0.0/ac-notification-app.apk)** for Android.
-- Download **[`AC_Server_Manager.exe`](https://github.com/ogadassi/ac-notification/releases/download/v1.0.0/AC_Server_Manager.exe)** for Windows.
+- Download **[`ac-notification-app.apk`](https://github.com/ogadassi/ac-notification/releases/download/v1.1.0/ac-notification-app.apk)** for Android.
+- Download **[`AC_Server_Manager.exe`](https://github.com/ogadassi/ac-notification/releases/download/v1.1.0/AC_Server_Manager.exe)** for Windows.
 
 ### 2. Run Windows Server Manager
 > [!IMPORTANT]

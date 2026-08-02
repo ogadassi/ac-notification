@@ -20,3 +20,10 @@ local.properties
 **/ac_tray_app.log
 **/tunnel_url.txt
 .DS_Store
+
+# Runtime error logs (may contain server IPs, ports, debug PINs)
+*.err
+
+# Python cache and build artifacts
+__pycache__/
+midea-ac-server/dist/

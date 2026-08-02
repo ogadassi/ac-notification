@@ -219,8 +219,8 @@ def simulate_doze(device):
 def main():
     parser = argparse.ArgumentParser(description="AC Proximity Geofence Diagnostic Suite")
     parser.add_argument("--device", default=None, help="ADB device serial")
-    parser.add_argument("--lat", type=float, default=32.0684, help="Home latitude")
-    parser.add_argument("--lng", type=float, default=34.8248, help="Home longitude")
+    parser.add_argument("--lat", type=float, required=True, help="Home latitude (e.g. 48.8566)")
+    parser.add_argument("--lng", type=float, required=True, help="Home longitude (e.g. 2.3522)")
     parser.add_argument("--radius", type=float, default=230, help="Geofence radius in metres")
     parser.add_argument("--skip-route", action="store_true", help="Skip location route simulation")
     parser.add_argument("--skip-doze", action="store_true", help="Skip Doze mode simulation")
