@@ -28,12 +28,53 @@ def get_app_data_dir():
 CONFIG_FILE = os.path.join(get_app_data_dir(), 'config.json')
 config = {}
 
+import socket
+import concurrent.futures
+
 # In-memory AC state cache — updated on trigger and on live status query
 ac_state_cache = {"power_on": None, "last_updated": 0}
 AC_CACHE_TTL = 30  # seconds
 
 # Global thread lock to prevent concurrent sockets colliding on the AC
 ac_lock = threading.Lock()
+
+def auto_heal_ac_ip():
+    """Scans local Wi-Fi subnet for Midea AC (port 6444) if current stored IP fails. Auto-updates config."""
+    current_ip = config.get("ip", "")
+    app.logger.info(f"[AUTO-HEAL] Searching local Wi-Fi for AC unit (current IP '{current_ip}' unreachable)...")
+    
+    found_ip = None
+    def check_ip(ip):
+        nonlocal found_ip
+        if found_ip:
+            return
+        try:
+            s = socket.socket()
+            s.settimeout(0.2)
+            if s.connect_ex((ip, 6444)) == 0:
+                found_ip = ip
+            s.close()
+        except Exception:
+            pass
+
+    prefix = ".".join(current_ip.split(".")[:3]) if current_ip and len(current_ip.split(".")) == 4 else "10.0.0"
+    ip_list = [f"{prefix}.{i}" for i in range(1, 255)]
+    if prefix != "192.168.1":
+        ip_list += [f"192.168.1.{i}" for i in range(1, 255)]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=60) as ex:
+        ex.map(check_ip, ip_list)
+
+    if found_ip and found_ip != current_ip:
+        app.logger.info(f"[AUTO-HEAL] Found AC unit at new IP: {found_ip}! Updating config.json...")
+        config["ip"] = found_ip
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(config, f, indent=2)
+        except Exception as e:
+            app.logger.error(f"[AUTO-HEAL] Failed to save updated IP: {e}")
+        return True
+    return False
 
 def load_config():
     global config
@@ -75,7 +116,12 @@ async def control_ac(power_state=True):
             return True, msg
         except Exception as e:
             last_err = str(e)
-            app.logger.warning(f"[control] Attempt {attempt + 1} failed: {last_err}")
+            app.logger.warning(f"[control] Attempt {attempt + 1} failed (IP: {config.get('ip')}): {last_err}")
+            # Try auto-healing IP on first failure
+            if attempt == 0:
+                if auto_heal_ac_ip():
+                    app.logger.info(f"[control] Retrying AC control with auto-healed IP: {config.get('ip')}...")
+                    continue
             if attempt < 2:
                 await asyncio.sleep(0.5)
         finally:
@@ -106,7 +152,9 @@ async def query_ac_status():
 
         return await asyncio.wait_for(_fetch(), timeout=3.0)
     except Exception as e:
-        app.logger.warning(f"[status] Live query failed/timed out: {e}")
+        app.logger.warning(f"[status] Live query failed/timed out on IP {config.get('ip')}: {e}")
+        # Try auto-healing IP in background
+        auto_heal_ac_ip()
         return None, f"Midea Status Error: {e}"
     finally:
         if device:
