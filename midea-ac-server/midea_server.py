@@ -30,7 +30,7 @@ config = {}
 
 # In-memory AC state cache — updated on trigger and on live status query
 ac_state_cache = {"power_on": None, "last_updated": 0}
-AC_CACHE_TTL = 5  # seconds
+AC_CACHE_TTL = 30  # seconds
 
 # Global thread lock to prevent concurrent sockets colliding on the AC
 ac_lock = threading.Lock()
@@ -88,35 +88,32 @@ async def control_ac(power_state=True):
     return False, f"Midea Control Error: {last_err}"
 
 async def query_ac_status():
-    """Query the AC device for current power state. Returns (power_on: bool|None, message: str)"""
+    """Query the AC device for current power state with fast 3.0s timeout."""
     if not config:
         return None, "config.json is missing or invalid."
-        
-    last_err = ""
-    for attempt in range(3):
-        device = None
-        try:
+
+    device = None
+    try:
+        async def _fetch():
+            nonlocal device
             device = AC(ip=config['ip'], port=6444, device_id=int(config['device_id']))
             await device.authenticate(config['token'], config['key'])
             await device.refresh()
             power_on = bool(device.power_state)
-            # Update cache
             ac_state_cache["power_on"] = power_on
             ac_state_cache["last_updated"] = time.time()
             return power_on, "OK"
-        except Exception as e:
-            last_err = str(e)
-            app.logger.warning(f"[status] Query attempt {attempt + 1} failed: {last_err}")
-            if attempt < 2:
-                await asyncio.sleep(0.5)
-        finally:
-            if device:
-                try:
-                    device._lan._disconnect()
-                except Exception:
-                    pass
-            
-    return None, f"Midea Status Error: {last_err}"
+
+        return await asyncio.wait_for(_fetch(), timeout=3.0)
+    except Exception as e:
+        app.logger.warning(f"[status] Live query failed/timed out: {e}")
+        return None, f"Midea Status Error: {e}"
+    finally:
+        if device:
+            try:
+                device._lan._disconnect()
+            except Exception:
+                pass
 
 def check_auth():
     """
@@ -239,17 +236,26 @@ def ac_status():
     # Cache miss or stale — do live query
     app.logger.info(f"Cache stale ({int(cache_age)}s old), querying device...")
     with ac_lock:
-        power_on, message = asyncio.run(query_ac_status())
-        
+        try:
+            power_on, message = asyncio.run(query_ac_status())
+        except Exception as e:
+            power_on, message = None, str(e)
+
     if power_on is None:
-        app.logger.error("AC status query failed: %s", message)
-        return jsonify({"success": False, "error": "Failed to query AC status"}), 500
+        app.logger.warning(f"AC status query failed: {message}. Returning cached fallback.")
+        fallback_val = ac_state_cache.get("power_on") if ac_state_cache.get("power_on") is not None else False
+        return jsonify({
+            "success": True,
+            "ac_on": fallback_val,
+            "source": "fallback_cache",
+            "warning": message
+        }), 200
 
     return jsonify({
         "success": True,
         "ac_on": power_on,
         "source": "live"
-    })
+    }), 200
 
 @app.route('/health', methods=['GET'])
 def health():
