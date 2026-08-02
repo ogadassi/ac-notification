@@ -35,7 +35,8 @@ DEFAULT_CONFIG = {
     "token": "571b46335cf39f12ce48d83ef4fce23b394487ac411c68043bc94986126c1502611d0ca6c47f5b7be9d37b94dbb6a04fc65c1b5aa9586b0752aee67fc317f791",
     "key": "6388ef44e9204bda9b1d204f950a947f98c508ef431e4d6ea22cfd277e22af16",
     "api_key": "ac_secret_key_8497",
-    "ngrok_domain": "oxidant-widely-endanger.ngrok-free.dev"
+    "ngrok_domain": "oxidant-widely-endanger.ngrok-free.dev",
+    "open_to_tray": False
 }
 
 REG_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -107,6 +108,10 @@ class ACServerManagerGUI:
         self.build_ui()
         self.start_all_services()
         self.setup_tray_icon()
+
+        # Hide to tray on startup if the setting is enabled
+        if self.config.get("open_to_tray", False):
+            self.root.after(0, self.hide_to_tray)
 
     def load_config_data(self):
         if not os.path.exists(CONFIG_FILE):
@@ -221,7 +226,13 @@ class ACServerManagerGUI:
         autostart_bg = COLOR_BUTTON_TEAL if is_autostart_enabled() else COLOR_BUTTON_SLATE
 
         self.btn_autostart = tk.Button(log_btn_row, text=autostart_text, bg=autostart_bg, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.toggle_autostart, cursor="hand2", bd=1)
-        self.btn_autostart.pack(side="left")
+        self.btn_autostart.pack(side="left", padx=(0, 4))
+
+        open_to_tray_enabled = self.config.get("open_to_tray", False)
+        open_to_tray_text = "🔲 Open to Tray: On" if open_to_tray_enabled else "🔲 Open to Tray: Off"
+        open_to_tray_bg = COLOR_BUTTON_TEAL if open_to_tray_enabled else COLOR_BUTTON_SLATE
+        self.btn_open_to_tray = tk.Button(log_btn_row, text=open_to_tray_text, bg=open_to_tray_bg, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.toggle_open_to_tray, cursor="hand2", bd=1)
+        self.btn_open_to_tray.pack(side="left")
 
         btn_restart = tk.Button(log_btn_row, text="⚡ Restart Server Services", bg=COLOR_BUTTON_SLATE, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.restart_all_services, cursor="hand2", bd=1)
         btn_restart.pack(side="right")
@@ -277,6 +288,22 @@ class ACServerManagerGUI:
         except Exception as e:
             messagebox.showerror("Auto-Start Error", f"Failed to modify Windows startup registry: {e}")
             self.log("ERROR", f"Auto-start registry error: {e}")
+
+    def toggle_open_to_tray(self):
+        current = self.config.get("open_to_tray", False)
+        self.config["open_to_tray"] = not current
+        try:
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(self.config, f, indent=2)
+        except Exception as e:
+            self.log("ERROR", f"Failed to save open_to_tray setting: {e}")
+            return
+        if self.config["open_to_tray"]:
+            self.btn_open_to_tray.config(text="🔲 Open to Tray: On", bg=COLOR_BUTTON_TEAL)
+            self.log("SYSTEM", "Open to Tray enabled — app will start minimized to tray next launch.")
+        else:
+            self.btn_open_to_tray.config(text="🔲 Open to Tray: Off", bg=COLOR_BUTTON_SLATE)
+            self.log("SYSTEM", "Open to Tray disabled — app will open normally next launch.")
 
     def toggle_advanced_settings(self):
         if self.show_advanced:
