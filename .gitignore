@@ -25,5 +25,5 @@ local.properties
 *.err
 
 # Python cache and build artifacts
-__pycache__/
+**/__pycache__/
 midea-ac-server/dist/
