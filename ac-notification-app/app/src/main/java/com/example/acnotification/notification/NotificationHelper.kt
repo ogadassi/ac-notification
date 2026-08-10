@@ -56,8 +56,17 @@ object NotificationHelper {
      * Shown when AC is OFF — prompts user to turn it on.
      * Uses BigTextStyle + PRIORITY_MAX so Android OS automatically expands the notification card
      * on arrival, revealing the "✅ Turn on AC" action button immediately without requiring a click.
+     *
+     * Convenience overload — assumes server was reachable (normal geofence entry with internet).
      */
-    fun showACNotification(context: Context) {
+    fun showACNotification(context: Context) = showACNotification(context, serverReachable = true)
+
+    /**
+     * Full overload. When [serverReachable] is false (AC status check failed due to no internet),
+     * the expanded notification text appends an offline hint so the user knows the state wasn't
+     * confirmed — they should still tap "Turn on AC" if they're unsure.
+     */
+    fun showACNotification(context: Context, serverReachable: Boolean) {
         createNotificationChannel(context)
 
         val yesIntent = Intent(context, ACActionReceiver::class.java).apply {
@@ -73,9 +82,15 @@ object NotificationHelper {
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val appAvatar = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
 
+        val expandedBody = if (serverReachable) {
+            "Turn on the AC before you arrive?"
+        } else {
+            "Turn on the AC before you arrive?\n⚠️ AC state couldn't be verified — no server connection."
+        }
+
         val bigTextStyle = NotificationCompat.BigTextStyle()
             .setBigContentTitle("You're almost home! 🏠")
-            .bigText("Turn on the AC before you arrive?")
+            .bigText(expandedBody)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification) // Pure monochromatic white app vector for status bar

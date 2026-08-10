@@ -1020,6 +1020,10 @@ class MainActivity : ComponentActivity() {
         httpClient.newCall(request).enqueue(object : okhttp3.Callback {
             override fun onFailure(call: okhttp3.Call, e: java.io.IOException) {
                 AppLogger.d("MainActivity", "Failed to query real AC status: ${e.message}")
+                // Signal offline banner to appear in the WebView
+                runOnUiThread {
+                    mainWebView?.evaluateJavascript("if (window.setServerReachable) { window.setServerReachable(false); }", null)
+                }
             }
 
             override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
@@ -1036,6 +1040,10 @@ class MainActivity : ComponentActivity() {
                                     runOnUiThread {
                                         refreshUIState()
                                     }
+                                }
+                                // Server responded — dismiss offline banner
+                                runOnUiThread {
+                                    mainWebView?.evaluateJavascript("if (window.setServerReachable) { window.setServerReachable(true); }", null)
                                 }
                             } catch (e: Exception) {
                                 AppLogger.d("MainActivity", "Error parsing AC status json: ${e.message}")

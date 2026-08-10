@@ -1,6 +1,7 @@
 package com.example.acnotification.notification
 
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -82,8 +83,8 @@ class ACActionReceiver : BroadcastReceiver() {
                 }
             }
         } catch (e: IOException) {
-            Log.e(TAG, "Webhook request failed", e)
-            showConfirmation(context, "\u274C Failed to reach AC webhook")
+            Log.e(TAG, "Webhook request failed — no internet", e)
+            showRetryNotification(context)
         }
     }
 
@@ -97,6 +98,49 @@ class ACActionReceiver : BroadcastReceiver() {
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setTimeoutAfter(10_000) // Auto-dismiss after 10 seconds
+            .build()
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify(CONFIRMATION_NOTIFICATION_ID, notification)
+    }
+
+    /**
+     * Shown when the webhook POST fails due to no internet (IOException).
+     * Offers a Retry button that re-fires the ACTION_AC_YES broadcast so the user
+     * can retry when connectivity is restored, without reopening the app.
+     */
+    private fun showRetryNotification(context: Context) {
+        NotificationHelper.createNotificationChannel(context)
+
+        val retryIntent = Intent(context, ACActionReceiver::class.java).apply {
+            action = "com.example.acnotification.ACTION_AC_YES"
+        }
+        val retryPendingIntent = PendingIntent.getBroadcast(
+            context,
+            10, // distinct request code from the original YES intent
+            retryIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("AC Control — No Internet")
+            .setContentText("❌ Couldn't reach the AC server. Tap Retry when you're back online.")
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("❌ Couldn't reach the AC server.\nTap Retry when you have internet access to turn on the AC.")
+            )
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .setTimeoutAfter(60_000) // Auto-dismiss after 60 s
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    R.drawable.ic_notification,
+                    "🔄 Retry",
+                    retryPendingIntent
+                ).build()
+            )
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)

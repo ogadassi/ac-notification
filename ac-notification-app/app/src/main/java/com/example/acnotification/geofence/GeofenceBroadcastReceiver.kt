@@ -154,11 +154,11 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                 }
             } else {
                 AppLogger.w(TAG, "[$ts] Status check HTTP ${response.code} — falling back to normal notification")
-                NotificationHelper.showACNotification(context)
+                NotificationHelper.showACNotification(context, serverReachable = false)
             }
         } catch (e: Exception) {
             AppLogger.e(TAG, "[$ts] Status check failed: ${e.message} — falling back to normal notification")
-            NotificationHelper.showACNotification(context)
+            NotificationHelper.showACNotification(context, serverReachable = false)
         }
     }
 }
