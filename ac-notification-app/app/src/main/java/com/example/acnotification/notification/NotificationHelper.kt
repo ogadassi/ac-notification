@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.acnotification.R
 
 object NotificationHelper {
@@ -16,7 +17,8 @@ object NotificationHelper {
     const val CHANNEL_ID = "ac_proximity_v6"
     const val NOTIFICATION_ID = 1001
     const val NOTIFICATION_ID_COOL = 1002
-    private const val ACTION_AC_YES = "com.example.acnotification.ACTION_AC_YES"
+    const val ACTION_AC_YES = "com.example.acnotification.ACTION_AC_YES"
+    const val ACTION_AC_DISMISS = "com.example.acnotification.ACTION_AC_DISMISS"
 
     fun createNotificationChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -54,18 +56,11 @@ object NotificationHelper {
 
     /**
      * Shown when AC is OFF — prompts user to turn it on.
-     * Uses BigTextStyle + PRIORITY_MAX so Android OS automatically expands the notification card
-     * on arrival, revealing the "✅ Turn on AC" action button immediately without requiring a click.
-     *
-     * Convenience overload — assumes server was reachable (normal geofence entry with internet).
+     * Uses BigTextStyle + PRIORITY_MAX + CarExtender so Android Auto and phone OS
+     * display the actionable buttons directly on the vehicle screen.
      */
     fun showACNotification(context: Context) = showACNotification(context, serverReachable = true)
 
-    /**
-     * Full overload. When [serverReachable] is false (AC status check failed due to no internet),
-     * the expanded notification text appends an offline hint so the user knows the state wasn't
-     * confirmed — they should still tap "Turn on AC" if they're unsure.
-     */
     fun showACNotification(context: Context, serverReachable: Boolean) {
         createNotificationChannel(context)
 
@@ -79,52 +74,86 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val dismissIntent = Intent(context, ACActionReceiver::class.java).apply {
+            action = ACTION_AC_DISMISS
+        }
+        val dismissPendingIntent = PendingIntent.getBroadcast(
+            context,
+            1,
+            dismissIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val appAvatar = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
 
         val expandedBody = if (serverReachable) {
-            "Turn on the AC before you arrive?"
+            "Turn on the AC before you arrive home?"
         } else {
-            "Turn on the AC before you arrive?\n⚠️ AC state couldn't be verified — no server connection."
+            "Turn on the AC before you arrive home?\n⚠️ AC state couldn't be verified — no server connection."
         }
 
         val bigTextStyle = NotificationCompat.BigTextStyle()
             .setBigContentTitle("You're almost home! 🏠")
             .bigText(expandedBody)
 
+        val turnOnAction = NotificationCompat.Action.Builder(
+            R.drawable.ic_notification,
+            "✅ Turn on AC",
+            yesPendingIntent
+        ).build()
+
+        val dismissAction = NotificationCompat.Action.Builder(
+            R.drawable.ic_notification,
+            "Dismiss",
+            dismissPendingIntent
+        ).build()
+
+        // Android Auto CarExtender configuration with dynamic phone theme color
+        val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+        val savedHex = prefs.getString("theme_primary", null)
+        val dynamicColor = if (!savedHex.isNullOrBlank()) {
+            try { android.graphics.Color.parseColor(savedHex) } catch (_: Exception) { 0xFF0284C7.toInt() }
+        } else {
+            ContextCompat.getColor(context, R.color.primary_dark)
+        }
+
+        val carExtender = NotificationCompat.CarExtender()
+            .setLargeIcon(appAvatar)
+            .setColor(dynamicColor)
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification) // Pure monochromatic white app vector for status bar
-            .setLargeIcon(appAvatar)                  // Full-color app icon avatar for the notification bubble
+            .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(appAvatar)
+            .setColor(dynamicColor)
             .setContentTitle("You're almost home! 🏠")
             .setContentText("Turn on the AC before you arrive?")
             .setStyle(bigTextStyle)
-            .setPriority(NotificationCompat.PRIORITY_MAX)   // PRIORITY_MAX forces top position & immediate auto-expansion
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE) // Lets Android Auto & OS surface action buttons
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setSound(soundUri)
             .setVibrate(longArrayOf(0, 250, 250, 250))
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            // Action button — displayed IMMEDIATELY on the auto-expanded notification card
-            .addAction(
-                NotificationCompat.Action.Builder(
-                    R.drawable.ic_notification,
-                    "✅ Turn on AC",
-                    yesPendingIntent
-                ).build()
-            )
+            .addAction(turnOnAction)
+            .addAction(dismissAction)
+            .extend(carExtender)
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.notify(NOTIFICATION_ID, notification)
     }
 
-    /** Shown when AC is already ON — informational only, no action button needed. */
+    /** Shown when AC is already ON — informational only, surfaces in car via CarExtender. */
     fun showAlreadyCoolNotification(context: Context) {
         createNotificationChannel(context)
 
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val appAvatar = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+
+        val carExtender = NotificationCompat.CarExtender()
+            .setLargeIcon(appAvatar)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -132,10 +161,12 @@ object NotificationHelper {
             .setContentTitle("Welcome home! ❄️")
             .setContentText("Your AC is already on — enjoy the cool air.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setSound(soundUri)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .extend(carExtender)
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)

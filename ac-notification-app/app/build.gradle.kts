@@ -10,8 +10,8 @@ android {
         applicationId = "com.example.acnotification"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "2.0.0"
     }
 
     buildTypes {
@@ -89,4 +89,8 @@ dependencies {
   // Location & Networking
   implementation(libs.play.services.location)
   implementation(libs.okhttp)
+
+  // Android for Cars App Library
+  implementation(libs.androidx.car.app)
+  testImplementation(libs.androidx.car.app.testing)
 }

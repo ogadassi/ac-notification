@@ -42,6 +42,7 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="com.example.acnotification.ACTION_AC_YES" />
+                <action android:name="com.example.acnotification.ACTION_AC_DISMISS" />
             </intent-filter>
         </receiver>
 
@@ -52,10 +53,24 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-        <!-- Android Auto: declare that this app posts messaging-style notifications for in-car use -->
+
+        <!-- Android Auto CarAppService -->
+        <service
+            android:name=".car.AcCarAppService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.IOT" />
+            </intent-filter>
+        </service>
+
+        <!-- Android Auto descriptor & Car API Level -->
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
 
     </application>
 

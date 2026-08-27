@@ -15,8 +15,11 @@ nav3Core = "1.0.1"
 lifecycleViewmodelNav3 = "2.10.0"
 playServicesLocation = "21.3.0"
 okhttp = "4.12.0"
+androidxCarApp = "1.4.0"
 
 [libraries]
+androidx-car-app = { module = "androidx.car.app:app", version.ref = "androidxCarApp" }
+androidx-car-app-testing = { module = "androidx.car.app:app-testing", version.ref = "androidxCarApp" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivity" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }

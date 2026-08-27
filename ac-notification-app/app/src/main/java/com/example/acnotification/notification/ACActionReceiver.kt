@@ -28,11 +28,16 @@ class ACActionReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.i(TAG, "YES action received — triggering AC")
+        val action = intent.action
+        Log.i(TAG, "Action received: $action")
 
-        // Dismiss the original notification
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.cancel(NotificationHelper.NOTIFICATION_ID)
+
+        if (action == NotificationHelper.ACTION_AC_DISMISS) {
+            Log.i(TAG, "Notification dismissed by user")
+            return
+        }
 
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val webhookUrl = prefs.getString(KEY_WEBHOOK_URL, "") ?: ""
@@ -74,8 +79,11 @@ class ACActionReceiver : BroadcastReceiver() {
             response.use {
                 if (it.isSuccessful) {
                     Log.i(TAG, "Webhook success: ${it.code}")
-                    // Cooldown only starts on absolute success!
-                    prefs.edit().putLong("last_action_time", System.currentTimeMillis()).apply()
+                    // Cooldown and state updated on success
+                    prefs.edit()
+                        .putLong("last_action_time", System.currentTimeMillis())
+                        .putString("real_ac_state", "ON")
+                        .apply()
                     showConfirmation(context, "AC is turning on! \u2744\uFE0F")
                 } else {
                     Log.e(TAG, "Webhook error: ${it.code}")
@@ -90,14 +98,18 @@ class ACActionReceiver : BroadcastReceiver() {
 
     private fun showConfirmation(context: Context, message: String) {
         NotificationHelper.createNotificationChannel(context)
+        val carExtender = NotificationCompat.CarExtender()
+
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("AC Control")
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setTimeoutAfter(10_000) // Auto-dismiss after 10 seconds
+            .extend(carExtender)
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)
@@ -122,6 +134,8 @@ class ACActionReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val carExtender = NotificationCompat.CarExtender()
+
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("AC Control — No Internet")
@@ -131,6 +145,7 @@ class ACActionReceiver : BroadcastReceiver() {
                     .bigText("❌ Couldn't reach the AC server.\nTap Retry when you have internet access to turn on the AC.")
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setTimeoutAfter(60_000) // Auto-dismiss after 60 s
@@ -141,6 +156,7 @@ class ACActionReceiver : BroadcastReceiver() {
                     retryPendingIntent
                 ).build()
             )
+            .extend(carExtender)
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)

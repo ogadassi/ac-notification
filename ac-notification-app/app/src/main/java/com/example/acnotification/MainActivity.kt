@@ -140,6 +140,11 @@ class MainActivity : ComponentActivity() {
             ACNotificationTheme {
                 val colorScheme = MaterialTheme.colorScheme
                 systemColorsMap = remember(colorScheme) {
+                    val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                    prefs.edit()
+                        .putString("theme_primary", colorScheme.primary.toHex())
+                        .putString("theme_secondary", colorScheme.secondary.toHex())
+                        .apply()
                     mapOf(
                         "primary" to colorScheme.primary.toHex(),
                         "on-primary" to colorScheme.onPrimary.toHex(),

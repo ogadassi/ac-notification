@@ -5,4 +5,5 @@
     <!-- Text colors for light mode -->
     <color name="notification_title_color">#0f172a</color>
     <color name="notification_body_color">#475569</color>
+    <color name="primary_dark">#0284c7</color>
 </resources>
