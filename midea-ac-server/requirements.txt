@@ -1,2 +1,5 @@
 msmart-ng
 flask
+pychromecast
+gTTS
+

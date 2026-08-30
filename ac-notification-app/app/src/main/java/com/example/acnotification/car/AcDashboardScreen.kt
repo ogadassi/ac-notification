@@ -57,16 +57,22 @@ class AcDashboardScreen(carContext: CarContext) : Screen(carContext) {
         return CarColor.createCustom(0xFF5DE6FF.toInt(), 0xFF0284C7.toInt())
     }
 
+    private fun getTargetTemperature(): Int {
+        val prefs = carContext.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+        return prefs.getInt("target_temp", 22)
+    }
+
     private fun fetchStatus() {
         isLoading = true
         invalidate()
         AppLogger.i(TAG, "Fetching AC status for Car Dashboard...")
 
+        val targetTemp = getTargetTemperature()
         apiClient.fetchStatus { result ->
             isLoading = false
             result.onSuccess { status ->
                 isAcOn = status.isAcOn
-                statusDetail = if (isAcOn) "Cooling to 22°C (Cool Mode)" else "AC is currently OFF"
+                statusDetail = if (isAcOn) "Cooling to ${targetTemp}°C (Cool Mode)" else "AC is currently OFF"
                 AppLogger.i(TAG, "Car Dashboard status updated: isAcOn=$isAcOn")
             }.onFailure { error ->
                 statusDetail = "Unavailable (${error.message ?: "Offline"})"
@@ -78,12 +84,13 @@ class AcDashboardScreen(carContext: CarContext) : Screen(carContext) {
 
     private fun toggleAc() {
         val targetState = !isAcOn
+        val targetTemp = getTargetTemperature()
         isLoading = true
         invalidate()
 
         CarToast.makeText(
             carContext,
-            if (targetState) "Sending Turn ON signal..." else "Sending Turn OFF signal...",
+            if (targetState) "Sending Turn ON signal (${targetTemp}°C)..." else "Sending Turn OFF signal...",
             CarToast.LENGTH_SHORT
         ).show()
 
@@ -91,7 +98,7 @@ class AcDashboardScreen(carContext: CarContext) : Screen(carContext) {
             isLoading = false
             result.onSuccess { msg ->
                 isAcOn = targetState
-                statusDetail = if (isAcOn) "Cooling to 22°C (Cool Mode)" else "AC is currently OFF"
+                statusDetail = if (isAcOn) "Cooling to ${targetTemp}°C (Cool Mode)" else "AC is currently OFF"
                 CarToast.makeText(carContext, msg, CarToast.LENGTH_LONG).show()
                 AppLogger.i(TAG, "Car Dashboard AC toggle success: $msg")
             }.onFailure { err ->
@@ -119,6 +126,7 @@ class AcDashboardScreen(carContext: CarContext) : Screen(carContext) {
         }
 
         val themeAccent = getDynamicThemeColor()
+        val targetTemp = getTargetTemperature()
 
         // 1. Relevant Compartment: AC Power State
         val statusRow = Row.Builder()
@@ -134,7 +142,7 @@ class AcDashboardScreen(carContext: CarContext) : Screen(carContext) {
         // 2. Relevant Compartment: Target Preset
         val targetTempRow = Row.Builder()
             .setTitle("Target Preset")
-            .addText("22.0°C • Auto Fan • Cool Mode")
+            .addText("${targetTemp}.0°C • Auto Fan • Cool Mode")
             .build()
 
         // 3. Relevant Compartment: Geofence Telemetry

@@ -505,6 +505,8 @@ class MainActivity : ComponentActivity() {
         } else 0
 
         val lastLocationDist = getCurrentLocationDistance(homeLat, homeLng)
+        val targetTemp = prefs.getInt("target_temp", 22)
+        val userName = prefs.getString("user_name", "") ?: ""
 
         if (cooldownRemaining > 0) {
             lastWebhookTriggerState = true
@@ -522,6 +524,8 @@ class MainActivity : ComponentActivity() {
             put("distance", lastLocationDist ?: org.json.JSONObject.NULL)
             put("acState", realACState)
             put("geofenceActive", geofenceActiveVal)
+            put("targetTemp", targetTemp)
+            put("userName", userName)
             put("permissions", org.json.JSONObject().apply {
                 put("location", locationPermissionGranted.value)
                 put("backgroundLocation", backgroundLocationGranted.value)
@@ -556,6 +560,8 @@ class MainActivity : ComponentActivity() {
             val homeAddress = geofenceManager.homeAddressName
             val geofenceActiveVal = geofenceManager.isGeofenceActive
             val hasCompletedOnboarding = prefs.getBoolean("has_completed_onboarding", false)
+            val targetTemp = prefs.getInt("target_temp", 22)
+            val userName = prefs.getString("user_name", "") ?: ""
 
             val lastActionTime = prefs.getLong("last_action_time", 0L)
             val cooldownMillis = 30 * 60 * 1000L
@@ -577,6 +583,8 @@ class MainActivity : ComponentActivity() {
                 put("acState", realACState)
                 put("geofenceActive", geofenceActiveVal)
                 put("hasCompletedOnboarding", hasCompletedOnboarding)
+                put("targetTemp", targetTemp)
+                put("userName", userName)
                 put("permissions", org.json.JSONObject().apply {
                     put("location", locationPermissionGranted.value)
                     put("backgroundLocation", backgroundLocationGranted.value)
@@ -803,10 +811,18 @@ class MainActivity : ComponentActivity() {
 
                 mainWebView?.evaluateJavascript("showInAppNotification('❄️ Turning on AC...', 'info')", null)
 
+                val targetTemp = prefs.getInt("target_temp", 22)
+                val userName = prefs.getString("user_name", "") ?: ""
+
                 Thread {
                     try {
                         val client = okhttp3.OkHttpClient()
-                        val jsonBody = "{\"action\": \"ac_on\", \"timestamp\": ${System.currentTimeMillis()}}"
+                        val jsonBody = org.json.JSONObject().apply {
+                            put("action", "ac_on")
+                            put("target_temp", targetTemp)
+                            if (userName.isNotBlank()) put("user", userName)
+                            put("timestamp", System.currentTimeMillis())
+                        }.toString()
                         val body = jsonBody.toRequestBody("application/json".toMediaType())
 
                         val request = okhttp3.Request.Builder()
@@ -823,7 +839,7 @@ class MainActivity : ComponentActivity() {
                                 prefs.edit().putString("real_ac_state", "ON").apply()
                                 realACState = "ON"
                                 runOnUiThread {
-                                    mainWebView?.evaluateJavascript("showInAppNotification('✅ AC is turning on! ❄️', 'success')", null)
+                                    mainWebView?.evaluateJavascript("showInAppNotification('✅ AC is turning on to ${targetTemp}°C! ❄️', 'success')", null)
                                     refreshUIState()
                                 }
                             } else {
@@ -923,6 +939,55 @@ class MainActivity : ComponentActivity() {
                     apply()
                 }
                 AppLogger.i("MainActivity", "Settings updated via Web UI: endpoint=$webhookUrlStr")
+                refreshUIState()
+                queryRealACState()
+            }
+        }
+
+        @JavascriptInterface
+        fun saveTargetTemp(targetTemp: Int) {
+            runOnUiThread {
+                val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                prefs.edit().putInt("target_temp", targetTemp).apply()
+                AppLogger.i("MainActivity", "Target temperature updated via Web UI: ${targetTemp}°C")
+                refreshUIState()
+            }
+        }
+
+        @JavascriptInterface
+        fun saveUserName(userName: String) {
+            runOnUiThread {
+                val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                prefs.edit().putString("user_name", userName.trim()).apply()
+                AppLogger.i("MainActivity", "User profile name updated via Web UI: '$userName'")
+                refreshUIState()
+            }
+        }
+
+        @JavascriptInterface
+        fun saveUserProfile(userName: String, targetTemp: Int) {
+            runOnUiThread {
+                val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString("user_name", userName.trim())
+                    .putInt("target_temp", targetTemp)
+                    .apply()
+                AppLogger.i("MainActivity", "User profile saved via Web UI: name='$userName', temp=${targetTemp}°C")
+                refreshUIState()
+            }
+        }
+
+        @JavascriptInterface
+        fun saveSettingsWithProfile(webhookUrlStr: String, apiKeyStr: String, userName: String, targetTemp: Int) {
+            runOnUiThread {
+                val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString("webhook_url", webhookUrlStr)
+                    .putString("api_key", apiKeyStr)
+                    .putString("user_name", userName.trim())
+                    .putInt("target_temp", targetTemp)
+                    .apply()
+                AppLogger.i("MainActivity", "Full settings saved via Web UI: endpoint=$webhookUrlStr, user='$userName', temp=${targetTemp}°C")
                 refreshUIState()
                 queryRealACState()
             }

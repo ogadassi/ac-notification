@@ -64,8 +64,16 @@ class ACActionReceiver : BroadcastReceiver() {
 
     private fun fireWebhook(context: Context, url: String, apiKey: String, prefs: android.content.SharedPreferences) {
         val client = OkHttpClient()
-        val json = "{\"action\": \"ac_on\", \"timestamp\": ${System.currentTimeMillis()}}"
-        val body = json.toRequestBody("application/json".toMediaType())
+        val targetTemp = prefs.getInt("target_temp", 22)
+        val userName = prefs.getString("user_name", "") ?: ""
+
+        val jsonPayload = org.json.JSONObject().apply {
+            put("action", "ac_on")
+            put("target_temp", targetTemp)
+            if (userName.isNotBlank()) put("user", userName)
+            put("timestamp", System.currentTimeMillis())
+        }.toString()
+        val body = jsonPayload.toRequestBody("application/json".toMediaType())
 
         val request = Request.Builder()
             .url(url)
@@ -84,7 +92,7 @@ class ACActionReceiver : BroadcastReceiver() {
                         .putLong("last_action_time", System.currentTimeMillis())
                         .putString("real_ac_state", "ON")
                         .apply()
-                    showConfirmation(context, "AC is turning on! \u2744\uFE0F")
+                    showConfirmation(context, "AC is turning on! Cooling to ${targetTemp}°C \u2744\uFE0F")
                 } else {
                     Log.e(TAG, "Webhook error: ${it.code}")
                     showConfirmation(context, "\u274C Webhook returned ${it.code}")

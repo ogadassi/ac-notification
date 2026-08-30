@@ -36,7 +36,11 @@ DEFAULT_CONFIG = {
     "key": "6388ef44e9204bda9b1d204f950a947f98c508ef431e4d6ea22cfd277e22af16",
     "api_key": "ac_secret_key_8497",
     "ngrok_domain": "oxidant-widely-endanger.ngrok-free.dev",
-    "open_to_tray": False
+    "open_to_tray": False,
+    "nest_audio_enabled": True,
+    "nest_device_name": "Home Nest",
+    "nest_ip": "10.0.0.6",
+    "server_port": 3000
 }
 
 REG_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"

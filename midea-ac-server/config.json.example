@@ -4,6 +4,10 @@
   "token": "YOUR_MIDEA_DECRYPT_TOKEN_128_CHAR",
   "key": "YOUR_MIDEA_DECRYPT_KEY_64_CHAR",
   "api_key": "YOUR_SECURE_HIGH_ENTROPY_KEY_MIN_16_CHARACTERS",
-  "ngrok_domain": "your-static-subdomain.ngrok-free.dev"
+  "ngrok_domain": "your-static-subdomain.ngrok-free.dev",
+  "nest_audio_enabled": true,
+  "nest_device_name": "Home Nest",
+  "nest_ip": "10.0.0.6",
+  "server_port": 3000
 }
 

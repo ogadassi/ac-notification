@@ -27,3 +27,6 @@ local.properties
 # Python cache and build artifacts
 **/__pycache__/
 midea-ac-server/dist/
+midea-ac-server/static/audio/tts/
+ac-notification-v2.1.0.apk
+

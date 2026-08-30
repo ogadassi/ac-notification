@@ -97,10 +97,20 @@ class AcApiClient(private val context: Context) {
         }
 
         val actionName = if (powerOn) "ac_on" else "ac_off"
-        val json = """{"action": "$actionName", "timestamp": ${System.currentTimeMillis()}}"""
-        val body = json.toRequestBody("application/json".toMediaType())
+        val targetTemp = prefs.getInt("target_temp", 22)
+        val userName = prefs.getString("user_name", "") ?: ""
 
-        AppLogger.i(TAG, "Triggering AC: POST $webhookUrl (action=$actionName)")
+        val jsonObj = JSONObject().apply {
+            put("action", actionName)
+            if (powerOn) {
+                put("target_temp", targetTemp)
+                if (userName.isNotBlank()) put("user", userName)
+            }
+            put("timestamp", System.currentTimeMillis())
+        }
+        val body = jsonObj.toString().toRequestBody("application/json".toMediaType())
+
+        AppLogger.i(TAG, "Triggering AC: POST $webhookUrl (action=$actionName, temp=$targetTemp, user=$userName)")
 
         val request = Request.Builder()
             .url(webhookUrl)
@@ -124,7 +134,7 @@ class AcApiClient(private val context: Context) {
                             .putLong(KEY_LAST_ACTION_TIME, System.currentTimeMillis())
                             .putString(KEY_REAL_AC_STATE, if (powerOn) "ON" else "OFF")
                             .apply()
-                        val msg = if (powerOn) "AC is turning on! Cooling to 22°C ❄️" else "AC turned off"
+                        val msg = if (powerOn) "AC is turning on! Cooling to ${targetTemp}°C ❄️" else "AC turned off"
                         AppLogger.i(TAG, "Trigger success: $msg")
                         callback(Result.success(msg))
                     } else {

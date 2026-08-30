@@ -6,11 +6,16 @@ import threading
 import hmac
 import os
 import logging
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from msmart.device import AirConditioner as AC
 from werkzeug.exceptions import HTTPException
+from nest_broadcaster import NestAudioBroadcaster
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_DIR = os.path.join(BASE_DIR, 'static', 'audio')
+os.makedirs(AUDIO_DIR, exist_ok=True)
+
+app = Flask(__name__, static_folder='static')
 
 # Configure robust internal logging
 logging.basicConfig(
@@ -27,6 +32,8 @@ def get_app_data_dir():
 
 CONFIG_FILE = os.path.join(get_app_data_dir(), 'config.json')
 config = {}
+nest_broadcaster = NestAudioBroadcaster(config=config, base_dir=BASE_DIR)
+
 
 import socket
 import concurrent.futures
@@ -82,6 +89,7 @@ def load_config():
         with open(CONFIG_FILE, 'r') as f:
             config = json.load(f)
             app.logger.info("Successfully loaded config.json")
+            nest_broadcaster.update_config(config)
             
         # Zero-trust validation on configuration load
         expected_key = config.get('api_key')
@@ -96,7 +104,7 @@ def load_config():
 
 load_config()
 
-async def control_ac(power_state=True):
+async def control_ac(power_state=True, target_temp=22.0):
     if not config:
         return False, "config.json is missing or invalid."
     
@@ -110,9 +118,10 @@ async def control_ac(power_state=True):
             device.power_state = power_state
             if power_state:
                 device.operational_mode = AC.OperationalMode.COOL
-                device.target_temperature = 22.0
+                device.target_temperature = float(target_temp)
             await device.apply()
-            msg = "AC successfully turned on to Cool 22°C" if power_state else "AC successfully turned off"
+            temp_display = int(target_temp) if float(target_temp).is_integer() else target_temp
+            msg = f"AC successfully turned on to Cool {temp_display}°C" if power_state else "AC successfully turned off"
             return True, msg
         except Exception as e:
             last_err = str(e)
@@ -186,8 +195,10 @@ def validate_trigger_payload(data):
     """
     Validates request payload:
     - Must be a dictionary.
-    - Must contain exactly 'action' and 'timestamp'.
-    - 'action' must be 'ac_on'.
+    - Must contain 'action'.
+    - 'action' must be 'ac_on' or 'ac_off'.
+    - Optional 'target_temp' between 16.0 and 30.0.
+    - Optional 'user' string <= 50 chars.
     - 'timestamp' must be a valid integer.
     - Replay protection: 'timestamp' must be within 10 minutes of server current time.
     """
@@ -202,6 +213,21 @@ def validate_trigger_payload(data):
     
     if not isinstance(action, str) or action not in ["ac_on", "ac_off"]:
         return False, "Invalid action field (must be 'ac_on' or 'ac_off')."
+
+    # Optional target_temp validation
+    if "target_temp" in data and data.get("target_temp") is not None:
+        try:
+            temp_val = float(data.get("target_temp"))
+            if not (16.0 <= temp_val <= 30.0):
+                return False, "target_temp must be between 16.0 and 30.0 degrees."
+        except (ValueError, TypeError):
+            return False, "target_temp must be a valid number."
+
+    # Optional user validation
+    user_val = data.get("user") or data.get("username")
+    if user_val is not None:
+        if not isinstance(user_val, str) or len(user_val) > 50:
+            return False, "user must be a string up to 50 characters."
         
     # Replay protection: if timestamp is provided, verify clock drift window
     if timestamp is not None and isinstance(timestamp, (int, float)):
@@ -228,6 +254,21 @@ def handle_exception(e):
     # Generic, uninformative public error message
     return jsonify({"success": False, "error": "Internal Server Error"}), 500
 
+@app.route('/static/audio/<path:filename>', methods=['GET'])
+def serve_audio(filename):
+    """
+    Serves static audio assets (chime and dynamic TTS) to Google Nest speaker on LAN.
+    """
+    file_path = os.path.join(AUDIO_DIR, filename)
+    if not os.path.exists(file_path):
+        # Fallback: if chime.mp3 requested, serve chime.wav if available
+        if filename == "chime.mp3" and os.path.exists(os.path.join(AUDIO_DIR, "chime.wav")):
+            return send_from_directory(AUDIO_DIR, "chime.wav", mimetype="audio/wav")
+        return jsonify({"error": "Audio file not found"}), 404
+        
+    mimetype = "audio/wav" if filename.endswith(".wav") else "audio/mp3"
+    return send_from_directory(AUDIO_DIR, filename, mimetype=mimetype)
+
 @app.route('/api/v1/ac/trigger', methods=['POST'])
 def trigger_ac():
     load_config()
@@ -243,20 +284,67 @@ def trigger_ac():
         return jsonify({"success": False, "error": err_msg}), 400
 
     action = payload.get("action")
+    target_temp = float(payload.get("target_temp", 22.0))
+    user = payload.get("user") or payload.get("username")
+    mode = payload.get("mode", "Cool")
     power_on = (action == "ac_on")
 
     with ac_lock:
-        success, message = asyncio.run(control_ac(power_state=power_on))
+        success, message = asyncio.run(control_ac(power_state=power_on, target_temp=target_temp))
         
     if success:
         # Update cache immediately
         ac_state_cache["power_on"] = power_on
         ac_state_cache["last_updated"] = time.time()
-        return jsonify({"success": True, "message": message, "ac_on": power_on}), 200
+        
+        # Asynchronously trigger Google Nest Audio broadcast in background thread
+        try:
+            nest_broadcaster.broadcast_ac_trigger_async(
+                action=action,
+                target_temp=target_temp,
+                mode=mode,
+                user=user
+            )
+        except Exception as e:
+            app.logger.warning(f"Failed to dispatch Nest Audio broadcast: {e}")
+
+        response_data = {"success": True, "message": message, "ac_on": power_on, "target_temp": target_temp}
+        if user:
+            response_data["user"] = user
+        return jsonify(response_data), 200
     else:
         # Log detail internally, return generic error message publicly
         app.logger.error("AC trigger failed: %s", message)
         return jsonify({"success": False, "error": "Failed to complete AC action"}), 500
+
+@app.route('/api/v1/nest/test', methods=['POST', 'GET'])
+def test_nest_audio():
+    """
+    Diagnostic endpoint to test local Google Nest speaker feedback.
+    """
+    load_config()
+    if not check_auth():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    custom_text = None
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+        custom_text = data.get("text")
+
+    if custom_text:
+        nest_broadcaster._executor.submit(
+            lambda: nest_broadcaster.play_sequence(chime_first=True, tts_text=custom_text)
+        )
+    else:
+        nest_broadcaster.broadcast_ac_trigger_async(action="ac_on", target_temp=22.0, mode="Cool")
+
+    return jsonify({
+        "success": True,
+        "message": "Dispatched Nest Audio test sequence asynchronously",
+        "nest_device": nest_broadcaster.device_name,
+        "nest_ip": nest_broadcaster.nest_ip
+    }), 200
+
 
 @app.route('/api/v1/ac/status', methods=['GET'])
 def ac_status():
