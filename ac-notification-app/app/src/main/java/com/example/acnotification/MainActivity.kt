@@ -945,6 +945,54 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun syncUserToServer(userName: String) {
+            val cleanName = userName.trim()
+            if (cleanName.isBlank()) return
+            val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+            val webhookUrl = prefs.getString("webhook_url", "") ?: ""
+            val apiKey = prefs.getString("api_key", "") ?: ""
+            if (webhookUrl.isBlank()) return
+
+            val baseUrl = if (webhookUrl.contains("/api/v1/")) {
+                webhookUrl.substringBefore("/api/v1/")
+            } else {
+                webhookUrl.substringBeforeLast("/")
+            }
+            val registerUrl = "$baseUrl/api/v1/user/register"
+
+            Thread {
+                try {
+                    val client = okhttp3.OkHttpClient()
+                    val jsonBody = org.json.JSONObject().apply {
+                        put("user", cleanName)
+                        put("timestamp", System.currentTimeMillis())
+                    }.toString()
+                    val body = jsonBody.toRequestBody("application/json".toMediaType())
+
+                    val request = okhttp3.Request.Builder()
+                        .url(registerUrl)
+                        .apply {
+                            if (apiKey.isNotBlank()) addHeader("X-API-Key", apiKey)
+                            addHeader("ngrok-skip-browser-warning", "true")
+                        }
+                        .post(body)
+                        .build()
+
+                    val response = client.newCall(request).execute()
+                    response.use { resp ->
+                        if (resp.isSuccessful) {
+                            AppLogger.i("MainActivity", "User '$cleanName' registered on home server: ${resp.code}")
+                        } else {
+                            AppLogger.w("MainActivity", "User registration on home server returned code: ${resp.code}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    AppLogger.w("MainActivity", "User registration sync failed: ${e.message}")
+                }
+            }.start()
+        }
+
+        @JavascriptInterface
         fun saveTargetTemp(targetTemp: Int) {
             runOnUiThread {
                 val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
@@ -957,39 +1005,45 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun saveUserName(userName: String) {
             runOnUiThread {
+                val cleanName = userName.trim()
                 val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
-                prefs.edit().putString("user_name", userName.trim()).apply()
-                AppLogger.i("MainActivity", "User profile name updated via Web UI: '$userName'")
+                prefs.edit().putString("user_name", cleanName).apply()
+                AppLogger.i("MainActivity", "User profile name updated via Web UI: '$cleanName'")
                 refreshUIState()
+                syncUserToServer(cleanName)
             }
         }
 
         @JavascriptInterface
         fun saveUserProfile(userName: String, targetTemp: Int) {
             runOnUiThread {
+                val cleanName = userName.trim()
                 val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
                 prefs.edit()
-                    .putString("user_name", userName.trim())
+                    .putString("user_name", cleanName)
                     .putInt("target_temp", targetTemp)
                     .apply()
-                AppLogger.i("MainActivity", "User profile saved via Web UI: name='$userName', temp=${targetTemp}°C")
+                AppLogger.i("MainActivity", "User profile saved via Web UI: name='$cleanName', temp=${targetTemp}°C")
                 refreshUIState()
+                syncUserToServer(cleanName)
             }
         }
 
         @JavascriptInterface
         fun saveSettingsWithProfile(webhookUrlStr: String, apiKeyStr: String, userName: String, targetTemp: Int) {
             runOnUiThread {
+                val cleanName = userName.trim()
                 val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
                 prefs.edit()
                     .putString("webhook_url", webhookUrlStr)
                     .putString("api_key", apiKeyStr)
-                    .putString("user_name", userName.trim())
+                    .putString("user_name", cleanName)
                     .putInt("target_temp", targetTemp)
                     .apply()
-                AppLogger.i("MainActivity", "Full settings saved via Web UI: endpoint=$webhookUrlStr, user='$userName', temp=${targetTemp}°C")
+                AppLogger.i("MainActivity", "Full settings saved via Web UI: endpoint=$webhookUrlStr, user='$cleanName', temp=${targetTemp}°C")
                 refreshUIState()
                 queryRealACState()
+                syncUserToServer(cleanName)
             }
         }
 

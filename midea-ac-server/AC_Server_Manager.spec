@@ -5,7 +5,7 @@ a = Analysis(
     ['AC_Server_Manager.py'],
     pathex=[],
     binaries=[],
-    datas=[('app_icon.ico', '.')],
+    datas=[('app_icon.ico', '.'), ('static', 'static')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

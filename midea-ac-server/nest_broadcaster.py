@@ -87,17 +87,22 @@ class NestAudioBroadcaster:
     random sound pool playback, static media streaming, and asynchronous execution.
     """
 
-    def __init__(self, config=None, base_dir=None):
+    def __init__(self, config=None, base_dir=None, audio_dir=None):
         self.config = config or {}
         if base_dir is None:
             self.base_dir = os.path.dirname(os.path.abspath(__file__))
         else:
             self.base_dir = base_dir
 
-        self.static_dir = os.path.join(self.base_dir, "static")
-        self.audio_dir = os.path.join(self.static_dir, "audio")
+        if audio_dir:
+            self.audio_dir = audio_dir
+        else:
+            self.static_dir = os.path.join(self.base_dir, "static")
+            self.audio_dir = os.path.join(self.static_dir, "audio")
+
         self.tts_dir = os.path.join(self.audio_dir, "tts")
         os.makedirs(self.tts_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.audio_dir, "users"), exist_ok=True)
 
         self.ensure_audio_assets()
 

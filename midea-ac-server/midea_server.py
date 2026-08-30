@@ -11,10 +11,6 @@ from msmart.device import AirConditioner as AC
 from werkzeug.exceptions import HTTPException
 from nest_broadcaster import NestAudioBroadcaster
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-AUDIO_DIR = os.path.join(BASE_DIR, 'static', 'audio')
-os.makedirs(AUDIO_DIR, exist_ok=True)
-
 app = Flask(__name__, static_folder='static')
 
 # Configure robust internal logging
@@ -30,9 +26,75 @@ def get_app_data_dir():
     os.makedirs(target_dir, exist_ok=True)
     return target_dir
 
+def get_audio_dir():
+    # 1. Check beside executable or script (portable / zip installation)
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    else:
+        exe_dir = os.path.dirname(os.path.abspath(__file__))
+
+    local_audio = os.path.join(exe_dir, "audio")
+    if os.path.isdir(local_audio):
+        return local_audio
+
+    local_static_audio = os.path.join(exe_dir, "static", "audio")
+    if os.path.isdir(local_static_audio):
+        return local_static_audio
+
+    # 2. Check PyInstaller _MEIPASS bundled static/audio
+    if hasattr(sys, '_MEIPASS'):
+        mei_audio = os.path.join(sys._MEIPASS, 'static', 'audio')
+        if os.path.isdir(mei_audio):
+            app_audio = os.path.join(get_app_data_dir(), "audio")
+            os.makedirs(app_audio, exist_ok=True)
+            import shutil
+            for item in os.listdir(mei_audio):
+                s = os.path.join(mei_audio, item)
+                d = os.path.join(app_audio, item)
+                if os.path.isfile(s) and not os.path.exists(d):
+                    try:
+                        shutil.copy2(s, d)
+                    except Exception:
+                        pass
+            return app_audio
+
+    # 3. Default to persistent APPDATA folder
+    app_data_audio = os.path.join(get_app_data_dir(), "audio")
+    os.makedirs(app_data_audio, exist_ok=True)
+    return app_data_audio
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_DIR = get_audio_dir()
+os.makedirs(os.path.join(AUDIO_DIR, "users"), exist_ok=True)
+os.makedirs(os.path.join(AUDIO_DIR, "tts"), exist_ok=True)
+
+# Write guide README if not present
+readme_path = os.path.join(AUDIO_DIR, "README.txt")
+if not os.path.exists(readme_path):
+    try:
+        with open(readme_path, "w", encoding="utf-8") as f:
+            f.write(
+                "=========================================================\n"
+                " AC Notification — Google Nest Audio & Custom Sounds\n"
+                "=========================================================\n\n"
+                "📁 GENERAL SOUNDS:\n"
+                "   - Drop any .mp3 or .wav audio files in this folder to be played at random.\n\n"
+                "📁 USER-SPECIFIC SOUNDS:\n"
+                "   - When you enter your name in the mobile app, a folder is automatically created:\n"
+                "     audio/users/<Username>/\n"
+                "   - Drop custom MP3/WAV welcome sounds into that user's folder!\n"
+                "   - Example: audio/users/Ohad/welcome.mp3\n\n"
+                "🗣️ AUTOMATIC TEXT-TO-SPEECH (TTS):\n"
+                "   - If no custom sounds exist in the user's folder, Google Nest will automatically\n"
+                "     speak a personalized welcome announcement.\n"
+                "=========================================================\n"
+            )
+    except Exception:
+        pass
+
 CONFIG_FILE = os.path.join(get_app_data_dir(), 'config.json')
 config = {}
-nest_broadcaster = NestAudioBroadcaster(config=config, base_dir=BASE_DIR)
+nest_broadcaster = NestAudioBroadcaster(config=config, base_dir=BASE_DIR, audio_dir=AUDIO_DIR)
 
 
 import socket
@@ -343,6 +405,50 @@ def test_nest_audio():
         "message": "Dispatched Nest Audio test sequence asynchronously",
         "nest_device": nest_broadcaster.device_name,
         "nest_ip": nest_broadcaster.nest_ip
+    }), 200
+
+
+@app.route('/api/v1/user/register', methods=['POST'])
+def register_user():
+    """
+    Registers a user from the mobile app and immediately creates their dedicated sound folder.
+    """
+    load_config()
+    if not check_auth():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    if not request.is_json:
+        return jsonify({"success": False, "error": "Content-Type must be application/json"}), 415
+
+    payload = request.get_json(silent=True) or {}
+    user = payload.get("user") or payload.get("userName") or payload.get("username")
+    if not user or not isinstance(user, str):
+        return jsonify({"success": False, "error": "Missing user parameter"}), 400
+
+    user_clean = user.strip().replace("..", "").replace("/", "").replace("\\", "")
+    if not user_clean or len(user_clean) > 50:
+        return jsonify({"success": False, "error": "Invalid user name"}), 400
+
+    user_folder = os.path.join(AUDIO_DIR, "users", user_clean)
+    os.makedirs(user_folder, exist_ok=True)
+
+    readme_file = os.path.join(user_folder, "README.txt")
+    if not os.path.exists(readme_file):
+        try:
+            with open(readme_file, "w", encoding="utf-8") as f:
+                f.write(
+                    f"Drop custom welcome sound files (.mp3, .wav) for '{user_clean}' in this folder.\n"
+                    f"When '{user_clean}' approaches home and triggers AC cooling, sounds from this folder will play on your Google Nest speaker!\n"
+                )
+        except Exception:
+            pass
+
+    app.logger.info(f"[USER] User '{user_clean}' registered. Dedicated sound folder ready at: {user_folder}")
+    return jsonify({
+        "success": True,
+        "user": user_clean,
+        "folder": user_folder,
+        "message": f"User folder ready for '{user_clean}'"
     }), 200
 
 

@@ -28,6 +28,24 @@ def get_app_data_dir():
     os.makedirs(target_dir, exist_ok=True)
     return target_dir
 
+def get_audio_dir():
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    else:
+        exe_dir = os.path.dirname(os.path.abspath(__file__))
+
+    local_audio = os.path.join(exe_dir, "audio")
+    if os.path.isdir(local_audio):
+        return local_audio
+
+    local_static_audio = os.path.join(exe_dir, "static", "audio")
+    if os.path.isdir(local_static_audio):
+        return local_static_audio
+
+    app_data_audio = os.path.join(get_app_data_dir(), "audio")
+    os.makedirs(app_data_audio, exist_ok=True)
+    return app_data_audio
+
 CONFIG_FILE = os.path.join(get_app_data_dir(), "config.json")
 DEFAULT_CONFIG = {
     "ip": "10.0.0.7",
@@ -232,10 +250,13 @@ class ACServerManagerGUI:
         btn_row.pack(fill="x")
 
         btn_copy_url = tk.Button(btn_row, text="📋 2. Copy Webhook URL", bg=COLOR_BUTTON_PRIMARY, fg="#FFFFFF", font=("Segoe UI", 9, "bold"), activebackground="#0369a1", activeforeground="#FFFFFF", command=self.copy_url, cursor="hand2", relief="raised", bd=1)
-        btn_copy_url.pack(side="left", fill="x", expand=True, padx=(0, 4), ipady=3)
+        btn_copy_url.pack(side="left", fill="x", expand=True, padx=(0, 2), ipady=3)
 
-        btn_copy_key = tk.Button(btn_row, text="🔑 Copy Secret Key", bg=COLOR_BUTTON_SLATE, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9, "bold"), activebackground="#475569", activeforeground="#FFFFFF", command=self.copy_key, cursor="hand2", relief="raised", bd=1)
-        btn_copy_key.pack(side="right", fill="x", expand=True, padx=(4, 0), ipady=3)
+        btn_copy_key = tk.Button(btn_row, text="🔑 Copy Key", bg=COLOR_BUTTON_SLATE, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 9, "bold"), activebackground="#475569", activeforeground="#FFFFFF", command=self.copy_key, cursor="hand2", relief="raised", bd=1)
+        btn_copy_key.pack(side="left", fill="x", expand=True, padx=(2, 2), ipady=3)
+
+        btn_open_audio = tk.Button(btn_row, text="📁 Sounds Folder", bg=COLOR_BUTTON_TEAL, fg="#FFFFFF", font=("Segoe UI", 9, "bold"), activebackground="#0f766e", activeforeground="#FFFFFF", command=self.open_audio_folder, cursor="hand2", relief="raised", bd=1)
+        btn_open_audio.pack(side="right", fill="x", expand=True, padx=(2, 0), ipady=3)
 
         # ---------------- STEP 3: Auto-Start & Logs ----------------
         group_step3 = tk.LabelFrame(main_container, text=" STEP 3: Background Server & System Logs ", bg=COLOR_CANVAS, fg=COLOR_CYAN, font=("Segoe UI", 10, "bold"), padx=12, pady=6, bd=1, relief="solid")
@@ -266,12 +287,23 @@ class ACServerManagerGUI:
         self.root.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
         menu = pystray.Menu(
             pystray.MenuItem("Open Control Center", self.show_from_tray, default=True),
+            pystray.MenuItem("📁 Open Sounds Folder", self.open_audio_folder),
             pystray.MenuItem("Server Status: ONLINE", None, enabled=False),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Exit Server Completely", self.exit_app_completely)
         )
         self.tray_icon = pystray.Icon("ACNotificationServer", create_tray_image(), "AC Notification Server", menu)
         threading.Thread(target=self.tray_icon.run, daemon=True).start()
+
+    def open_audio_folder(self, icon=None, item=None):
+        audio_dir = get_audio_dir()
+        os.makedirs(audio_dir, exist_ok=True)
+        os.makedirs(os.path.join(audio_dir, "users"), exist_ok=True)
+        try:
+            os.startfile(audio_dir)
+            self.log("AUDIO", f"Opened sounds folder in Windows Explorer: {audio_dir}")
+        except Exception as e:
+            self.log("ERROR", f"Failed to open audio folder: {e}")
 
     def hide_to_tray(self):
         self.root.withdraw()

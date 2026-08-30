@@ -28,6 +28,7 @@ def build_exe():
         "--windowed",
         "--icon=app_icon.ico",
         "--add-data=app_icon.ico;.",
+        "--add-data=static;static",
         "--name=AC_Server_Manager",
         "--clean",
         "AC_Server_Manager.py"
