@@ -113,7 +113,7 @@ class ACActionReceiver : BroadcastReceiver() {
             .setContentTitle("AC Control")
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setTimeoutAfter(10_000) // Auto-dismiss after 10 seconds
@@ -142,6 +142,12 @@ class ACActionReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val retryAction = NotificationCompat.Action.Builder(
+            R.drawable.ic_notification,
+            "🔄 Retry",
+            retryPendingIntent
+        ).build()
+
         val carExtender = NotificationCompat.CarExtender()
 
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
@@ -153,17 +159,11 @@ class ACActionReceiver : BroadcastReceiver() {
                     .bigText("❌ Couldn't reach the AC server.\nTap Retry when you have internet access to turn on the AC.")
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setTimeoutAfter(60_000) // Auto-dismiss after 60 s
-            .addAction(
-                NotificationCompat.Action.Builder(
-                    R.drawable.ic_notification,
-                    "🔄 Retry",
-                    retryPendingIntent
-                ).build()
-            )
+            .addAction(retryAction)
             .extend(carExtender)
             .build()
 

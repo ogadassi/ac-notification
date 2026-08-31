@@ -109,7 +109,7 @@ object NotificationHelper {
             dismissPendingIntent
         ).build()
 
-        // Android Auto CarExtender configuration with dynamic phone theme color
+        // Android Auto CarExtender configuration with dynamic phone theme color & in-car actions
         val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
         val savedHex = prefs.getString("theme_primary", null)
         val dynamicColor = if (!savedHex.isNullOrBlank()) {
@@ -129,8 +129,9 @@ object NotificationHelper {
             .setContentTitle("You're almost home! 🏠")
             .setContentText("Turn on the AC before you arrive?")
             .setStyle(bigTextStyle)
+            .setContentIntent(yesPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setSound(soundUri)
             .setVibrate(longArrayOf(0, 250, 250, 250))
@@ -149,19 +150,29 @@ object NotificationHelper {
     fun showAlreadyCoolNotification(context: Context) {
         createNotificationChannel(context)
 
+        val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
+        val savedHex = prefs.getString("theme_primary", null)
+        val dynamicColor = if (!savedHex.isNullOrBlank()) {
+            try { android.graphics.Color.parseColor(savedHex) } catch (_: Exception) { 0xFF0284C7.toInt() }
+        } else {
+            ContextCompat.getColor(context, R.color.primary_dark)
+        }
+
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
         val appAvatar = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
 
         val carExtender = NotificationCompat.CarExtender()
             .setLargeIcon(appAvatar)
+            .setColor(dynamicColor)
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(appAvatar)
+            .setColor(dynamicColor)
             .setContentTitle("Welcome home! ❄️")
             .setContentText("Your AC is already on — enjoy the cool air.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setSound(soundUri)
             .setAutoCancel(true)
