@@ -3,5 +3,4 @@
      Required for Android Auto to show this app's messaging notifications in-car. -->
 <automotiveApp>
     <uses name="template" />
-    <uses name="notification" />
 </automotiveApp>
