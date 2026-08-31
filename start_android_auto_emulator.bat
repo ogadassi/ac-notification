@@ -72,33 +72,28 @@ if exist "%~dp0ac-notification-app.apk" (
     echo     Warning: ac-notification-app.apk not found in current folder, skipping install.
 )
 
-:: Step 4: Forward the Head Unit port over ADB
+:: Step 4: Open Android Auto Settings directly on the device screen
 echo.
-echo [4/5] Forwarding Android Auto Head Unit port (TCP 5277)...
+echo [4/5] Opening Android Auto Settings on device screen...
+"%ADB%" shell am start -n com.google.android.projection.gearhead/com.google.android.apps.auto.components.app.stubapp.StubSettingsActivity >nul 2>&1
 "%ADB%" forward tcp:5277 tcp:5277
-if %errorlevel% neq 0 (
-    echo [ERROR] Failed to forward port 5277 over ADB.
-    pause
-    exit /b 1
-)
 echo     Port 5277 forwarded successfully.
 
-:: Step 5: Instructions and Launching Desktop Head Unit
+:: Step 5: Start Desktop Head Unit
 echo.
 echo ===================================================================
-echo  IMPORTANT: HEAD UNIT SERVER SETUP
+echo  HEAD UNIT SERVER INSTRUCTIONS (ON THE PHONE / EMULATOR SCREEN):
 echo ===================================================================
-echo  Before the car screen can connect, the Head Unit Server must be
-echo  running on the device:
+echo   1. The Android Auto settings screen has just opened on your device.
+echo   2. Scroll to the very bottom and tap 'Version' 10 times to enable Developer Mode.
+echo   3. Tap the 3 dots in top right corner (⋮) -^> 'Start head unit server'.
 echo.
-echo    1. On the phone/emulator screen, open 'Android Auto' settings.
-echo    2. Scroll to bottom, tap 'Version' 10 times to unlock Developer mode.
-echo    3. Tap the 3 dots (top right) -^> 'Start head unit server'.
-echo.
-echo  Attempting to launch the Desktop Head Unit now...
+echo  Press any key AFTER starting the server to launch the car screen...
 echo ===================================================================
-echo.
+pause >nul
 
+echo.
+echo Launching Google Desktop Head Unit (DHU)...
 "%DHU%"
 
 echo.
