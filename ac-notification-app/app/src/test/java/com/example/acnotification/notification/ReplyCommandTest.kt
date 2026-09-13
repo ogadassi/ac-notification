@@ -16,7 +16,7 @@ class ReplyCommandTest {
     )
 
     @Test
-    fun offRepliesTurnOff() = assertParses(ReplyCommand.TURN_OFF, "turn off", "Switch it off.", "תכבה")
+    fun offRepliesTurnOff() = assertParses(ReplyCommand.TURN_OFF, "turn off", "Turn off AC", "Switch it off.", "תכבה")
 
     @Test
     fun negativeRepliesDecline() = assertParses(
