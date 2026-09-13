@@ -69,7 +69,7 @@ echo [3/5] Installing / updating AC Notification (v2.2.0)...
 if exist "%~dp0ac-notification-app.apk" (
     "%ADB%" install -r "%~dp0ac-notification-app.apk"
 ) else (
-    echo     Warning: ac-notification-app.apk not found in current folder, skipping install.
+    echo     Warning: ac-notification-app.apk not found in this folder, skipping install. Download it from https://github.com/ogadassi/ac-notification/releases/latest
 )
 
 :: Step 4: Open Android Auto Settings directly on the device screen

@@ -33,5 +33,9 @@ local.properties
 **/__pycache__/
 midea-ac-server/dist/
 midea-ac-server/static/audio/tts/
-ac-notification-v2.1.0.apk
+
+# Release binaries are published on GitHub Releases, not committed
+/*.exe
+/*.apk
+/*.aab
 
