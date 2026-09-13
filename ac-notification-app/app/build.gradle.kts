@@ -14,8 +14,8 @@ android {
         applicationId = if (playBuild) "com.ogadassi.acnotification" else "com.example.acnotification"
         minSdk = 29
         targetSdk = 36
-        versionCode = 10
-        versionName = "2.5.0"
+        versionCode = 11
+        versionName = "2.5.1"
     }
 
     // Play builds (-Pplay) sign with the upload key from the git-ignored keystore.properties (see keystore.properties.example);
