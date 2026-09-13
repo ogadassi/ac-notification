@@ -31,6 +31,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import androidx.core.content.ContextCompat
+import com.example.acnotification.api.AcApiClient
 import com.example.acnotification.geofence.GeofenceBroadcastReceiver
 import com.example.acnotification.geofence.GeofenceManager
 import com.example.acnotification.notification.NotificationHelper
@@ -261,13 +262,14 @@ class MainActivity : ComponentActivity() {
         batteryOptimizationIgnored.value = pm.isIgnoringBatteryOptimizations(packageName)
     }
 
-    private fun fetchLastKnownLocation() {
+    private fun fetchLastKnownLocation(onLocation: (android.location.Location) -> Unit = {}) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             val locationClient = LocationServices.getFusedLocationProviderClient(this)
             locationClient.lastLocation.addOnSuccessListener { loc ->
                 if (loc != null) {
                     lastKnownLocation = loc
                     refreshUIState()
+                    onLocation(loc)
                 }
             }
         }
@@ -432,56 +434,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkAndTriggerProximityIfNeeded() {
-        val homeLat = geofenceManager.homeLatitude
-        val homeLng = geofenceManager.homeLongitude
+    private fun checkAndTriggerProximityIfNeeded(currentLoc: android.location.Location) {
+        if (!geofenceManager.isGeofenceActive) return
+
         val radius = geofenceManager.radiusMeters
-        val isMonitoring = geofenceManager.isGeofenceActive
-
-        if (!isMonitoring || homeLat == 0.0 || homeLng == 0.0) return
-
-        val currentLoc = lastKnownLocation ?: return
         val results = FloatArray(1)
         android.location.Location.distanceBetween(
             currentLoc.latitude, currentLoc.longitude,
-            homeLat, homeLng,
+            geofenceManager.homeLatitude, geofenceManager.homeLongitude,
             results
         )
         val currentDistanceMeters = results[0]
 
         AppLogger.i("MainActivity", "Refresh Proximity Audit: Distance=${currentDistanceMeters.toInt()}m, Geofence Radius=${radius}m")
+        if (currentDistanceMeters > radius) return
 
-        if (currentDistanceMeters <= radius) {
-            val prefs = getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
-            val webhookUrl = prefs.getString("webhook_url", "") ?: ""
-            val apiKey = prefs.getString("api_key", "") ?: ""
-            
-            if (webhookUrl.isNotEmpty()) {
-                val statusUrl = webhookUrl.replace("/trigger", "/status")
-                kotlin.concurrent.thread {
-                    try {
-                        val conn = java.net.URL(statusUrl).openConnection() as java.net.HttpURLConnection
-                        conn.requestMethod = "GET"
-                        conn.connectTimeout = 3000
-                        conn.readTimeout = 3000
-                        if (apiKey.isNotEmpty()) conn.setRequestProperty("X-API-Key", apiKey)
-                        
-                        if (conn.responseCode == 200) {
-                            val responseText = conn.inputStream.bufferedReader().readText()
-                            val json = org.json.JSONObject(responseText)
-                            val isAcOn = json.optBoolean("power", false) || json.optString("state", "").equals("ON", ignoreCase = true)
-                            
-                            if (!isAcOn) {
-                                AppLogger.i("MainActivity", "Pull-To-Refresh Proximity Trigger: User inside radius & AC is OFF! Triggering Notification Prompt...")
-                                com.example.acnotification.notification.NotificationHelper.showACNotification(this@MainActivity)
-                            } else {
-                                AppLogger.i("MainActivity", "Pull-To-Refresh Proximity Trigger: User inside radius, but AC is ALREADY ON.")
-                            }
-                        }
-                    } catch (e: Exception) {
-                        AppLogger.w("MainActivity", "Proximity server audit error: ${e.message}")
-                    }
+        // Same status endpoint and ac_on field the geofence receiver relies on
+        AcApiClient(this).fetchStatus { result ->
+            result.onSuccess { status ->
+                if (status.isAcOn) {
+                    AppLogger.i("MainActivity", "Pull-To-Refresh Proximity Trigger: User inside radius, but AC is ALREADY ON.")
+                } else {
+                    AppLogger.i("MainActivity", "Pull-To-Refresh Proximity Trigger: User inside radius & AC is OFF! Triggering Notification Prompt...")
+                    NotificationHelper.showACNotification(this@MainActivity)
                 }
+            }.onFailure { e ->
+                AppLogger.w("MainActivity", "Proximity server audit error: ${e.message}")
             }
         }
     }
@@ -610,10 +588,11 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 AppLogger.i("MainActivity", "=== Pull-To-Refresh Requested by User ===")
                 checkPermissions()
-                fetchLastKnownLocation()
+                // Check proximity once the fresh location arrives rather than against the previous fix
+                fetchLastKnownLocation { loc -> checkAndTriggerProximityIfNeeded(loc) }
                 
-                // Auto-register/enable geofence monitoring if location is configured and fine location permission is granted
-                if (geofenceManager.homeLatitude != 0.0 && locationPermissionGranted.value) {
+                // Re-submit the geofence only while monitoring is on, so refreshing never re-enables it after the user switched it off
+                if (geofenceManager.isGeofenceActive && locationPermissionGranted.value) {
                     toggleGeofence(true)
                 } else {
                     geofenceActive.value = geofenceManager.isGeofenceActive
@@ -622,7 +601,6 @@ class MainActivity : ComponentActivity() {
                 homeLatitude.value = geofenceManager.homeLatitude
                 homeLongitude.value = geofenceManager.homeLongitude
                 homeAddressName.value = geofenceManager.homeAddressName
-                checkAndTriggerProximityIfNeeded()
                 refreshUIState()
 
                 // Notify WebView JS immediately upon refresh completion
