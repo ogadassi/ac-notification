@@ -40,6 +40,48 @@ def get_audio_file_duration(file_path: str) -> float:
     return 3.5
 
 
+def generate_default_chime_wav(filepath: str, sample_rate: int = 44100):
+    """
+    Synthesizes a pleasant, gentle 2-tone notification chime (16-bit PCM mono WAV)
+    for Google Cast speakers when AC is turned off.
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
+    notes = [
+        (587.33, 0.35),  # D5
+        (440.00, 0.65),  # A4
+    ]
+    audio_samples = []
+    for freq, duration in notes:
+        total_samples = int(sample_rate * duration)
+        for i in range(total_samples):
+            t = i / sample_rate
+            attack_time = 0.015
+            if t < attack_time:
+                envelope = t / attack_time
+            else:
+                envelope = math.exp(-3.5 * (t - attack_time) / duration)
+
+            sample = (
+                0.70 * math.sin(2 * math.pi * freq * t) +
+                0.20 * math.sin(2 * math.pi * (freq * 2) * t) +
+                0.10 * math.sin(2 * math.pi * (freq * 3) * t)
+            ) * envelope
+
+            int_val = int(sample * 26000.0)
+            int_val = max(-32767, min(32767, int_val))
+            audio_samples.append(int_val)
+
+    audio_samples.extend([0] * int(sample_rate * 0.1))
+
+    with wave.open(filepath, 'wb') as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        packed_data = struct.pack('<' + 'h' * len(audio_samples), *audio_samples)
+        wf.writeframes(packed_data)
+    logger.info(f"Generated default off-chime at '{filepath}'")
+
+
 def sanitize_wav_files(audio_dir: str):
     """
     Checks all WAV files in audio_dir to ensure:
@@ -154,27 +196,37 @@ class NestAudioBroadcaster:
                 return "127.0.0.1"
 
     def ensure_audio_assets(self):
-        """Ensures quiet/float32 WAV recordings in static/audio are converted to loud 16-bit PCM."""
+        """Ensures quiet/float32 WAV recordings in static/audio are converted to loud 16-bit PCM and default chime exists."""
         sanitize_wav_files(self.audio_dir)
+        chime_candidates = ("chime.wav", "chime.mp3", "off.wav", "off.mp3")
+        if not any(os.path.exists(os.path.join(self.audio_dir, c)) for c in chime_candidates):
+            default_chime = os.path.join(self.audio_dir, "chime.wav")
+            try:
+                generate_default_chime_wav(default_chime)
+            except Exception as e:
+                logger.error(f"Failed to generate default chime: {e}")
 
     def get_audio_pool(self) -> list[str]:
         """
-        Discovers available audio recordings in static/audio/.
+        Discovers available audio recordings in static/audio/ for random welcome playback.
+        Excludes reserved generic chime sounds (chime.wav, off.wav, etc.).
         Returns list of filenames (e.g. ['1.wav', '2.wav', ..., '7.wav']).
         """
         if not os.path.exists(self.audio_dir):
             return []
+        reserved = {"chime.wav", "chime.mp3", "off.wav", "off.mp3"}
         return [
             f for f in sorted(os.listdir(self.audio_dir))
-            if f.endswith((".wav", ".mp3", ".ogg", ".flac"))
+            if f.lower().endswith((".wav", ".mp3", ".ogg", ".flac")) and f.lower() not in reserved
         ]
 
-    def pick_sound(self, sound_override: str = None, user: str = None) -> tuple[str, str, str, float, bool]:
+    def pick_sound(self, sound_override: str = None, user: str = None, action: str = "ac_on") -> tuple[str, str, str, float, bool]:
         """
         Picks a sound track:
-        1. Explicit sound_override if requested.
-        2. User-specific audio recording/folder if 'user' is specified (e.g. static/audio/users/<user>/ or static/audio/<user>.wav).
-        3. Random sound from the general audio pool.
+        1. Explicit sound_override if requested and exists.
+        2. If action is 'ac_off', picks generic chime (chime.wav / off.wav), bypassing user-specific sounds.
+        3. If action is 'ac_on', checks user-specific audio recording/folder if 'user' is specified.
+        4. Fallback to general audio pool.
         Returns: (filename, full_file_path, content_type, duration_sec, is_custom_recording)
         """
         chosen_relative = None
@@ -183,8 +235,29 @@ class NestAudioBroadcaster:
         if sound_override and os.path.exists(os.path.join(self.audio_dir, sound_override)):
             chosen_relative = sound_override
 
-        # 2. Check user-specific audio folder or file
-        if not chosen_relative and user:
+        # 2. AC Turn Off -> Generic Chime (never user-specific sound)
+        if not chosen_relative and action == "ac_off":
+            for chime_name in ("chime.wav", "chime.mp3", "off.wav", "off.mp3"):
+                if os.path.exists(os.path.join(self.audio_dir, chime_name)):
+                    chosen_relative = chime_name
+                    break
+            if not chosen_relative:
+                # Generate default chime if missing
+                default_chime = os.path.join(self.audio_dir, "chime.wav")
+                try:
+                    generate_default_chime_wav(default_chime)
+                    chosen_relative = "chime.wav"
+                except Exception as e:
+                    logger.error(f"Failed to generate default chime: {e}")
+
+            if chosen_relative:
+                full_path = os.path.join(self.audio_dir, chosen_relative)
+                content_type = "audio/wav" if chosen_relative.endswith(".wav") else "audio/mp3"
+                duration = get_audio_file_duration(full_path)
+                return chosen_relative, full_path, content_type, duration, False
+
+        # 3. Check user-specific audio folder or file (only for AC On / non-off actions)
+        if not chosen_relative and user and action != "ac_off":
             user_clean = user.strip().replace("..", "")
             user_candidates = [
                 os.path.join("users", user_clean),
@@ -212,11 +285,13 @@ class NestAudioBroadcaster:
                 if chosen_relative:
                     break
 
-        # 3. Fallback to general pool
+        # 4. Fallback to general pool
         if not chosen_relative:
             pool = self.get_audio_pool()
             if pool:
                 chosen_relative = random.choice(pool)
+            elif os.path.exists(os.path.join(self.audio_dir, "chime.wav")):
+                chosen_relative = "chime.wav"
             else:
                 logger.warning("No audio files found in static/audio/")
                 return "", "", "audio/wav", 0.0, False
@@ -358,11 +433,15 @@ class NestAudioBroadcaster:
     def broadcast_ac_trigger(self, action: str = "ac_on", target_temp: float = 22.0, mode: str = "Cool", sound_override: str = None, user: str = None) -> bool:
         """
         Dispatches audio playback on AC trigger.
-        Picks a user-specific sound or random sound from the audio pool and plays it directly.
+        When action == 'ac_off', plays generic chime.
+        When action == 'ac_on', picks user-specific sound or random sound from the audio pool.
         """
-        sound_name, full_path, content_type, duration, _ = self.pick_sound(sound_override=sound_override, user=user)
-        user_tag = f" (User: {user})" if user else ""
-        logger.info(f"▶ AC Trigger{user_tag}: Playing recording '{sound_name}' ({duration:.2f}s, target: {target_temp}°C)")
+        sound_name, full_path, content_type, duration, _ = self.pick_sound(sound_override=sound_override, user=user, action=action)
+        if action == "ac_off":
+            logger.info(f"▶ AC Trigger (Turn OFF): Playing generic chime '{sound_name}' ({duration:.2f}s)")
+        else:
+            user_tag = f" (User: {user})" if user else ""
+            logger.info(f"▶ AC Trigger{user_tag}: Playing recording '{sound_name}' ({duration:.2f}s, target: {target_temp}°C)")
         return self.play_sound_clip(sound_name, content_type, duration)
 
     def broadcast_ac_trigger_async(self, action: str = "ac_on", target_temp: float = 22.0, mode: str = "Cool", sound_override: str = None, user: str = None):
