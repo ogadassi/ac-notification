@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.net.Uri
+import androidx.car.app.connection.CarConnection
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
@@ -18,6 +20,7 @@ object NotificationHelper {
 
     const val CHANNEL_ID = "ac_proximity_v8"
     const val NOTIFICATION_ID = 1001
+    const val NOTIFICATION_ID_COOL = 1002
     const val ACTION_AC_YES = "com.example.acnotification.ACTION_AC_YES"
     const val ACTION_AC_DISMISS = "com.example.acnotification.ACTION_AC_DISMISS"
     const val ACTION_AC_REPLY = "com.example.acnotification.ACTION_AC_REPLY"
@@ -26,11 +29,11 @@ object NotificationHelper {
     const val EXTRA_PROMPT = "ac_prompt"
     const val EXTRA_CHOICES = "ac_choices"
 
-    // Quick replies offered on the phone and in the car; each one parses to the matching ReplyCommand
+    // Quick replies offered in the car conversation; each one parses to the matching ReplyCommand
     val PROMPT_CHOICES = arrayOf("Turn on AC", "Not now")
     val ALREADY_ON_CHOICES = arrayOf("Turn off AC", "No thanks")
 
-    /** One message in the AC conversation: from the app, or the user's own reply. */
+    /** One message in the in-car AC conversation: from the app, or the driver's own reply. */
     data class Line(val fromUser: Boolean, val text: String)
 
     fun createNotificationChannel(context: Context) {
@@ -67,32 +70,108 @@ object NotificationHelper {
     }
 
     /**
-     * Shown when AC is OFF — asks whether to turn it on.
+     * Shown when AC is OFF — prompts user to turn it on.
      *
-     * Posted as a MessagingStyle conversation with reply and mark-as-read actions: the only notification
-     * shape Android Auto shows for sideloaded apps (with its "Unknown sources" developer setting on).
-     * In the car the driver taps Reply and says "turn on"; ACActionReceiver acts on the transcribed reply.
+     * Phone: BigTextStyle with Turn on AC / Dismiss buttons.
+     * Android Auto: a messaging conversation instead, the only notification Android Auto shows for sideloaded
+     * apps; the driver taps Reply and says "turn on", and ACActionReceiver acts on the transcribed reply.
      */
     fun showACNotification(context: Context) = showACNotification(context, serverReachable = true)
 
     fun showACNotification(context: Context, serverReachable: Boolean) {
-        val prompt = if (serverReachable) {
-            "You're almost home! Turn on the AC before you arrive?"
+        createNotificationChannel(context)
+
+        val expandedBody = if (serverReachable) {
+            "Turn on the AC before you arrive home?"
         } else {
-            "You're almost home! Turn on the AC before you arrive? (AC state could not be verified - no server connection.)"
+            "Turn on the AC before you arrive home?\nAC state could not be verified - no server connection."
         }
-        showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)), PROMPT_CHOICES, withPhoneButtons = true)
+
+        if (isConnectedToAndroidAuto(context)) {
+            val prompt = "You're almost home! $expandedBody"
+            showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)), PROMPT_CHOICES, withPhoneButtons = true)
+            return
+        }
+
+        val yesPendingIntent = broadcast(context, ACTION_AC_YES, 0)
+        val dismissPendingIntent = broadcast(context, ACTION_AC_DISMISS, 1)
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("You're almost home!")
+            .bigText(expandedBody)
+
+        val turnOnAction = NotificationCompat.Action.Builder(
+            R.drawable.ic_notification,
+            "Turn on AC",
+            yesPendingIntent
+        ).build()
+
+        val dismissAction = NotificationCompat.Action.Builder(
+            R.drawable.ic_notification,
+            "Dismiss",
+            dismissPendingIntent
+        ).build()
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(themeColor(context))
+            .setContentTitle("You're almost home!")
+            .setContentText("Turn on the AC before you arrive home?")
+            .setStyle(bigTextStyle)
+            .setContentIntent(yesPendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setSound(soundUri)
+            .setVibrate(longArrayOf(0, 250, 250, 250))
+            .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .addAction(turnOnAction)
+            .addAction(dismissAction)
+            .build()
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_ID, notification)
     }
 
-    /** Shown when AC is already ON — informational, but a reply such as "turn off" still works. */
+    /** Shown when AC is already ON — informational on the phone; in the car a reply such as "turn off" still works. */
     fun showAlreadyCoolNotification(context: Context) {
-        val prompt = "Welcome home! Your AC is already on - enjoy the cool air."
-        showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)), ALREADY_ON_CHOICES)
+        createNotificationChannel(context)
+
+        if (isConnectedToAndroidAuto(context)) {
+            val prompt = "Welcome home! Your AC is already on - enjoy the cool air."
+            showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)), ALREADY_ON_CHOICES)
+            return
+        }
+
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("Welcome home!")
+            .bigText("Your AC is already on - enjoy the cool air.")
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(themeColor(context))
+            .setContentTitle("Welcome home!")
+            .setContentText("Your AC is already on - enjoy the cool air.")
+            .setStyle(bigTextStyle)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setSound(soundUri)
+            .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .build()
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_ID_COOL, notification)
     }
 
     /**
-     * Posts or updates the AC conversation. [prompt] is the app's opening message and [choices] its two quick
-     * replies; both ride on the reply action so later replies can rebuild the conversation.
+     * Posts or updates the in-car AC conversation. [prompt] is the app's opening message and [choices] its two
+     * quick replies; both ride on the reply action so later replies can rebuild the conversation.
      * [alert] = false updates it silently.
      */
     fun showConversation(
@@ -173,6 +252,20 @@ object NotificationHelper {
 
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.notify(NOTIFICATION_ID, builder.build())
+    }
+
+    /** True while the phone is connected to Android Auto; the same check androidx.car.app's CarConnection makes. */
+    private fun isConnectedToAndroidAuto(context: Context): Boolean = try {
+        context.contentResolver.query(
+            Uri.Builder().scheme("content").authority("androidx.car.app.connection").build(),
+            arrayOf(CarConnection.CAR_CONNECTION_STATE), null, null, null
+        )?.use { cursor ->
+            cursor.moveToFirst() &&
+                cursor.getInt(cursor.getColumnIndexOrThrow(CarConnection.CAR_CONNECTION_STATE)) ==
+                CarConnection.CONNECTION_TYPE_PROJECTION
+        } ?: false
+    } catch (_: Exception) {
+        false
     }
 
     private fun broadcast(context: Context, action: String, requestCode: Int): PendingIntent =
