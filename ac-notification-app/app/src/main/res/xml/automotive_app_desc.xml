@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Declares that this app sends notifications Android Auto should surface.
-     Required for Android Auto to show this app's messaging notifications in-car. -->
+<!-- Declares that this app sends messaging notifications Android Auto should surface in-car.
+     Sideloaded installs also need Android Auto's "Unknown sources" developer setting turned on. -->
 <automotiveApp>
-    <uses name="template" />
+    <uses name="notification" />
 </automotiveApp>
