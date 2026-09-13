@@ -54,23 +54,15 @@
             </intent-filter>
         </receiver>
 
-        <!-- Android Auto CarAppService -->
-        <service
-            android:name=".car.AcCarAppService"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="androidx.car.app.CarAppService" />
-                <category android:name="androidx.car.app.category.IOT" />
-            </intent-filter>
-        </service>
+        <!-- The Car App Library dashboard (car/AcCarAppService) is intentionally not registered: Android Auto
+             only runs template apps installed from Google Play. For a Play build, re-add its CarAppService
+             (category androidx.car.app.category.IOT), the minCarApiLevel meta-data, and the "template" use in
+             automotive_app_desc.xml. -->
 
-        <!-- Android Auto descriptor & Car API Level -->
+        <!-- Android Auto descriptor: messaging notifications -->
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
-        <meta-data
-            android:name="androidx.car.app.minCarApiLevel"
-            android:value="1" />
 
     </application>
 

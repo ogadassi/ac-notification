@@ -8,16 +8,18 @@ plugins {
 android {
     namespace = "com.example.acnotification"
     compileSdk = 36
+    val playBuild = providers.gradleProperty("play").isPresent
     defaultConfig {
-        applicationId = "com.ogadassi.acnotification"
+        // Sideloaded builds keep the installed app's ID; -Pplay builds the Play Store identity (Play rejects com.example)
+        applicationId = if (playBuild) "com.ogadassi.acnotification" else "com.example.acnotification"
         minSdk = 29
         targetSdk = 36
-        versionCode = 9
-        versionName = "2.4.0"
+        versionCode = 10
+        versionName = "2.5.0"
     }
 
-    // Play upload key comes from the git-ignored keystore.properties (see keystore.properties.example);
-    // without it, release builds fall back to the debug key, which Google Play rejects
+    // Play builds (-Pplay) sign with the upload key from the git-ignored keystore.properties (see keystore.properties.example);
+    // sideloaded builds keep the debug key so they update the installed app in place
     val keystoreFile = rootProject.file("keystore.properties")
     val keystoreProps = Properties().apply {
         if (keystoreFile.exists()) keystoreFile.inputStream().use { load(it) }
@@ -36,7 +38,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-            signingConfig = signingConfigs.getByName(if (keystoreProps.isEmpty()) "debug" else "upload")
+            signingConfig = signingConfigs.getByName(if (playBuild && !keystoreProps.isEmpty()) "upload" else "debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {
