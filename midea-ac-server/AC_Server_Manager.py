@@ -48,12 +48,12 @@ def get_audio_dir():
 
 CONFIG_FILE = os.path.join(get_app_data_dir(), "config.json")
 DEFAULT_CONFIG = {
-    "ip": "10.0.0.7",
-    "device_id": "151732605587868",
-    "token": "571b46335cf39f12ce48d83ef4fce23b394487ac411c68043bc94986126c1502611d0ca6c47f5b7be9d37b94dbb6a04fc65c1b5aa9586b0752aee67fc317f791",
-    "key": "6388ef44e9204bda9b1d204f950a947f98c508ef431e4d6ea22cfd277e22af16",
-    "api_key": "ac_secret_key_8497",
-    "ngrok_domain": "oxidant-widely-endanger.ngrok-free.dev",
+    "ip": "",
+    "device_id": "",
+    "token": "",
+    "key": "",
+    "api_key": "",
+    "ngrok_domain": "",
     "open_to_tray": False,
     "nest_audio_enabled": True,
     "nest_device_name": "Home Nest",
@@ -138,12 +138,13 @@ class ACServerManagerGUI:
                 pass
 
         self.server_thread = None
-        self.public_url = f"https://{DEFAULT_CONFIG['ngrok_domain']}/api/v1/ac/trigger"
         self.is_running = False
         self.show_advanced = False
         self.tray_icon = None
 
         self.load_config_data()
+        domain = self.config.get("ngrok_domain", "")
+        self.public_url = f"https://{domain}/api/v1/ac/trigger" if domain else ""
         sync_autostart_path()
         self.build_ui()
         self.start_all_services()
@@ -154,25 +155,34 @@ class ACServerManagerGUI:
             self.root.after(0, self.hide_to_tray)
 
     def load_config_data(self):
-        if not os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, "w") as f:
-                json.dump(DEFAULT_CONFIG, f, indent=2)
-            self.config = DEFAULT_CONFIG
-        else:
+        self.config = dict(DEFAULT_CONFIG)
+        if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, "r") as f:
-                    self.config = json.load(f)
+                    self.config.update(json.load(f))
             except Exception:
-                self.config = DEFAULT_CONFIG
+                # Never overwrite a config file we failed to parse
+                return
+
+        # Every install gets its own random API key instead of a shared default
+        if len(self.config.get("api_key", "")) < 16:
+            self.config["api_key"] = secrets.token_urlsafe(32)
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(self.config, f, indent=2)
 
     def save_config_data(self):
         try:
             if hasattr(self, "entry_ip"):
+                api_key = self.entry_apikey.get().strip()
+                if len(api_key) < 16:
+                    messagebox.showerror("Error", "API Secret Key must be at least 16 characters.")
+                    return
                 self.config["ip"] = self.entry_ip.get().strip()
                 self.config["device_id"] = self.entry_id.get().strip()
                 self.config["token"] = self.entry_token.get().strip()
                 self.config["key"] = self.entry_key.get().strip()
-                self.config["api_key"] = self.entry_apikey.get().strip()
+                self.config["api_key"] = api_key
+                self.config["ngrok_domain"] = self.entry_ngrok.get().strip()
 
             with open(CONFIG_FILE, "w") as f:
                 json.dump(self.config, f, indent=2)
@@ -223,7 +233,8 @@ class ACServerManagerGUI:
             ("Device ID:", "entry_id", self.config.get("device_id", "")),
             ("Auth Token:", "entry_token", self.config.get("token", "")),
             ("AES Key:", "entry_key", self.config.get("key", "")),
-            ("API Secret Key:", "entry_apikey", self.config.get("api_key", ""))
+            ("API Secret Key:", "entry_apikey", self.config.get("api_key", "")),
+            ("ngrok Domain:", "entry_ngrok", self.config.get("ngrok_domain", ""))
         ]
 
         for i, (label_text, attr_name, default_val) in enumerate(fields):
@@ -232,6 +243,9 @@ class ACServerManagerGUI:
             entry.insert(0, default_val)
             entry.grid(row=i, column=1, sticky="ew", pady=1, padx=(8, 0))
             setattr(self, attr_name, entry)
+
+        btn_save = tk.Button(self.frame_advanced, text="💾 Save Settings", bg=COLOR_BUTTON_PRIMARY, fg="#FFFFFF", font=("Segoe UI", 8, "bold"), activebackground="#0369a1", activeforeground="#FFFFFF", command=self.save_config_data, cursor="hand2", bd=1)
+        btn_save.grid(row=len(fields), column=1, sticky="e", pady=(4, 0))
 
         self.frame_advanced.columnconfigure(1, weight=1)
 
@@ -381,7 +395,7 @@ class ACServerManagerGUI:
         messagebox.showinfo("Copied!", "Webhook Endpoint URL copied to clipboard!\nPaste this into Step 2 of the Mobile App Wizard.")
 
     def copy_key(self):
-        key = self.config.get("api_key", "ac_secret_key_8497")
+        key = self.config.get("api_key", "")
         self.root.clipboard_clear()
         self.root.clipboard_append(key)
         messagebox.showinfo("Copied!", "API Secret Key copied to clipboard!\nPaste this into Step 2 of the Mobile App Wizard.")
