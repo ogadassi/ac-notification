@@ -24,6 +24,11 @@ object NotificationHelper {
     const val ACTION_AC_MARK_READ = "com.example.acnotification.ACTION_AC_MARK_READ"
     const val KEY_VOICE_REPLY = "ac_voice_reply"
     const val EXTRA_PROMPT = "ac_prompt"
+    const val EXTRA_CHOICES = "ac_choices"
+
+    // Quick replies offered on the phone and in the car; each one parses to the matching ReplyCommand
+    val PROMPT_CHOICES = arrayOf("Turn on AC", "Not now")
+    val ALREADY_ON_CHOICES = arrayOf("Turn off AC", "No thanks")
 
     /** One message in the AC conversation: from the app, or the user's own reply. */
     data class Line(val fromUser: Boolean, val text: String)
@@ -76,23 +81,25 @@ object NotificationHelper {
         } else {
             "You're almost home! Turn on the AC before you arrive? (AC state could not be verified - no server connection.)"
         }
-        showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)), withPhoneButtons = true)
+        showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)), PROMPT_CHOICES, withPhoneButtons = true)
     }
 
     /** Shown when AC is already ON — informational, but a reply such as "turn off" still works. */
     fun showAlreadyCoolNotification(context: Context) {
         val prompt = "Welcome home! Your AC is already on - enjoy the cool air."
-        showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)))
+        showConversation(context, prompt, listOf(Line(fromUser = false, text = prompt)), ALREADY_ON_CHOICES)
     }
 
     /**
-     * Posts or updates the AC conversation. [prompt] is the app's opening message, carried on the reply
-     * action so later replies can rebuild the conversation. [alert] = false updates it silently.
+     * Posts or updates the AC conversation. [prompt] is the app's opening message and [choices] its two quick
+     * replies; both ride on the reply action so later replies can rebuild the conversation.
+     * [alert] = false updates it silently.
      */
     fun showConversation(
         context: Context,
         prompt: String,
         lines: List<Line>,
+        choices: Array<String>,
         withPhoneButtons: Boolean = false,
         alert: Boolean = true,
         timeoutMs: Long? = null
@@ -116,14 +123,15 @@ object NotificationHelper {
         val replyIntent = Intent(context, ACActionReceiver::class.java).apply {
             action = ACTION_AC_REPLY
             putExtra(EXTRA_PROMPT, prompt)
+            putExtra(EXTRA_CHOICES, choices)
         }
         // Mutable so the system can attach the reply text
         val replyPendingIntent = PendingIntent.getBroadcast(
             context, 2, replyIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
         val remoteInput = RemoteInput.Builder(KEY_VOICE_REPLY)
-            .setLabel("Say \"turn on\" or \"no\"")
-            .setChoices(arrayOf("Turn on AC", "Not now"))
+            .setLabel("Say \"${choices[0]}\" or \"${choices[1]}\"")
+            .setChoices(choices)
             .build()
         val replyAction = NotificationCompat.Action.Builder(R.drawable.ic_notification, "Reply", replyPendingIntent)
             .addRemoteInput(remoteInput)
@@ -148,6 +156,8 @@ object NotificationHelper {
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setOnlyAlertOnce(!alert)
+            // Only our own quick replies: system suggestions like "Thanks!" don't map to an AC command
+            .setAllowSystemGeneratedContextualActions(false)
             .setAutoCancel(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 

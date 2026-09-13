@@ -76,6 +76,7 @@ class ACActionReceiver : BroadcastReceiver() {
         val reply = RemoteInput.getResultsFromIntent(intent)
             ?.getCharSequence(NotificationHelper.KEY_VOICE_REPLY)?.toString().orEmpty()
         val prompt = intent.getStringExtra(NotificationHelper.EXTRA_PROMPT) ?: "Turn on the AC?"
+        val choices = intent.getStringArrayExtra(NotificationHelper.EXTRA_CHOICES) ?: NotificationHelper.PROMPT_CHOICES
         val command = ReplyCommand.parse(reply)
         Log.i(TAG, "Reply \"$reply\" -> $command")
 
@@ -85,13 +86,13 @@ class ACActionReceiver : BroadcastReceiver() {
         )
         fun respond(text: String, alert: Boolean = true, timeoutMs: Long? = null) =
             NotificationHelper.showConversation(
-                context, prompt, history + NotificationHelper.Line(fromUser = false, text = text),
+                context, prompt, history + NotificationHelper.Line(fromUser = false, text = text), choices,
                 alert = alert, timeoutMs = timeoutMs
             )
 
         when (command) {
             ReplyCommand.DECLINE -> respond("OK, leaving the AC as it is.", alert = false, timeoutMs = 15_000)
-            ReplyCommand.UNKNOWN -> respond("Sorry, I didn't catch that. Reply \"turn on\" or \"no\".")
+            ReplyCommand.UNKNOWN -> respond("Sorry, I didn't catch that. Reply \"${choices[0]}\" or \"${choices[1]}\".")
             ReplyCommand.TURN_ON, ReplyCommand.TURN_OFF -> {
                 val powerOn = command == ReplyCommand.TURN_ON
                 // Answering right away also clears the reply spinner on the phone
