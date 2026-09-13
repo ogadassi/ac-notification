@@ -23,7 +23,7 @@ class ACActionReceiver : BroadcastReceiver() {
         private const val PREFS_NAME = "ac_notification_prefs"
         private const val KEY_WEBHOOK_URL = "webhook_url"
         private const val KEY_API_KEY = "api_key"
-        // Separate from NotificationHelper.NOTIFICATION_ID so button feedback never replaces the conversation
+        // Separate from NotificationHelper's IDs so button feedback never replaces the arrival or already-on notice
         private const val CONFIRMATION_NOTIFICATION_ID = 1003
     }
 
@@ -91,7 +91,10 @@ class ACActionReceiver : BroadcastReceiver() {
             )
 
         when (command) {
-            ReplyCommand.DECLINE -> respond("OK, leaving the AC as it is.", alert = false, timeoutMs = 15_000)
+            ReplyCommand.DECLINE -> {
+                context.getSystemService(NotificationManager::class.java).cancel(NotificationHelper.NOTIFICATION_ID)
+                Log.i(TAG, "Declined by reply; conversation closed")
+            }
             ReplyCommand.UNKNOWN -> respond("Sorry, I didn't catch that. Reply \"${choices[0]}\" or \"${choices[1]}\".")
             ReplyCommand.TURN_ON, ReplyCommand.TURN_OFF -> {
                 val powerOn = command == ReplyCommand.TURN_ON
