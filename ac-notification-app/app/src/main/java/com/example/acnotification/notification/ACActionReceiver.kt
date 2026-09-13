@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.car.app.notification.CarAppExtender
 import androidx.core.app.NotificationCompat
 import com.example.acnotification.R
 import okhttp3.Call
@@ -24,7 +25,8 @@ class ACActionReceiver : BroadcastReceiver() {
         private const val PREFS_NAME = "ac_notification_prefs"
         private const val KEY_WEBHOOK_URL = "webhook_url"
         private const val KEY_API_KEY = "api_key"
-        private const val CONFIRMATION_NOTIFICATION_ID = 1002
+        // Separate from NotificationHelper.NOTIFICATION_ID_COOL so feedback never replaces the "already cool" notice
+        private const val CONFIRMATION_NOTIFICATION_ID = 1003
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -45,11 +47,11 @@ class ACActionReceiver : BroadcastReceiver() {
 
         if (webhookUrl.isBlank()) {
             Log.w(TAG, "No webhook URL configured")
-            showConfirmation(context, "\u26A0\uFE0F No webhook URL configured")
+            showConfirmation(context, "No webhook URL configured")
             return
         }
 
-        showConfirmation(context, "Turning on AC... \u2744\uFE0F")
+        showConfirmation(context, "Turning on AC...")
         
         // Use goAsync to keep broadcast alive during async network call
         val pendingResult = goAsync()
@@ -92,10 +94,10 @@ class ACActionReceiver : BroadcastReceiver() {
                         .putLong("last_action_time", System.currentTimeMillis())
                         .putString("real_ac_state", "ON")
                         .apply()
-                    showConfirmation(context, "AC is turning on! Cooling to ${targetTemp}°C \u2744\uFE0F")
+                    showConfirmation(context, "AC is turning on! Cooling to ${targetTemp}°C")
                 } else {
                     Log.e(TAG, "Webhook error: ${it.code}")
-                    showConfirmation(context, "\u274C Webhook returned ${it.code}")
+                    showConfirmation(context, "Webhook returned ${it.code}")
                 }
             }
         } catch (e: IOException) {
@@ -106,7 +108,12 @@ class ACActionReceiver : BroadcastReceiver() {
 
     private fun showConfirmation(context: Context, message: String) {
         NotificationHelper.createNotificationChannel(context)
-        val carExtender = NotificationCompat.CarExtender()
+        val carExtender = CarAppExtender.Builder()
+            .setContentTitle("AC Control")
+            .setContentText(message)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setImportance(NotificationManager.IMPORTANCE_HIGH)
+            .build()
 
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -117,6 +124,7 @@ class ACActionReceiver : BroadcastReceiver() {
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
             .setTimeoutAfter(10_000) // Auto-dismiss after 10 seconds
+            .setOnlyAlertOnce(true)
             .extend(carExtender)
             .build()
 
@@ -133,7 +141,7 @@ class ACActionReceiver : BroadcastReceiver() {
         NotificationHelper.createNotificationChannel(context)
 
         val retryIntent = Intent(context, ACActionReceiver::class.java).apply {
-            action = "com.example.acnotification.ACTION_AC_YES"
+            action = NotificationHelper.ACTION_AC_YES
         }
         val retryPendingIntent = PendingIntent.getBroadcast(
             context,
@@ -144,19 +152,27 @@ class ACActionReceiver : BroadcastReceiver() {
 
         val retryAction = NotificationCompat.Action.Builder(
             R.drawable.ic_notification,
-            "🔄 Retry",
+            "Retry",
             retryPendingIntent
-        ).build()
+        )
+        .setShowsUserInterface(false)
+        .build()
 
-        val carExtender = NotificationCompat.CarExtender()
+        val carExtender = CarAppExtender.Builder()
+            .setContentTitle("AC Control - No Internet")
+            .setContentText("Could not reach the AC server. Tap Retry when you are back online.")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setImportance(NotificationManager.IMPORTANCE_HIGH)
+            .addAction(R.drawable.ic_notification, "Retry", retryPendingIntent)
+            .build()
 
         val notification = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("AC Control — No Internet")
-            .setContentText("❌ Couldn't reach the AC server. Tap Retry when you're back online.")
+            .setContentTitle("AC Control - No Internet")
+            .setContentText("Could not reach the AC server. Tap Retry when you are back online.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("❌ Couldn't reach the AC server.\nTap Retry when you have internet access to turn on the AC.")
+                    .bigText("Could not reach the AC server.\nTap Retry when you have internet access to turn on the AC.")
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)

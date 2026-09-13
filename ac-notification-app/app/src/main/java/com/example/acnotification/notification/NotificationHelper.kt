@@ -5,16 +5,17 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import androidx.car.app.model.CarColor
+import androidx.car.app.notification.CarAppExtender
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.acnotification.R
 
 object NotificationHelper {
 
-    const val CHANNEL_ID = "ac_proximity_v6"
+    const val CHANNEL_ID = "ac_proximity_v8"
     const val NOTIFICATION_ID = 1001
     const val NOTIFICATION_ID_COOL = 1002
     const val ACTION_AC_YES = "com.example.acnotification.ACTION_AC_YES"
@@ -23,13 +24,12 @@ object NotificationHelper {
     fun createNotificationChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
 
-        // Delete old cached channels so Android OS refreshes channel settings (importance, sound, etc.)
+        // Delete channels from earlier versions so Android OS refreshes channel settings
         try {
-            manager.deleteNotificationChannel("ac_proximity_channel_v1")
-            manager.deleteNotificationChannel("ac_proximity_channel_v2")
-            manager.deleteNotificationChannel("ac_proximity_channel_v3")
-            manager.deleteNotificationChannel("ac_proximity_v4")
-            manager.deleteNotificationChannel("ac_proximity_v5")
+            listOf(
+                "ac_proximity_channel_v1", "ac_proximity_channel_v2", "ac_proximity_channel_v3",
+                "ac_proximity_v4", "ac_proximity_v5", "ac_proximity_v6", "ac_proximity_v7"
+            ).forEach { manager.deleteNotificationChannel(it) }
         } catch (_: Exception) {}
 
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
@@ -56,8 +56,10 @@ object NotificationHelper {
 
     /**
      * Shown when AC is OFF — prompts user to turn it on.
-     * Uses BigTextStyle + PRIORITY_MAX + CarExtender so Android Auto and phone OS
-     * display the actionable buttons directly on the vehicle screen.
+     *
+     * Phone: BigTextStyle (unchanged visual appearance).
+     * Car:   CarAppExtender (androidx.car.app.notification) overrides the in-car
+     *        representation so Android Auto shows a proper HUD heads-up with actions.
      */
     fun showACNotification(context: Context) = showACNotification(context, serverReachable = true)
 
@@ -85,21 +87,21 @@ object NotificationHelper {
         )
 
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        val appAvatar = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
 
         val expandedBody = if (serverReachable) {
             "Turn on the AC before you arrive home?"
         } else {
-            "Turn on the AC before you arrive home?\n⚠️ AC state couldn't be verified — no server connection."
+            "Turn on the AC before you arrive home?\nAC state could not be verified - no server connection."
         }
 
+        // ── Phone notification: BigTextStyle (no emojis, no extra icon) ──────────
         val bigTextStyle = NotificationCompat.BigTextStyle()
-            .setBigContentTitle("You're almost home! 🏠")
+            .setBigContentTitle("You're almost home!")
             .bigText(expandedBody)
 
         val turnOnAction = NotificationCompat.Action.Builder(
             R.drawable.ic_notification,
-            "✅ Turn on AC",
+            "Turn on AC",
             yesPendingIntent
         ).build()
 
@@ -109,7 +111,8 @@ object NotificationHelper {
             dismissPendingIntent
         ).build()
 
-        // Android Auto CarExtender configuration with dynamic phone theme color & in-car actions
+        // ── Car notification: CarAppExtender from androidx.car.app ───────────────
+        // Configures the in-car appearance independently from the phone notification.
         val prefs = context.getSharedPreferences("ac_notification_prefs", Context.MODE_PRIVATE)
         val savedHex = prefs.getString("theme_primary", null)
         val dynamicColor = if (!savedHex.isNullOrBlank()) {
@@ -117,17 +120,25 @@ object NotificationHelper {
         } else {
             ContextCompat.getColor(context, R.color.primary_dark)
         }
+        val carColor = CarColor.createCustom(dynamicColor, dynamicColor)
 
-        val carExtender = NotificationCompat.CarExtender()
-            .setLargeIcon(appAvatar)
-            .setColor(dynamicColor)
+        val carExtender = CarAppExtender.Builder()
+            .setContentTitle("You're almost home!")
+            .setContentText(expandedBody)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(carColor)
+            .setImportance(NotificationManager.IMPORTANCE_HIGH)
+            .setContentIntent(yesPendingIntent)
+            .setDeleteIntent(dismissPendingIntent)
+            .addAction(R.drawable.ic_notification, "Turn on AC", yesPendingIntent)
+            .addAction(R.drawable.ic_notification, "Dismiss", dismissPendingIntent)
+            .build()
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setLargeIcon(appAvatar)
             .setColor(dynamicColor)
-            .setContentTitle("You're almost home! 🏠")
-            .setContentText("Turn on the AC before you arrive?")
+            .setContentTitle("You're almost home!")
+            .setContentText("Turn on the AC before you arrive home?")
             .setStyle(bigTextStyle)
             .setContentIntent(yesPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -146,7 +157,7 @@ object NotificationHelper {
         manager.notify(NOTIFICATION_ID, notification)
     }
 
-    /** Shown when AC is already ON — informational only, surfaces in car via CarExtender. */
+    /** Shown when AC is already ON — informational only. */
     fun showAlreadyCoolNotification(context: Context) {
         createNotificationChannel(context)
 
@@ -159,18 +170,27 @@ object NotificationHelper {
         }
 
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        val appAvatar = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
 
-        val carExtender = NotificationCompat.CarExtender()
-            .setLargeIcon(appAvatar)
-            .setColor(dynamicColor)
+        val bigTextStyle = NotificationCompat.BigTextStyle()
+            .setBigContentTitle("Welcome home!")
+            .bigText("Your AC is already on - enjoy the cool air.")
+
+        val carColor = CarColor.createCustom(dynamicColor, dynamicColor)
+
+        val carExtender = CarAppExtender.Builder()
+            .setContentTitle("Welcome home!")
+            .setContentText("Your AC is already on - enjoy the cool air.")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setColor(carColor)
+            .setImportance(NotificationManager.IMPORTANCE_HIGH)
+            .build()
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setLargeIcon(appAvatar)
             .setColor(dynamicColor)
-            .setContentTitle("Welcome home! ❄️")
-            .setContentText("Your AC is already on — enjoy the cool air.")
+            .setContentTitle("Welcome home!")
+            .setContentText("Your AC is already on - enjoy the cool air.")
+            .setStyle(bigTextStyle)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
@@ -7,17 +9,34 @@ android {
     namespace = "com.example.acnotification"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.acnotification"
+        applicationId = "com.ogadassi.acnotification"
         minSdk = 29
         targetSdk = 36
-        versionCode = 8
-        versionName = "2.3.1"
+        versionCode = 9
+        versionName = "2.4.0"
+    }
+
+    // Play upload key comes from the git-ignored keystore.properties (see keystore.properties.example);
+    // without it, release builds fall back to the debug key, which Google Play rejects
+    val keystoreFile = rootProject.file("keystore.properties")
+    val keystoreProps = Properties().apply {
+        if (keystoreFile.exists()) keystoreFile.inputStream().use { load(it) }
+    }
+    signingConfigs {
+        if (!keystoreProps.isEmpty()) {
+            create("upload") {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (keystoreProps.isEmpty()) "debug" else "upload")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         debug {
