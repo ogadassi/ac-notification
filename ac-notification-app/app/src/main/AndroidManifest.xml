@@ -28,27 +28,21 @@
             </intent-filter>
         </activity>
 
+        <!-- Receivers are not exported: other apps could otherwise send ACTION_AC_YES or a crafted reply and
+             control the AC with the stored API key. Geofence events, notification buttons and Android Auto
+             replies arrive through this app's own explicit PendingIntents, and the system still delivers
+             BOOT_COMPLETED to unexported receivers. -->
         <receiver
             android:name=".geofence.GeofenceBroadcastReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.example.acnotification.ACTION_SIMULATE_GEOFENCE_ENTRY" />
-            </intent-filter>
-        </receiver>
-
+            android:exported="false" />
 
         <receiver
             android:name=".notification.ACActionReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.example.acnotification.ACTION_AC_YES" />
-                <action android:name="com.example.acnotification.ACTION_AC_DISMISS" />
-            </intent-filter>
-        </receiver>
+            android:exported="false" />
 
         <receiver
             android:name=".receiver.BootReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
