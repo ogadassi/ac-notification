@@ -10,8 +10,8 @@ android {
         applicationId = "com.example.acnotification"
         minSdk = 29
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.3.0"
+        versionCode = 8
+        versionName = "2.3.1"
     }
 
     buildTypes {
