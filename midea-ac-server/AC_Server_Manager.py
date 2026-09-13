@@ -4,6 +4,7 @@ AC Server Manager — Standalone Windows Control Center
 Features:
 - System Tray Minimization (Server stays running in background 24/7 on window close [X])
 - Native Windows Startup Registry Integration (Zero external .bat files needed!)
+- Single instance: launching again (e.g. from Windows Search) reopens the running Control Center
 - High-contrast Slate & Cyber Cyan aesthetics (#0F172A, #38BDF8, #F8FAFC)
 - 3-step setup wizard with live server logging
 """
@@ -16,6 +17,9 @@ import secrets
 import threading
 import subprocess
 import urllib.request
+import socket
+import ctypes
+from ctypes import wintypes
 import winreg
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
@@ -55,6 +59,7 @@ DEFAULT_CONFIG = {
     "api_key": "",
     "ngrok_domain": "",
     "open_to_tray": False,
+    "show_in_tray": True,
     "nest_audio_enabled": True,
     "nest_device_name": "Home Nest",
     "nest_ip": "10.0.0.6",
@@ -63,6 +68,20 @@ DEFAULT_CONFIG = {
 
 REG_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 REG_APP_NAME = "ACNotificationServer"
+
+# A second launch signals this event so the running instance shows its window instead of starting another server
+SHOW_WINDOW_EVENT = "Local\\ACNotificationServer.ShowWindow"
+ERROR_ALREADY_EXISTS = 183
+SERVER_PORT = 3000
+START_MENU_SHORTCUT = os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "Microsoft", "Windows", "Start Menu", "Programs", "AC Notification Server.lnk")
+
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+kernel32.CreateEventW.argtypes = [wintypes.LPVOID, wintypes.BOOL, wintypes.BOOL, wintypes.LPCWSTR]
+kernel32.CreateEventW.restype = wintypes.HANDLE
+kernel32.SetEvent.argtypes = [wintypes.HANDLE]
+kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+kernel32.WaitForSingleObject.restype = wintypes.DWORD
+kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
 
 # High-Contrast Professional Palette
 COLOR_CANVAS = "#0F172A"       # Deep Slate 900 Canvas
@@ -121,9 +140,52 @@ def sync_autostart_path():
     except Exception:
         pass
 
+def acquire_single_instance():
+    """Returns (is_first_instance, event_handle). A later launch wakes the first instance and gets (False, None)."""
+    handle = kernel32.CreateEventW(None, False, False, SHOW_WINDOW_EVENT)
+    if not handle:
+        return True, None
+    if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
+        kernel32.SetEvent(handle)
+        kernel32.CloseHandle(handle)
+        return False, None
+    return True, handle
+
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+def write_shortcut(shortcut_path, target_path):
+    script = (
+        "$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}'); "
+        "$s.TargetPath = '{exe}'; $s.WorkingDirectory = '{cwd}'; $s.IconLocation = '{exe},0'; "
+        "$s.Description = 'AC Notification PC Server Manager'; $s.Save()"
+    ).format(
+        lnk=shortcut_path.replace("'", "''"),
+        exe=target_path.replace("'", "''"),
+        cwd=os.path.dirname(target_path).replace("'", "''"),
+    )
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+        capture_output=True, text=True, timeout=30, creationflags=subprocess.CREATE_NO_WINDOW
+    )
+    return result.returncode == 0
+
+def sync_start_menu_shortcut():
+    """Point the Start Menu entry at this exe so Windows Search launches the current install."""
+    if not getattr(sys, 'frozen', False):
+        return
+    try:
+        os.makedirs(os.path.dirname(START_MENU_SHORTCUT), exist_ok=True)
+        write_shortcut(START_MENU_SHORTCUT, os.path.abspath(sys.executable))
+    except Exception:
+        pass
+
 class ACServerManagerGUI:
-    def __init__(self, root):
+    def __init__(self, root, instance_event=None):
         self.root = root
+        self.instance_event = instance_event
         self.root.title("AC Notification — PC Server Manager")
         self.root.geometry("640x720")
         self.root.minsize(580, 660)
@@ -146,9 +208,11 @@ class ACServerManagerGUI:
         domain = self.config.get("ngrok_domain", "")
         self.public_url = f"https://{domain}/api/v1/ac/trigger" if domain else ""
         sync_autostart_path()
+        threading.Thread(target=sync_start_menu_shortcut, daemon=True).start()
         self.build_ui()
         self.start_all_services()
         self.setup_tray_icon()
+        self.poll_show_requests()
 
         # Hide to tray on startup if the setting is enabled
         if self.config.get("open_to_tray", False):
@@ -288,17 +352,36 @@ class ACServerManagerGUI:
         open_to_tray_enabled = self.config.get("open_to_tray", False)
         open_to_tray_text = "🔲 Open to Tray: On" if open_to_tray_enabled else "🔲 Open to Tray: Off"
         open_to_tray_bg = COLOR_BUTTON_TEAL if open_to_tray_enabled else COLOR_BUTTON_SLATE
-        self.btn_open_to_tray = tk.Button(log_btn_row, text=open_to_tray_text, bg=open_to_tray_bg, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.toggle_open_to_tray, cursor="hand2", bd=1)
-        self.btn_open_to_tray.pack(side="left")
 
         btn_restart = tk.Button(log_btn_row, text="⚡ Restart Server Services", bg=COLOR_BUTTON_SLATE, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.restart_all_services, cursor="hand2", bd=1)
         btn_restart.pack(side="right")
+
+        window_btn_row = tk.Frame(group_step3, bg=COLOR_CANVAS)
+        window_btn_row.pack(fill="x", pady=(0, 4))
+
+        self.btn_open_to_tray = tk.Button(window_btn_row, text=open_to_tray_text, bg=open_to_tray_bg, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.toggle_open_to_tray, cursor="hand2", bd=1)
+        self.btn_open_to_tray.pack(side="left", padx=(0, 4))
+
+        show_in_tray_enabled = self.config.get("show_in_tray", True)
+        show_in_tray_text = "📌 Show in Tray: On" if show_in_tray_enabled else "📌 Show in Tray: Off"
+        show_in_tray_bg = COLOR_BUTTON_TEAL if show_in_tray_enabled else COLOR_BUTTON_SLATE
+        self.btn_show_in_tray = tk.Button(window_btn_row, text=show_in_tray_text, bg=show_in_tray_bg, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.toggle_show_in_tray, cursor="hand2", bd=1)
+        self.btn_show_in_tray.pack(side="left")
+
+        btn_exit = tk.Button(window_btn_row, text="⏻ Exit Server", bg=COLOR_BUTTON_SLATE, fg=COLOR_TEXT_PRIMARY, font=("Segoe UI", 8, "bold"), command=self.confirm_exit, cursor="hand2", bd=1)
+        btn_exit.pack(side="right")
 
         self.txt_log = scrolledtext.ScrolledText(group_step3, bg=COLOR_LOG_BG, fg=COLOR_CYAN, font=("Consolas", 8), height=7, borderwidth=1, relief="solid")
         self.txt_log.pack(fill="both", expand=True, pady=(2, 0))
 
     def setup_tray_icon(self):
         self.root.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
+        if self.config.get("show_in_tray", True):
+            self.start_tray_icon()
+
+    def start_tray_icon(self):
+        if self.tray_icon:
+            return
         menu = pystray.Menu(
             pystray.MenuItem("Open Control Center", self.show_from_tray, default=True),
             pystray.MenuItem("📁 Open Sounds Folder", self.open_audio_folder),
@@ -308,6 +391,17 @@ class ACServerManagerGUI:
         )
         self.tray_icon = pystray.Icon("ACNotificationServer", create_tray_image(), "AC Notification Server", menu)
         threading.Thread(target=self.tray_icon.run, daemon=True).start()
+
+    def stop_tray_icon(self):
+        if self.tray_icon:
+            self.tray_icon.stop()
+            self.tray_icon = None
+
+    def poll_show_requests(self):
+        if self.instance_event and kernel32.WaitForSingleObject(self.instance_event, 0) == 0:
+            self._deiconify_root()
+            self.log("SYSTEM", "Control Center reopened by a new launch (the server keeps running as a single instance)")
+        self.root.after(500, self.poll_show_requests)
 
     def open_audio_folder(self, icon=None, item=None):
         audio_dir = get_audio_dir()
@@ -321,7 +415,10 @@ class ACServerManagerGUI:
 
     def hide_to_tray(self):
         self.root.withdraw()
-        self.log("SYSTEM", "Control Center minimized to System Tray (Server continues running in background)")
+        if self.tray_icon:
+            self.log("SYSTEM", "Control Center minimized to System Tray (Server continues running in background)")
+        else:
+            self.log("SYSTEM", "Control Center hidden (Server continues running; reopen it from Windows Search)")
 
     def show_from_tray(self, icon=None, item=None):
         self.root.after(0, self._deiconify_root)
@@ -331,10 +428,20 @@ class ACServerManagerGUI:
         self.root.lift()
         self.root.focus_force()
 
+    def confirm_exit(self):
+        if messagebox.askyesno("Exit Server", "Stop the AC Notification Server?\n\nPhone and car control won't work until you start it again."):
+            self.exit_app_completely()
+
     def exit_app_completely(self, icon=None, item=None):
         self.log("SYSTEM", "Shutting down AC Notification Server...")
-        if self.tray_icon:
-            self.tray_icon.stop()
+        self.stop_tray_icon()
+        # ngrok is a child process that would otherwise outlive the app and block the next launch's tunnel
+        tunnel = sys.modules.get("start_tunnel")
+        if tunnel is not None and getattr(tunnel, "proc", None):
+            try:
+                tunnel.proc.terminate()
+            except Exception:
+                pass
         self.root.after(0, self.root.destroy)
 
     def toggle_autostart(self):
@@ -357,12 +464,20 @@ class ACServerManagerGUI:
             messagebox.showerror("Auto-Start Error", f"Failed to modify Windows startup registry: {e}")
             self.log("ERROR", f"Auto-start registry error: {e}")
 
+    def save_setting(self, key, value):
+        """Persist one setting without overwriting values the server changed on disk (e.g. an auto-healed AC IP)."""
+        on_disk = {}
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, "r") as f:
+                on_disk = json.load(f)
+        on_disk[key] = value
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(on_disk, f, indent=2)
+        self.config[key] = value
+
     def toggle_open_to_tray(self):
-        current = self.config.get("open_to_tray", False)
-        self.config["open_to_tray"] = not current
         try:
-            with open(CONFIG_FILE, "w") as f:
-                json.dump(self.config, f, indent=2)
+            self.save_setting("open_to_tray", not self.config.get("open_to_tray", False))
         except Exception as e:
             self.log("ERROR", f"Failed to save open_to_tray setting: {e}")
             return
@@ -372,6 +487,22 @@ class ACServerManagerGUI:
         else:
             self.btn_open_to_tray.config(text="🔲 Open to Tray: Off", bg=COLOR_BUTTON_SLATE)
             self.log("SYSTEM", "Open to Tray disabled — app will open normally next launch.")
+
+    def toggle_show_in_tray(self):
+        try:
+            self.save_setting("show_in_tray", not self.config.get("show_in_tray", True))
+        except Exception as e:
+            self.log("ERROR", f"Failed to save show_in_tray setting: {e}")
+            return
+        if self.config["show_in_tray"]:
+            self.start_tray_icon()
+            self.btn_show_in_tray.config(text="📌 Show in Tray: On", bg=COLOR_BUTTON_TEAL)
+            self.log("SYSTEM", "Tray icon shown.")
+        else:
+            self.stop_tray_icon()
+            self.btn_show_in_tray.config(text="📌 Show in Tray: Off", bg=COLOR_BUTTON_SLATE)
+            self.log("SYSTEM", "Tray icon hidden — closing this window keeps the server running; reopen it from Windows Search.")
+            messagebox.showinfo("Tray Icon Hidden", "The server keeps running when you close this window.\n\nTo reopen it, search for \"AC Notification Server\" in Windows Search.")
 
     def toggle_advanced_settings(self):
         if self.show_advanced:
@@ -443,7 +574,7 @@ class ACServerManagerGUI:
         def run_flask():
             try:
                 from midea_server import app
-                app.run(host="0.0.0.0", port=3000, debug=False, use_reloader=False)
+                app.run(host="0.0.0.0", port=SERVER_PORT, debug=False, use_reloader=False)
             except Exception as e:
                 self.log("ERROR", f"Flask server error: {e}")
 
@@ -496,6 +627,17 @@ class ACServerManagerGUI:
         messagebox.showinfo("Restarted", "Server services restarted successfully!")
 
 if __name__ == "__main__":
+    is_first_instance, instance_event = acquire_single_instance()
+    if not is_first_instance:
+        sys.exit(0)
+
     root = tk.Tk()
-    app = ACServerManagerGUI(root)
+    if is_port_in_use(SERVER_PORT):
+        # Builds before single-instance support don't create the event, so also refuse to start a second server on the port
+        root.withdraw()
+        messagebox.showwarning("Already Running", f"AC Notification Server is already running (port {SERVER_PORT} is in use).\n\nClose the other copy first, e.g. from its tray icon.")
+        root.destroy()
+        sys.exit(1)
+
+    app = ACServerManagerGUI(root, instance_event)
     root.mainloop()
