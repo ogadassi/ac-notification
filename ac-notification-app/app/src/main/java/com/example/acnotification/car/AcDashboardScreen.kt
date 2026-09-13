@@ -22,8 +22,13 @@ class AcDashboardScreen(carContext: CarContext) : Screen(carContext) {
 
     private val apiClient = AcApiClient(carContext)
     private val geofenceManager = GeofenceManager(carContext)
+    private val mainExecutor = ContextCompat.getMainExecutor(carContext)
 
-    private var isLoading = false
+    // The loading pane is shown only until the first status arrives. Later refreshes keep the same
+    // pane and just change its text, so Android Auto treats them as refreshes rather than new
+    // template steps (the host closes apps that exceed 5 steps in a task).
+    private var hasLoaded = false
+    private var isBusy = false
     private var isAcOn = false
     private var statusDetail = "Checking status..."
 
@@ -62,59 +67,69 @@ class AcDashboardScreen(carContext: CarContext) : Screen(carContext) {
         return prefs.getInt("target_temp", 22)
     }
 
+    private fun describeState(targetTemp: Int): String =
+        if (isAcOn) "Cooling to ${targetTemp}°C (Cool Mode)" else "AC is currently OFF"
+
     private fun fetchStatus() {
-        isLoading = true
-        invalidate()
+        if (isBusy) return
+        isBusy = true
+        if (hasLoaded) {
+            statusDetail = "Refreshing..."
+            invalidate()
+        }
         AppLogger.i(TAG, "Fetching AC status for Car Dashboard...")
 
         val targetTemp = getTargetTemperature()
         apiClient.fetchStatus { result ->
-            isLoading = false
-            result.onSuccess { status ->
-                isAcOn = status.isAcOn
-                statusDetail = if (isAcOn) "Cooling to ${targetTemp}°C (Cool Mode)" else "AC is currently OFF"
-                AppLogger.i(TAG, "Car Dashboard status updated: isAcOn=$isAcOn")
-            }.onFailure { error ->
-                statusDetail = "Unavailable (${error.message ?: "Offline"})"
-                AppLogger.w(TAG, "Car Dashboard status check failed: ${error.message}")
+            // OkHttp calls back on a background thread; screen state is only touched on the main thread
+            mainExecutor.execute {
+                isBusy = false
+                hasLoaded = true
+                result.onSuccess { status ->
+                    isAcOn = status.isAcOn
+                    statusDetail = describeState(targetTemp)
+                    AppLogger.i(TAG, "Car Dashboard status updated: isAcOn=$isAcOn")
+                }.onFailure { error ->
+                    statusDetail = "Unavailable (${error.message ?: "Offline"})"
+                    AppLogger.w(TAG, "Car Dashboard status check failed: ${error.message}")
+                }
+                invalidate()
             }
-            invalidate()
         }
     }
 
     private fun toggleAc() {
+        if (isBusy) return
+        isBusy = true
         val targetState = !isAcOn
         val targetTemp = getTargetTemperature()
-        isLoading = true
+        statusDetail = if (targetState) "Sending Turn ON signal (${targetTemp}°C)..." else "Sending Turn OFF signal..."
         invalidate()
 
-        CarToast.makeText(
-            carContext,
-            if (targetState) "Sending Turn ON signal (${targetTemp}°C)..." else "Sending Turn OFF signal...",
-            CarToast.LENGTH_SHORT
-        ).show()
-
         apiClient.triggerAc(targetState) { result ->
-            isLoading = false
-            result.onSuccess { msg ->
-                isAcOn = targetState
-                statusDetail = if (isAcOn) "Cooling to ${targetTemp}°C (Cool Mode)" else "AC is currently OFF"
-                CarToast.makeText(carContext, msg, CarToast.LENGTH_LONG).show()
-                AppLogger.i(TAG, "Car Dashboard AC toggle success: $msg")
-            }.onFailure { err ->
-                CarToast.makeText(
-                    carContext,
-                    "⚠️ Failed to control AC: ${err.message}",
-                    CarToast.LENGTH_LONG
-                ).show()
-                AppLogger.e(TAG, "Car Dashboard AC toggle failed: ${err.message}")
+            mainExecutor.execute {
+                isBusy = false
+                result.onSuccess { msg ->
+                    isAcOn = targetState
+                    statusDetail = describeState(targetTemp)
+                    CarToast.makeText(carContext, msg, CarToast.LENGTH_LONG).show()
+                    AppLogger.i(TAG, "Car Dashboard AC toggle success: $msg")
+                }.onFailure { err ->
+                    statusDetail = describeState(targetTemp)
+                    CarToast.makeText(
+                        carContext,
+                        "⚠️ Failed to control AC: ${err.message}",
+                        CarToast.LENGTH_LONG
+                    ).show()
+                    AppLogger.e(TAG, "Car Dashboard AC toggle failed: ${err.message}")
+                }
+                invalidate()
             }
-            invalidate()
         }
     }
 
     override fun onGetTemplate(): Template {
-        if (isLoading) {
+        if (!hasLoaded) {
             return PaneTemplate.Builder(
                 Pane.Builder()
                     .setLoading(true)

@@ -15,6 +15,11 @@ build/
 **/.env
 local.properties
 
+# Android release signing (upload key and its passwords)
+**/keystore.properties
+*.jks
+*.keystore
+
 # Logs and runtime files
 *.log
 **/ac_tray_app.log

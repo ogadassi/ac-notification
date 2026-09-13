@@ -19,7 +19,7 @@ import argparse
 import sys
 import threading
 
-APP_PACKAGE = "com.example.acnotification"
+APP_PACKAGE = "com.ogadassi.acnotification"
 LOG_TAG = "GeofenceReceiver|GeofenceManager|ACActionReceiver|GeofencingApi"
 
 # ___ ADB Helper ______________________________________________________________
