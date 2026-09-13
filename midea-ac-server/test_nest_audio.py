@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Standalone Test Suite for Google Nest Audio Feedback (Mission 2).
 Usage:
@@ -28,9 +28,9 @@ logging.basicConfig(
 logger = logging.getLogger("TestNestAudio")
 
 
-def run_standalone_test(sound_override=None):
+def run_standalone_test(sound_override=None, action="ac_on", user=None):
     print("=" * 65)
-    print(" 🚀 Mission 2: Google Nest Audio Feedback Test")
+    print(f" 🚀 Google Nest Audio Feedback Test ({'AC Turn OFF (Generic Chime)' if action == 'ac_off' else 'AC Turn ON'})")
     print("=" * 65)
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -83,9 +83,12 @@ def run_standalone_test(sound_override=None):
     print(f"\n[3/4] Audio Pool & Sound Selection:")
     broadcaster.ensure_audio_assets()
     pool = broadcaster.get_audio_pool()
-    sound_name, sound_path, ctype, duration, _ = broadcaster.pick_sound(sound_override=sound_override)
+    sound_name, sound_path, ctype, duration, _ = broadcaster.pick_sound(sound_override=sound_override, user=user, action=action)
     sound_size = os.path.getsize(sound_path) if os.path.exists(sound_path) else 0
-    print(f"      • Available Pool    : {len(pool)} sounds ({', '.join(pool)})")
+    print(f"      • Action            : {action}")
+    if user:
+        print(f"      • User Context      : {user}")
+    print(f"      • General Pool Size : {len(pool)} sounds ({', '.join(pool)})")
     print(f"      ✔ Selected Track    : '{sound_name}' ({sound_size} bytes, {duration:.2f}s, {ctype})")
 
     # 4. Device Connection & Streaming
@@ -105,10 +108,11 @@ def run_standalone_test(sound_override=None):
     print(f"      ▶ Streaming '{sound_name}' now...")
 
     success = broadcaster.broadcast_ac_trigger(
-        action="ac_on",
+        action=action,
         target_temp=22.0,
         mode="Cool",
-        sound_override=sound_name
+        sound_override=sound_name,
+        user=user
     )
 
     time.sleep(0.5)
@@ -127,8 +131,12 @@ def run_standalone_test(sound_override=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Nest Audio Feedback")
-    parser.add_argument("--sound", help="Specific sound file (e.g. 1.wav, 2.wav)", default=None)
+    parser.add_argument("--sound", help="Specific sound file (e.g. 1.wav, 2.wav, chime.wav)", default=None)
+    parser.add_argument("--action", help="AC action: 'ac_on' or 'ac_off'", default="ac_on")
+    parser.add_argument("--off", action="store_true", help="Shortcut to test AC Turn OFF generic chime")
+    parser.add_argument("--user", help="User name to test user-specific sounds", default=None)
     args = parser.parse_args()
 
-    result = run_standalone_test(sound_override=args.sound)
+    action = "ac_off" if args.off else args.action
+    result = run_standalone_test(sound_override=args.sound, action=action, user=args.user)
     sys.exit(0 if result else 1)
