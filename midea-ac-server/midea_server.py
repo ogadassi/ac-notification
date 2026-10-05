@@ -238,6 +238,147 @@ async def query_ac_status():
             except Exception:
                 pass
 
+# Full-state API for desk clients (Friendmeter AC card + macropad). Names are the wire format.
+MODE_NAMES = {
+    "auto": AC.OperationalMode.AUTO,
+    "cool": AC.OperationalMode.COOL,
+    "dry": AC.OperationalMode.DRY,
+    "heat": AC.OperationalMode.HEAT,
+    "fan": AC.OperationalMode.FAN_ONLY,
+    "smart_dry": AC.OperationalMode.SMART_DRY,
+}
+FAN_NAMES = {
+    "auto": AC.FanSpeed.AUTO,
+    "silent": AC.FanSpeed.SILENT,
+    "low": AC.FanSpeed.LOW,
+    "medium": AC.FanSpeed.MEDIUM,
+    "high": AC.FanSpeed.HIGH,
+    "max": AC.FanSpeed.MAX,
+}
+SWING_NAMES = {
+    "off": AC.SwingMode.OFF,
+    "vertical": AC.SwingMode.VERTICAL,
+    "horizontal": AC.SwingMode.HORIZONTAL,
+    "both": AC.SwingMode.BOTH,
+}
+
+ac_full_state = {"state": None, "last_updated": 0}
+AC_STATE_TTL = 5  # seconds; desk clients poll, and a command returns the new state anyway
+# Capabilities never change, so they are asked for once and reused on later connections
+ac_capabilities = {}
+
+def _wire_name(value, names):
+    for name, member in names.items():
+        if member == value:
+            return name
+    # Units with custom fan speeds report a plain percentage
+    return value if isinstance(value, (int, float)) else str(value)
+
+def _snapshot(device):
+    state = {
+        "power": bool(device.power_state),
+        "mode": _wire_name(device.operational_mode, MODE_NAMES),
+        "target_temp": device.target_temperature,
+        "indoor_temp": device.indoor_temperature,
+        "outdoor_temp": device.outdoor_temperature,
+        "fan": _wire_name(device.fan_speed, FAN_NAMES),
+        "swing": _wire_name(device.swing_mode, SWING_NAMES),
+    }
+    state.update(ac_capabilities)
+    return state
+
+def _remember_state(state):
+    now = time.time()
+    ac_full_state["state"] = state
+    ac_full_state["last_updated"] = now
+    ac_state_cache["power_on"] = state["power"]
+    ac_state_cache["last_updated"] = now
+
+async def _connect_ac():
+    device = AC(ip=config['ip'], port=6444, device_id=int(config['device_id']))
+    await device.authenticate(config['token'], config['key'])
+    if not ac_capabilities:
+        await device.get_capabilities()
+        ac_capabilities.update({
+            "min_temp": device.min_target_temperature,
+            "max_temp": device.max_target_temperature,
+            "modes": [_wire_name(m, MODE_NAMES) for m in device.supported_operation_modes],
+            "fans": [_wire_name(f, FAN_NAMES) for f in device.supported_fan_speeds],
+            "swings": [_wire_name(s, SWING_NAMES) for s in device.supported_swing_modes],
+        })
+    return device
+
+def _disconnect_ac(device):
+    if device:
+        try:
+            device._lan._disconnect()
+        except Exception:
+            pass
+
+async def read_ac_state():
+    """Live query of everything the desk card shows. Returns (state, message)."""
+    if not config:
+        return None, "config.json is missing or invalid."
+
+    device = None
+    try:
+        async def _fetch():
+            nonlocal device
+            device = await _connect_ac()
+            await device.refresh()
+            return _snapshot(device)
+
+        state = await asyncio.wait_for(_fetch(), timeout=5.0)
+        _remember_state(state)
+        return state, "OK"
+    except Exception as e:
+        app.logger.warning(f"[state] Live query failed/timed out on IP {config.get('ip')}: {e}")
+        auto_heal_ac_ip()
+        return None, f"Midea State Error: {e}"
+    finally:
+        _disconnect_ac(device)
+
+async def apply_ac_settings(changes):
+    """Changes only the given settings; powering on keeps the AC's current mode. Returns (state, message)."""
+    if not config:
+        return None, "config.json is missing or invalid."
+
+    last_err = ""
+    for attempt in range(3):
+        device = None
+        try:
+            async def _apply():
+                nonlocal device
+                device = await _connect_ac()
+                await device.refresh()
+                if "power" in changes:
+                    device.power_state = changes["power"]
+                if "mode" in changes:
+                    device.operational_mode = MODE_NAMES[changes["mode"]]
+                if "target_temp" in changes:
+                    device.target_temperature = changes["target_temp"]
+                if "fan" in changes:
+                    device.fan_speed = FAN_NAMES[changes["fan"]]
+                if "swing" in changes:
+                    device.swing_mode = SWING_NAMES[changes["swing"]]
+                await device.apply()
+                return _snapshot(device)
+
+            state = await asyncio.wait_for(_apply(), timeout=8.0)
+            _remember_state(state)
+            return state, "OK"
+        except Exception as e:
+            last_err = str(e)
+            app.logger.warning(f"[set] Attempt {attempt + 1} failed (IP: {config.get('ip')}): {last_err}")
+            if attempt == 0 and auto_heal_ac_ip():
+                continue
+            if attempt < 2:
+                await asyncio.sleep(0.5)
+        finally:
+            _disconnect_ac(device)
+
+    return None, f"Midea Set Error: {last_err}"
+
 def check_auth():
     """
     Verify client credentials securely.
@@ -307,6 +448,51 @@ def validate_trigger_payload(data):
             
     return True, None
 
+def validate_set_payload(data):
+    """
+    Validates a /api/v1/ac/set payload and returns (changes, quiet, error).
+    Every setting is optional, but at least one must be given:
+    power (bool), mode, fan, swing (names from the *_NAMES maps),
+    target_temp (16.0-30.0, rounded to the AC's 0.5 steps), quiet (bool, skips the Nest speaker).
+    """
+    if not isinstance(data, dict):
+        return None, False, "Invalid payload format."
+
+    changes = {}
+    if "power" in data:
+        if not isinstance(data["power"], bool):
+            return None, False, "power must be true or false."
+        changes["power"] = data["power"]
+
+    for field, names in (("mode", MODE_NAMES), ("fan", FAN_NAMES), ("swing", SWING_NAMES)):
+        if field in data:
+            if data[field] not in names:
+                return None, False, f"{field} must be one of: {', '.join(names)}."
+            changes[field] = data[field]
+
+    if "target_temp" in data:
+        try:
+            temp_val = float(data["target_temp"])
+        except (ValueError, TypeError):
+            return None, False, "target_temp must be a valid number."
+        if not (16.0 <= temp_val <= 30.0):
+            return None, False, "target_temp must be between 16.0 and 30.0 degrees."
+        changes["target_temp"] = round(temp_val * 2) / 2
+
+    quiet = data.get("quiet", False)
+    if not isinstance(quiet, bool):
+        return None, False, "quiet must be true or false."
+
+    if not changes:
+        return None, False, "Nothing to change."
+
+    timestamp = data.get("timestamp")
+    if timestamp is not None and isinstance(timestamp, (int, float)):
+        if abs(int(time.time() * 1000) - int(timestamp)) > 10 * 60 * 1000:
+            return None, False, "Request timestamp expired or out of acceptable clock-drift window."
+
+    return changes, quiet, None
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     """
@@ -364,15 +550,17 @@ def trigger_ac():
         ac_state_cache["last_updated"] = time.time()
         
         # Asynchronously trigger Google Nest Audio broadcast in background thread
-        try:
-            nest_broadcaster.broadcast_ac_trigger_async(
-                action=action,
-                target_temp=target_temp,
-                mode=mode,
-                user=user
-            )
-        except Exception as e:
-            app.logger.warning(f"Failed to dispatch Nest Audio broadcast: {e}")
+        # ("quiet": true comes from desk controls, which shouldn't speak)
+        if payload.get("quiet") is not True:
+            try:
+                nest_broadcaster.broadcast_ac_trigger_async(
+                    action=action,
+                    target_temp=target_temp,
+                    mode=mode,
+                    user=user
+                )
+            except Exception as e:
+                app.logger.warning(f"Failed to dispatch Nest Audio broadcast: {e}")
 
         response_data = {"success": True, "message": message, "ac_on": power_on, "target_temp": target_temp}
         if user:
@@ -502,6 +690,74 @@ def ac_status():
         "ac_on": power_on,
         "source": "live"
     }), 200
+
+@app.route('/api/v1/ac/state', methods=['GET'])
+def ac_state():
+    """
+    Returns the full AC state: power, mode, target/indoor/outdoor temperature, fan, swing,
+    and the unit's supported modes/fans/swings and temperature range.
+    Served from a short cache unless ?fresh=1. On a failed live query the last known state
+    comes back with "stale": true (or 503 if there is none yet).
+    """
+    load_config()
+    if not check_auth():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    cache_age = time.time() - ac_full_state["last_updated"]
+    if ac_full_state["state"] is not None and cache_age < AC_STATE_TTL and request.args.get("fresh") != "1":
+        return jsonify({"success": True, "source": "cache", "age_seconds": int(cache_age), **ac_full_state["state"]})
+
+    with ac_lock:
+        try:
+            state, message = asyncio.run(read_ac_state())
+        except Exception as e:
+            state, message = None, str(e)
+
+    if state is None:
+        app.logger.warning(f"AC state query failed: {message}")
+        if ac_full_state["state"] is None:
+            return jsonify({"success": False, "error": "AC unreachable"}), 503
+        return jsonify({"success": True, "source": "fallback_cache", "stale": True,
+                        "age_seconds": int(time.time() - ac_full_state["last_updated"]), **ac_full_state["state"]})
+
+    return jsonify({"success": True, "source": "live", **state})
+
+@app.route('/api/v1/ac/set', methods=['POST'])
+def ac_set():
+    """
+    Changes only the settings given (see validate_set_payload) and returns the new full state.
+    Unlike /trigger, powering on keeps the AC's current mode instead of forcing Cool.
+    """
+    load_config()
+    if not check_auth():
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    if not request.is_json:
+        return jsonify({"success": False, "error": "Content-Type must be application/json"}), 415
+
+    changes, quiet, err_msg = validate_set_payload(request.get_json(silent=True))
+    if err_msg:
+        return jsonify({"success": False, "error": err_msg}), 400
+
+    was_on = ac_state_cache.get("power_on")
+    with ac_lock:
+        state, message = asyncio.run(apply_ac_settings(changes))
+
+    if state is None:
+        app.logger.error("AC set failed: %s", message)
+        return jsonify({"success": False, "error": "Failed to complete AC action"}), 500
+
+    if not quiet and "power" in changes and state["power"] != was_on:
+        try:
+            nest_broadcaster.broadcast_ac_trigger_async(
+                action="ac_on" if state["power"] else "ac_off",
+                target_temp=state["target_temp"],
+                mode=str(state["mode"]).replace("_", " ").title()
+            )
+        except Exception as e:
+            app.logger.warning(f"Failed to dispatch Nest Audio broadcast: {e}")
+
+    return jsonify({"success": True, "source": "live", **state})
 
 @app.route('/health', methods=['GET'])
 def health():
