@@ -14,6 +14,11 @@ from concurrent.futures import ThreadPoolExecutor
 import pychromecast
 from gtts import gTTS
 
+try:
+    import audio_loudness
+except Exception:  # pragma: no cover - server still runs without loudness matching
+    audio_loudness = None
+
 logger = logging.getLogger("NestAudioBroadcaster")
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stdout)
@@ -40,10 +45,15 @@ def get_audio_file_duration(file_path: str) -> float:
     return 3.5
 
 
-def generate_default_chime_wav(filepath: str, sample_rate: int = 44100):
+def generate_default_chime_wav(filepath: str, sample_rate: int = 48000):
     """
-    Synthesizes a pleasant, gentle 2-tone notification chime (16-bit PCM mono WAV)
+    Synthesizes a pleasant, gentle 2-tone notification chime (16-bit PCM stereo WAV)
     for Google Cast speakers when AC is turned off.
+
+    Written at the same rate and channel count as the sound pool: a mono file gets
+    duplicated across both output channels and lands ~3 dB louder than the same
+    signal stored as stereo, which would leave the off chime out of step with the
+    welcome sounds. The level is matched to the pool before it is ever played.
     """
     os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
     notes = [
@@ -73,52 +83,38 @@ def generate_default_chime_wav(filepath: str, sample_rate: int = 44100):
 
     audio_samples.extend([0] * int(sample_rate * 0.1))
 
+    interleaved = [v for v in audio_samples for _ in (0, 1)]
     with wave.open(filepath, 'wb') as wf:
-        wf.setnchannels(1)
+        wf.setnchannels(2)
         wf.setsampwidth(2)
         wf.setframerate(sample_rate)
-        packed_data = struct.pack('<' + 'h' * len(audio_samples), *audio_samples)
+        packed_data = struct.pack('<' + 'h' * len(interleaved), *interleaved)
         wf.writeframes(packed_data)
+
+    if audio_loudness is not None:
+        try:
+            audio_loudness.normalize_file(filepath)
+        except Exception as e:
+            logger.debug(f"Could not level the generated chime: {e}")
     logger.info(f"Generated default off-chime at '{filepath}'")
 
 
 def sanitize_wav_files(audio_dir: str):
     """
-    Checks all WAV files in audio_dir to ensure:
+    Checks all WAV files under audio_dir (per-user folders included) to ensure:
     1. They are encoded as standard 16-bit PCM integer WAV for Google Cast hardware.
-    2. Quiet voice recordings are automatically normalized and boosted to studio volume (~30,000 peak).
+    2. Every sound plays back at the same perceived volume.
+
+    Loudness is matched with BS.1770 gain rather than by peak. Lining up the tallest
+    sample says little about how loud a sound is heard: it left the shipped pool
+    spread across roughly 4 dB of perceived level, it never reached the per-user
+    folders, and it would re-boost an already balanced file whose peaks sit low.
     """
+    if audio_loudness is None:
+        logger.debug("Loudness matching unavailable (audio_loudness not importable)")
+        return
     try:
-        from scipy.io import wavfile
-        import numpy as np
-        for f in os.listdir(audio_dir):
-            if f.endswith('.wav'):
-                p = os.path.join(audio_dir, f)
-                try:
-                    rate, data = wavfile.read(p)
-                    needs_rewrite = False
-                    data_float = data.astype(np.float64)
-
-                    max_val = np.max(np.abs(data_float))
-                    if data.dtype in (np.float32, np.float64):
-                        needs_rewrite = True
-                        if max_val > 0:
-                            normalized = data_float / max_val
-                            data_out = (normalized * 30000.0).astype(np.int16)
-                        else:
-                            data_out = data_float.astype(np.int16)
-                    elif max_val < 20000.0 and max_val > 0:
-                        needs_rewrite = True
-                        gain = 30000.0 / max_val
-                        data_out = np.clip(data_float * gain, -32768, 32767).astype(np.int16)
-                        logger.info(f"Auto-boosted quiet recording {f} by {gain:.1f}x to studio volume")
-                    else:
-                        data_out = data
-
-                    if needs_rewrite:
-                        wavfile.write(p, rate, data_out)
-                except Exception:
-                    pass
+        audio_loudness.normalize_tree(audio_dir)
     except Exception as e:
         logger.debug(f"WAV sanitization exception: {e}")
 
@@ -196,8 +192,7 @@ class NestAudioBroadcaster:
                 return "127.0.0.1"
 
     def ensure_audio_assets(self):
-        """Ensures quiet/float32 WAV recordings in static/audio are converted to loud 16-bit PCM and default chime exists."""
-        sanitize_wav_files(self.audio_dir)
+        """Ensures the default chime exists and every WAV in static/audio is 16-bit PCM at a matched volume."""
         chime_candidates = ("chime.wav", "chime.mp3", "off.wav", "off.mp3")
         if not any(os.path.exists(os.path.join(self.audio_dir, c)) for c in chime_candidates):
             default_chime = os.path.join(self.audio_dir, "chime.wav")
@@ -205,6 +200,8 @@ class NestAudioBroadcaster:
                 generate_default_chime_wav(default_chime)
             except Exception as e:
                 logger.error(f"Failed to generate default chime: {e}")
+        # After the chime, so a freshly generated one is levelled in the same pass.
+        sanitize_wav_files(self.audio_dir)
 
     def get_audio_pool(self) -> list[str]:
         """

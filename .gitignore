@@ -34,6 +34,9 @@ local.properties
 midea-ac-server/dist/
 midea-ac-server/static/audio/tts/
 
+# Loudness measurement cache, rebuilt from the audio files themselves
+midea-ac-server/static/audio/.loudness.json
+
 # Release binaries are published on GitHub Releases, not committed
 /*.exe
 /*.apk
